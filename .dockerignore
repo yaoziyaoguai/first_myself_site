@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log
+.next
+.git
+.gitignore
+README.md
+.env
+.env.local
+.env.*.local
+.payload/payload.db
+public/media
+coverage
+.claude
+.DS_Store
+*.pem
+.vercel
+cookies.txt
