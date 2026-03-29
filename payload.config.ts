@@ -1,5 +1,5 @@
 import { buildConfig } from "payload";
-import { sqliteAdapter } from "@payloadcms/db-sqlite";
+import { postgresAdapter } from "@payloadcms/db-postgres";
 import { lexicalEditor } from "@payloadcms/richtext-lexical";
 
 // Globals
@@ -22,9 +22,9 @@ export default buildConfig({
   editor: lexicalEditor(),
   globals: [Home, SiteSettings, About, Contact],
   collections: [Users, Media, Blog, Projects],
-  db: sqliteAdapter({
-    client: {
-      url: "file:./.payload/payload.db",
+  db: postgresAdapter({
+    pool: {
+      connectionString: process.env.DATABASE_URL || "postgresql://payload:payload_secret_2026@localhost:5432/first_myself_site",
     },
   }),
   secret: (() => {

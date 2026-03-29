@@ -2,6 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { getPayloadAPI } from "@/lib/payload";
 
+export const dynamic = "force-dynamic";
+
 export default async function ContactPage() {
   const payload = await getPayloadAPI();
   const contact = await payload.findGlobal({ slug: "contact" });

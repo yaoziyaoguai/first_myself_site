@@ -55,6 +55,13 @@ const Contact: GlobalConfig = {
       ],
     },
   ],
+  access: {
+    read: () => true,
+    update: ({ req }) => {
+      if (!req.user) return false;
+      return req.user.role === "admin" || req.user.role === "editor";
+    },
+  },
 };
 
 export default Contact;

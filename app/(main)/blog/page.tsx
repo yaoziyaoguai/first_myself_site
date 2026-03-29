@@ -9,6 +9,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { getPayloadAPI } from "@/lib/payload";
 
+export const dynamic = "force-dynamic";
+
 export default async function BlogPage() {
   const payload = await getPayloadAPI();
   const result = await payload.find({

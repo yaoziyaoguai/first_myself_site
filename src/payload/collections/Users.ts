@@ -18,6 +18,7 @@ const Users: CollectionConfig = {
         { label: "访客", value: "viewer" },
       ],
       required: true,
+      saveToJWT: true,
       admin: {
         description: "决定用户可以执行的操作权限",
       },

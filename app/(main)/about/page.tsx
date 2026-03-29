@@ -7,6 +7,8 @@ import {
 } from "@/components/ui/card";
 import { getPayloadAPI } from "@/lib/payload";
 
+export const dynamic = "force-dynamic";
+
 export default async function AboutPage() {
   const payload = await getPayloadAPI();
   const settings = await payload.findGlobal({ slug: "site-settings" });

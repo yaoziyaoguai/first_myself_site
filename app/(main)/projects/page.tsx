@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/card";
 import { getPayloadAPI } from "@/lib/payload";
 
+export const dynamic = "force-dynamic";
+
 export default async function ProjectsPage() {
   const payload = await getPayloadAPI();
   const result = await payload.find({

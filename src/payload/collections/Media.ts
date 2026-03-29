@@ -22,13 +22,8 @@ const Media: CollectionConfig = {
     },
   ],
   access: {
-    // 任何人都可以读取已发布的媒体资源（防止私有文件泄露）
-    read: ({ req }) => {
-      // 认证用户可以读取所有媒体
-      if (req.user) return true;
-      // 未认证用户不能在后台列表查看
-      return false;
-    },
+    // 允许读取媒体列表（用于 Admin relationship 字段加载）
+    read: () => true,
     // 只有管理员和编辑可以上传
     create: ({ req }) => {
       if (!req.user) return false;

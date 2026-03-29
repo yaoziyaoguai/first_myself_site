@@ -7,18 +7,10 @@ import { getPayloadAPI } from "@/lib/payload";
 import { RichText } from "@payloadcms/richtext-lexical/react";
 import { defaultJSXConverters } from "@payloadcms/richtext-lexical/react";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: Promise<{ slug: string }>;
-}
-
-export async function generateStaticParams() {
-  const payload = await getPayloadAPI();
-  const result = await payload.find({
-    collection: "blog",
-    where: { status: { equals: "published" } },
-    limit: 100,
-  });
-  return result.docs.map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: PageProps) {
