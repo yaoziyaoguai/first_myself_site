@@ -1,0 +1,101 @@
+version: "3.8"
+
+# ============================================
+# Payload CMS 生产环境 Docker Compose
+# 用途: 正式生产部署
+# 警告: 生产环境使用，数据持久化到 Docker Volume
+# ============================================
+
+services:
+  # -------------------------------------------------
+  # PostgreSQL 生产数据库
+  # -------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres_prod
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-first_myself_site_prod}
+      POSTGRES_USER: ${POSTGRES_USER:-payload_prod}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      # 生产数据持久化 - 此 volume 包含所有业务数据
+      - postgres_prod_data:/var/lib/postgresql/data
+    # 不映射端口到宿主机，仅容器内可访问
+    networks:
+      - payload_prod_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-payload_prod} -d ${POSTGRES_DB:-first_myself_site_prod}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # -------------------------------------------------
+  # Payload + Next.js 应用
+  # -------------------------------------------------
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        # Build-time 变量（会被打包到客户端）
+        NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
+        DATABASE_URL: postgresql://${POSTGRES_USER:-payload_prod}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-first_myself_site_prod}
+        PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+        NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+        NEXTAUTH_URL: ${NEXTAUTH_URL}
+    container_name: first_myself_site_prod
+    restart: always
+    environment:
+      # Runtime 变量
+      DATABASE_URL: postgresql://${POSTGRES_USER:-payload_prod}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-first_myself_site_prod}
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
+      NODE_ENV: production
+      PORT: 3001
+      # 可选: 首次管理员创建（如使用 /api/create-admin）
+      # ADMIN_SECRET_TOKEN: ${ADMIN_SECRET_TOKEN}
+      # PAYLOAD_INITIAL_ADMIN_EMAIL: ${PAYLOAD_INITIAL_ADMIN_EMAIL}
+      # PAYLOAD_INITIAL_ADMIN_PASSWORD: ${PAYLOAD_INITIAL_ADMIN_PASSWORD}
+    ports:
+      # 宿主机 3000 映射到容器 3001
+      - "3000:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - payload_prod_network
+    volumes:
+      # 上传文件持久化
+      - payload_uploads:/app/media
+    # 生产环境资源限制（可选）
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2'
+    #       memory: 2G
+    #     reservations:
+    #       cpus: '1'
+    #       memory: 1G
+
+# -------------------------------------------------
+# 命名卷（数据持久化）
+# -------------------------------------------------
+volumes:
+  postgres_prod_data:
+    driver: local
+    # 数据存储位置: /var/lib/docker/volumes/docker_postgres_prod_data/
+  payload_uploads:
+    driver: local
+    # 数据存储位置: /var/lib/docker/volumes/docker_payload_uploads/
+
+# -------------------------------------------------
+# 独立网络
+# -------------------------------------------------
+networks:
+  payload_prod_network:
+    driver: bridge
