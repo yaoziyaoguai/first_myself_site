@@ -18,7 +18,13 @@ export async function generateMetadata({ params }: PageProps) {
   const payload = await getPayloadAPI();
   const result = await payload.find({
     collection: "blog",
-    where: { slug: { equals: slug } },
+    where: {
+      and: [
+        { slug: { equals: slug } },
+        { status: { equals: "published" } },
+        { visibility: { equals: "public" } },
+      ],
+    },
     limit: 1,
   });
   const post = result.docs[0];
@@ -34,7 +40,13 @@ export default async function BlogPostPage({ params }: PageProps) {
   const payload = await getPayloadAPI();
   const result = await payload.find({
     collection: "blog",
-    where: { slug: { equals: slug } },
+    where: {
+      and: [
+        { slug: { equals: slug } },
+        { status: { equals: "published" } },
+        { visibility: { equals: "public" } },
+      ],
+    },
     limit: 1,
   });
   const post = result.docs[0];

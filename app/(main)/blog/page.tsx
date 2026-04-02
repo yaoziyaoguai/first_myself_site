@@ -15,7 +15,12 @@ export default async function BlogPage() {
   const payload = await getPayloadAPI();
   const result = await payload.find({
     collection: "blog",
-    where: { status: { equals: "published" } },
+    where: {
+      and: [
+        { status: { equals: "published" } },
+        { visibility: { equals: "public" } },
+      ],
+    },
     sort: "-publishedDate",
     limit: 50,
   });

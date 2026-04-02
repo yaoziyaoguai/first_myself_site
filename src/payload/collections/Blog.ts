@@ -88,23 +88,32 @@ const Blog: CollectionConfig = {
         { label: "已发布", value: "published" },
       ],
     },
+    {
+      name: "visibility",
+      type: "select",
+      label: "可见性",
+      defaultValue: "public",
+      options: [
+        { label: "公开", value: "public" },
+        { label: "仅自己可见", value: "private" },
+      ],
+    },
   ],
   access: {
-    // 任何人都可以读取已发布的文章，认证用户可以读取自己的草稿
-    read: ({ req }) => {
+    // 未登录用户只能读取已发布且公开的文章；管理员/编辑可以读取全部
+    read: ({ req }): boolean | { status: { equals: string }; visibility: { equals: string } } => {
       if (!req.user) {
-        // 未认证用户只能看已发布的文章
+        // 未认证用户只能看已发布且公开的文章
         return {
-          status: {
-            equals: "published",
-          },
+          status: { equals: "published" },
+          visibility: { equals: "public" },
         };
       }
       // 认证用户（编辑/管理员）可以看所有文章
       if (req.user.role === "admin" || req.user.role === "editor") {
         return true;
       }
-      // 普通用户不能在后台管理中看文章列表
+      // 其他认证用户不能看
       return false;
     },
     // 只有管理员和编辑可以创建
