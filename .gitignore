@@ -64,3 +64,4 @@ media/*
 # Misc
 *.pem
 .cache
+nginx.conf
