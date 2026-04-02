@@ -7,6 +7,16 @@ const Posts: CollectionConfig = {
     defaultColumns: ["title", "status", "publishedDate"],
     listSearchableFields: ["title", "slug"],
   },
+  hooks: {
+    beforeValidate: [
+      ({ data }) => {
+        if (data?.slug && typeof data.slug === "string") {
+          data.slug = data.slug.trim();
+        }
+        return data;
+      },
+    ],
+  },
   fields: [
     {
       name: "title",

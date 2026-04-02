@@ -6,6 +6,16 @@ const Projects: CollectionConfig = {
     useAsTitle: "title",
     defaultColumns: ["title", "role", "period"],
   },
+  hooks: {
+    beforeValidate: [
+      ({ data }) => {
+        if (data?.slug && typeof data.slug === "string") {
+          data.slug = data.slug.trim();
+        }
+        return data;
+      },
+    ],
+  },
   fields: [
     {
       name: "title",
