@@ -1,17 +1,29 @@
+# ============================================
+# Docker 构建忽略文件（精简版）
+# 只忽略最必要的文件，确保构建上下文干净且安全
+# ============================================
+
+# 依赖（安装成本最低）
 node_modules
-npm-debug.log
+
+# 构建输出（重新生成）
 .next
+out
+
+# 版本控制
 .git
-.gitignore
-README.md
+
+# 敏感环境变量（安全关键）
 .env
 .env.local
-.env.*.local
-.payload/payload.db
-public/media
-coverage
-.claude
-.DS_Store
-*.pem
-.vercel
-cookies.txt
+.env.production
+.env.test
+.env.staging
+
+# 日志
+*.log
+logs/
+
+# 上传文件（运行时挂载）
+media/
+uploads/

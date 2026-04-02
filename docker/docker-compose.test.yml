@@ -1,0 +1,64 @@
+version: "3.8"
+
+# ============================================
+# Payload CMS 测试环境 Docker Compose
+# 用途: 快速启动隔离的测试环境
+# ============================================
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-payload_test}
+      POSTGRES_USER: ${POSTGRES_USER:-payload_test_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_test}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-payload_test_user} -d ${POSTGRES_DB:-payload_test}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - payload_test_network
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL:-http://localhost:3001}
+        PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+        DATABASE_URL: postgresql://${POSTGRES_USER:-payload_test_user}:${POSTGRES_PASSWORD:-changeme_test}@postgres:5432/${POSTGRES_DB:-payload_test}
+        NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+        NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3001}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-payload_test_user}:${POSTGRES_PASSWORD:-changeme_test}@postgres:5432/${POSTGRES_DB:-payload_test}
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3001}
+      NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL:-http://localhost:3001}
+      NODE_ENV: production
+      PORT: 3001
+    ports:
+      - "${APP_PORT:-3001}:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - payload_test_network
+    volumes:
+      - payload_uploads:/app/media
+
+volumes:
+  postgres_test_data:
+  payload_uploads:
+
+networks:
+  payload_test_network:
+    driver: bridge
