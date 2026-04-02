@@ -51,6 +51,10 @@ cookies.txt
 # Payload CMS
 .payload/
 
+# User uploaded files (keep directory but ignore contents)
+media/*
+!media/.gitkeep
+
 # Optional npm cache directory
 .npm
 
