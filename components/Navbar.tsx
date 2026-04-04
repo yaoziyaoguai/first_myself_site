@@ -9,6 +9,7 @@ const navLinks = [
   { href: "/about", label: "关于" },
   { href: "/projects", label: "项目" },
   { href: "/blog", label: "博客" },
+  { href: "/trending", label: "热点趋势" },
   { href: "/contact", label: "联系" },
 ];
 
