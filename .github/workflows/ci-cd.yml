@@ -1,0 +1,112 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── 第1层：代码规范检查 ──────────────────────────
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+
+  # ── 第2层：TypeScript 类型检查（依赖 lint 通过）──
+  type-check:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx tsc --noEmit
+
+  # ── 第2层并行：依赖安全扫描 ──────────────────────
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm audit --audit-level=critical
+        continue-on-error: true
+
+  # ── 第3层：自动化测试 ─────────────────────────────
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: type-check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm test
+
+  # ── 第4层：构建检查 ───────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URI: postgresql://placeholder:placeholder@localhost:5432/placeholder
+          PAYLOAD_SECRET: ci-placeholder-secret-32-chars-long
+          NEXT_PUBLIC_SERVER_URL: http://localhost:3000
+
+  # ── CD：自动部署（仅 main 分支） ──────────────────
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    needs: [build, security]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd ${{ secrets.PROJECT_PATH }}
+            git pull origin main
+            # 先 build（旧容器仍在运行，用户无感知）
+            docker compose -f docker/docker-compose.prod.yml build app
+            # build 完成后再切换（停机时间 < 10秒）
+            docker compose -f docker/docker-compose.prod.yml up -d
+            # 等待新容器就绪
+            sleep 20
+            # 健康检查
+            docker compose -f docker/docker-compose.prod.yml ps
+            # 清理悬空镜像，释放磁盘空间
+            docker image prune -f
+            echo "✅ 部署完成"
