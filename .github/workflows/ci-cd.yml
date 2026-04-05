@@ -100,13 +100,13 @@ jobs:
             cd ${{ secrets.PROJECT_PATH }}
             git pull origin main
             # 先 build（旧容器仍在运行，用户无感知）
-            docker compose -f docker/docker-compose.prod.yml build app
+            docker compose --env-file .env.docker.prod -f docker/docker-compose.prod.yml build app
             # build 完成后再切换（停机时间 < 10秒）
-            docker compose -f docker/docker-compose.prod.yml up -d
+            docker compose --env-file .env.docker.prod -f docker/docker-compose.prod.yml up -d
             # 等待新容器就绪
             sleep 20
             # 健康检查
-            docker compose -f docker/docker-compose.prod.yml ps
+            docker compose --env-file .env.docker.prod -f docker/docker-compose.prod.yml ps
             # 清理悬空镜像，释放磁盘空间
             docker image prune -f
             echo "✅ 部署完成"
