@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-      - run: npm ci
+      - run: npm install
       - run: npm run lint
 
   # ── 第2层：TypeScript 类型检查（依赖 lint 通过）──
@@ -31,7 +31,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-      - run: npm ci
+      - run: npm install
       - run: npx tsc --noEmit
 
   # ── 第2层并行：依赖安全扫描 ──────────────────────
@@ -45,7 +45,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-      - run: npm ci
+      - run: npm install
       - run: npm audit --audit-level=critical
         continue-on-error: true
 
@@ -60,7 +60,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-      - run: npm ci
+      - run: npm install
       - run: npm test
 
   # ── 第4层：构建检查 ───────────────────────────────
@@ -74,7 +74,7 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-      - run: npm ci
+      - run: npm install
       - name: Build
         run: npm run build
         env:
