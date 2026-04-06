@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Separator } from "@/components/ui/separator";
 import { getPayloadAPI } from "@/lib/payload";
 
 export async function Footer() {

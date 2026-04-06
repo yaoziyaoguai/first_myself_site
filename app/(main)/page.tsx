@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPayloadAPI } from "@/lib/payload";
 
 export const dynamic = "force-dynamic";

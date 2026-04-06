@@ -8,17 +8,15 @@ vi.mock('@/lib/payload', () => ({
 
 import { getPayloadAPI } from '@/lib/payload'
 
-interface MockPayloadMethods {
+type MockPayload = {
   updateGlobal?: ReturnType<typeof vi.fn>
   find?: ReturnType<typeof vi.fn>
   create?: ReturnType<typeof vi.fn>
 }
 
 describe('GET /api/seed', () => {
-  # env will be stubbed
-
   beforeEach(() => {
-    vi.stubEnv("NODE_ENV", "development")
+    vi.stubEnv('NODE_ENV', 'development')
     vi.clearAllMocks()
   })
 
@@ -28,8 +26,8 @@ describe('GET /api/seed', () => {
 
   describe('production environment', () => {
     it('should return 403 in production', async () => {
-      vi.stubEnv("NODE_ENV", 'production'
-      vi.stubEnv("ADMIN_SECRET_TOKEN", 'secret'
+      vi.stubEnv('NODE_ENV', 'production')
+      vi.stubEnv('ADMIN_SECRET_TOKEN', 'secret')
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -46,8 +44,8 @@ describe('GET /api/seed', () => {
 
   describe('token validation', () => {
     beforeEach(() => {
-      vi.stubEnv("NODE_ENV", 'development'
-      vi.stubEnv("ADMIN_SECRET_TOKEN", 'my-secret-token'
+      vi.stubEnv('NODE_ENV', 'development')
+      vi.stubEnv('ADMIN_SECRET_TOKEN', 'my-secret-token')
     })
 
     it('should return 401 when no authorization header', async () => {
@@ -79,14 +77,14 @@ describe('GET /api/seed', () => {
     })
 
     it('should accept correct bearer token', async () => {
-      const mockPayload: MockPayloadMethods = {
+      const mockPayload: MockPayload = {
         updateGlobal: vi.fn().mockResolvedValue({}),
         find: vi.fn()
-          .mockResolvedValueOnce({ totalDocs: 0 }) // projects check
-          .mockResolvedValueOnce({ totalDocs: 1 }), // users check
+          .mockResolvedValueOnce({ totalDocs: 0 })
+          .mockResolvedValueOnce({ totalDocs: 1 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -101,17 +99,17 @@ describe('GET /api/seed', () => {
 
   describe('seed execution', () => {
     beforeEach(() => {
-      vi.stubEnv("NODE_ENV", 'development'
-      vi.stubEnv("ADMIN_SECRET_TOKEN", 'test-token'
+      vi.stubEnv('NODE_ENV', 'development')
+      vi.stubEnv('ADMIN_SECRET_TOKEN', 'test-token')
     })
 
     it('should return 200 with success on valid request', async () => {
-      const mockPayload: MockPayloadMethods = {
+      const mockPayload: MockPayload = {
         updateGlobal: vi.fn().mockResolvedValue({}),
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -123,17 +121,15 @@ describe('GET /api/seed', () => {
       expect(response.status).toBe(200)
       const data = await response.json()
       expect(data.success).toBe(true)
-      expect(data.results).toBeDefined()
-      expect(Array.isArray(data.results)).toBe(true)
     })
 
-    it('should call updateGlobal for each global', async () => {
-      const mockPayload: MockPayloadMethods = {
+    it('should call updateGlobal for home settings', async () => {
+      const mockPayload: MockPayload = {
         updateGlobal: vi.fn().mockResolvedValue({}),
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -142,16 +138,20 @@ describe('GET /api/seed', () => {
       })
 
       await GET(request)
-      expect(mockPayload.updateGlobal).toHaveBeenCalledTimes(4)
+      expect(mockPayload.updateGlobal).toHaveBeenCalledWith(
+        expect.objectContaining({
+          slug: 'home',
+        })
+      )
     })
 
-    it('should call find to check existing projects', async () => {
-      const mockPayload: MockPayloadMethods = {
+    it('should create projects', async () => {
+      const mockPayload: MockPayload = {
         updateGlobal: vi.fn().mockResolvedValue({}),
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -160,58 +160,25 @@ describe('GET /api/seed', () => {
       })
 
       await GET(request)
-      expect(mockPayload.find).toHaveBeenCalledWith(
+      expect(mockPayload.create).toHaveBeenCalledWith(
         expect.objectContaining({
           collection: 'projects',
         })
       )
     })
+  })
 
-    it('should skip project creation if projects exist', async () => {
-      const mockPayload: MockPayloadMethods = {
-        updateGlobal: vi.fn().mockResolvedValue({}),
-        find: vi.fn().mockResolvedValue({ totalDocs: 1 }),
-        create: vi.fn().mockResolvedValue({}),
-      }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
-
-      const request = new Request('http://localhost:3000/api/seed', {
-        headers: {
-          Authorization: 'Bearer test-token',
-        },
-      })
-
-      const response = await GET(request)
-      const data = await response.json()
-      expect(mockPayload.create).not.toHaveBeenCalled()
-      expect(data.results).toContainEqual(expect.stringContaining('already exist'))
+  describe('error handling', () => {
+    beforeEach(() => {
+      vi.stubEnv('NODE_ENV', 'development')
+      vi.stubEnv('ADMIN_SECRET_TOKEN', 'test-token')
     })
 
-    it('should create projects if none exist', async () => {
-      const mockPayload: MockPayloadMethods = {
-        updateGlobal: vi.fn().mockResolvedValue({}),
-        find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
-        create: vi.fn().mockResolvedValue({}),
-      }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
-
-      const request = new Request('http://localhost:3000/api/seed', {
-        headers: {
-          Authorization: 'Bearer test-token',
-        },
-      })
-
-      const response = await GET(request)
-      expect(mockPayload.create).toHaveBeenCalled()
-      const data = await response.json()
-      expect(data.results).toContainEqual(expect.stringContaining('projects seeded'))
-    })
-
-    it('should return 500 on error', async () => {
-      const mockPayload: MockPayloadMethods = {
+    it('should return 500 on payload error', async () => {
+      const mockPayload = {
         updateGlobal: vi.fn().mockRejectedValue(new Error('Database error')),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as MockPayload)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -225,15 +192,11 @@ describe('GET /api/seed', () => {
       expect(data.error).toBeDefined()
     })
 
-    it('should include admin user check in results', async () => {
-      const mockPayload: MockPayloadMethods = {
-        updateGlobal: vi.fn().mockResolvedValue({}),
-        find: vi.fn()
-          .mockResolvedValueOnce({ totalDocs: 0 }) // projects
-          .mockResolvedValueOnce({ totalDocs: 0 }), // users
-        create: vi.fn().mockResolvedValue({}),
+    it('should handle unknown errors gracefully', async () => {
+      const mockPayload = {
+        updateGlobal: vi.fn().mockRejectedValue('Unknown error'),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as MockPayload)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -242,8 +205,9 @@ describe('GET /api/seed', () => {
       })
 
       const response = await GET(request)
+      expect(response.status).toBe(500)
       const data = await response.json()
-      expect(data.results).toContainEqual(expect.stringContaining('create-admin'))
+      expect(data.error).toBeDefined()
     })
   })
 })

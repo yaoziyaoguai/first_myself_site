@@ -1,8 +1,5 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { getPayloadAPI } from "@/lib/payload";
 import { RichText } from "@payloadcms/richtext-lexical/react";
 import { defaultJSXConverters } from "@payloadcms/richtext-lexical/react";
