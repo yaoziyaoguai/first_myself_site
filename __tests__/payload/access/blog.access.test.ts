@@ -1,15 +1,12 @@
 import { describe, it, expect } from 'vitest'
+import type { AccessArgs } from 'payload'
 import Blog from '@/src/payload/collections/Blog'
 
 describe('Blog Collection - Access Control', () => {
   // Extract access functions from Blog collection config
   const blogAccess = Blog.access!
 
-  interface MockAccessArgs {
-    req: {
-      user?: { id: string; role: string }
-    }
-  }
+  type AccessArg = Parameters<NonNullable<typeof blogAccess.read>>[0]
 
   // Helper to create mock request objects
   const mockRequest = (user?: { id: string; role: string }) => ({
@@ -20,7 +17,7 @@ describe('Blog Collection - Access Control', () => {
     const readAccess = blogAccess.read!
 
     it('should return double filter for unauthenticated users (status + visibility)', () => {
-      const result = readAccess({ req: mockRequest() } as unknown as MockAccessArgs)
+      const result = readAccess({ req: mockRequest() } as unknown as AccessArg)
       expect(result).toEqual({
         status: { equals: 'published' },
         visibility: { equals: 'public' },
@@ -30,28 +27,28 @@ describe('Blog Collection - Access Control', () => {
     it('should return true for admin users', () => {
       const result = readAccess({
         req: mockRequest({ id: '1', role: 'admin' }),
-      } as unknown as MockAccessArgs)
+      } as unknown as AccessArg)
       expect(result).toBe(true)
     })
 
     it('should return true for editor users', () => {
       const result = readAccess({
         req: mockRequest({ id: '2', role: 'editor' }),
-      } as unknown as MockAccessArgs)
+      } as unknown as AccessArg)
       expect(result).toBe(true)
     })
 
     it('should return false for viewer (non-editor/admin) users', () => {
       const result = readAccess({
         req: mockRequest({ id: '3', role: 'viewer' }),
-      } as unknown as MockAccessArgs)
+      } as unknown as AccessArg)
       expect(result).toBe(false)
     })
 
     it('should return false for unknown roles', () => {
       const result = readAccess({
         req: mockRequest({ id: '4', role: 'unknown' }),
-      } as unknown as MockAccessArgs)
+      } as unknown as AccessArg)
       expect(result).toBe(false)
     })
   })
@@ -60,28 +57,28 @@ describe('Blog Collection - Access Control', () => {
     const createAccess = blogAccess.create!
 
     it('should return false for unauthenticated users', () => {
-      const result = createAccess({ req: mockRequest() } as unknown as MockAccessArgs)
+      const result = createAccess({ req: mockRequest() } as unknown as AccessArg)
       expect(result).toBe(false)
     })
 
     it('should return true for admin users', () => {
       const result = createAccess({
         req: mockRequest({ id: '1', role: 'admin' }),
-      } as unknown as MockAccessArgs)
+      } as unknown as AccessArg)
       expect(result).toBe(true)
     })
 
     it('should return true for editor users', () => {
       const result = createAccess({
         req: mockRequest({ id: '2', role: 'editor' }),
-      } as unknown as MockAccessArgs)
+      } as unknown as AccessArg)
       expect(result).toBe(true)
     })
 
     it('should return false for viewer users', () => {
       const result = createAccess({
         req: mockRequest({ id: '3', role: 'viewer' }),
-      } as unknown as MockAccessArgs)
+      } as unknown as AccessArg)
       expect(result).toBe(false)
     })
   })
@@ -90,28 +87,28 @@ describe('Blog Collection - Access Control', () => {
     const updateAccess = blogAccess.update!
 
     it('should return false for unauthenticated users', () => {
-      const result = updateAccess({ req: mockRequest() } as unknown as MockAccessArgs)
+      const result = updateAccess({ req: mockRequest() } as unknown as AccessArg)
       expect(result).toBe(false)
     })
 
     it('should return true for admin users', () => {
       const result = updateAccess({
         req: mockRequest({ id: '1', role: 'admin' }),
-      } as unknown as MockAccessArgs)
+      } as unknown as AccessArg)
       expect(result).toBe(true)
     })
 
     it('should return true for editor users', () => {
       const result = updateAccess({
         req: mockRequest({ id: '2', role: 'editor' }),
-      } as unknown as MockAccessArgs)
+      } as unknown as AccessArg)
       expect(result).toBe(true)
     })
 
     it('should return false for viewer users', () => {
       const result = updateAccess({
         req: mockRequest({ id: '3', role: 'viewer' }),
-      } as unknown as MockAccessArgs)
+      } as unknown as AccessArg)
       expect(result).toBe(false)
     })
   })
@@ -120,28 +117,28 @@ describe('Blog Collection - Access Control', () => {
     const deleteAccess = blogAccess.delete!
 
     it('should return false for unauthenticated users', () => {
-      const result = deleteAccess({ req: mockRequest() } as unknown as MockAccessArgs)
+      const result = deleteAccess({ req: mockRequest() } as unknown as AccessArg)
       expect(result).toBe(false)
     })
 
     it('should return true only for admin users', () => {
       const result = deleteAccess({
         req: mockRequest({ id: '1', role: 'admin' }),
-      } as unknown as MockAccessArgs)
+      } as unknown as AccessArg)
       expect(result).toBe(true)
     })
 
     it('should return false for editor users', () => {
       const result = deleteAccess({
         req: mockRequest({ id: '2', role: 'editor' }),
-      } as unknown as MockAccessArgs)
+      } as unknown as AccessArg)
       expect(result).toBe(false)
     })
 
     it('should return false for viewer users', () => {
       const result = deleteAccess({
         req: mockRequest({ id: '3', role: 'viewer' }),
-      } as unknown as MockAccessArgs)
+      } as unknown as AccessArg)
       expect(result).toBe(false)
     })
   })

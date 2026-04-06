@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import type { BasePayload } from 'payload'
 import { GET } from '@/app/(main)/api/create-admin/route'
 
 // Mock the payload API
@@ -8,11 +9,8 @@ vi.mock('@/lib/payload', () => ({
 
 import { getPayloadAPI } from '@/lib/payload'
 
-type MockPayload = {
-  find?: ReturnType<typeof vi.fn>
-  create?: ReturnType<typeof vi.fn>
-  update?: ReturnType<typeof vi.fn>
-}
+// Helper to cast mock payload to expected type
+const castPayload = (mock: Record<string, unknown>): BasePayload => mock as unknown as BasePayload
 
 describe('GET /api/create-admin', () => {
   beforeEach(() => {
@@ -75,7 +73,7 @@ describe('GET /api/create-admin', () => {
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as MockPayload)
+      vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -101,7 +99,7 @@ describe('GET /api/create-admin', () => {
       const mockPayload = {
         find: vi.fn(),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as MockPayload)
+      vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -122,7 +120,7 @@ describe('GET /api/create-admin', () => {
       const mockPayload = {
         find: vi.fn(),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as MockPayload)
+      vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -143,7 +141,7 @@ describe('GET /api/create-admin', () => {
       const mockPayload = {
         find: vi.fn(),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as MockPayload)
+      vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -169,7 +167,7 @@ describe('GET /api/create-admin', () => {
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as MockPayload)
+      vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -196,7 +194,7 @@ describe('GET /api/create-admin', () => {
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as MockPayload)
+      vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -216,7 +214,7 @@ describe('GET /api/create-admin', () => {
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as MockPayload)
+      vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -249,7 +247,7 @@ describe('GET /api/create-admin', () => {
         }),
         update: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as MockPayload)
+      vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -279,7 +277,7 @@ describe('GET /api/create-admin', () => {
         }),
         update: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as MockPayload)
+      vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -302,7 +300,7 @@ describe('GET /api/create-admin', () => {
         }),
         update: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as MockPayload)
+      vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -331,7 +329,7 @@ describe('GET /api/create-admin', () => {
       const mockPayload = {
         find: vi.fn().mockRejectedValue(new Error('Database connection failed')),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as MockPayload)
+      vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -349,7 +347,7 @@ describe('GET /api/create-admin', () => {
       const mockPayload = {
         find: vi.fn().mockRejectedValue('Unknown error string'),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as MockPayload)
+      vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {

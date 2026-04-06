@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import type { BasePayload } from 'payload'
 import { GET } from '@/app/(main)/api/seed/route'
 
 // Mock the payload API
@@ -8,11 +9,8 @@ vi.mock('@/lib/payload', () => ({
 
 import { getPayloadAPI } from '@/lib/payload'
 
-type MockPayload = {
-  updateGlobal?: ReturnType<typeof vi.fn>
-  find?: ReturnType<typeof vi.fn>
-  create?: ReturnType<typeof vi.fn>
-}
+// Helper to cast mock payload to expected type
+const castPayload = (mock: Record<string, unknown>): BasePayload => mock as unknown as BasePayload
 
 describe('GET /api/seed', () => {
   beforeEach(() => {
@@ -77,14 +75,14 @@ describe('GET /api/seed', () => {
     })
 
     it('should accept correct bearer token', async () => {
-      const mockPayload: MockPayload = {
+      const mockPayload = {
         updateGlobal: vi.fn().mockResolvedValue({}),
         find: vi.fn()
           .mockResolvedValueOnce({ totalDocs: 0 })
           .mockResolvedValueOnce({ totalDocs: 1 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload)
+      vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -104,12 +102,12 @@ describe('GET /api/seed', () => {
     })
 
     it('should return 200 with success on valid request', async () => {
-      const mockPayload: MockPayload = {
+      const mockPayload = {
         updateGlobal: vi.fn().mockResolvedValue({}),
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload)
+      vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -124,12 +122,12 @@ describe('GET /api/seed', () => {
     })
 
     it('should call updateGlobal for home settings', async () => {
-      const mockPayload: MockPayload = {
+      const mockPayload = {
         updateGlobal: vi.fn().mockResolvedValue({}),
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload)
+      vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -146,12 +144,12 @@ describe('GET /api/seed', () => {
     })
 
     it('should create projects', async () => {
-      const mockPayload: MockPayload = {
+      const mockPayload = {
         updateGlobal: vi.fn().mockResolvedValue({}),
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload)
+      vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -178,7 +176,7 @@ describe('GET /api/seed', () => {
       const mockPayload = {
         updateGlobal: vi.fn().mockRejectedValue(new Error('Database error')),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as MockPayload)
+      vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -196,7 +194,7 @@ describe('GET /api/seed', () => {
       const mockPayload = {
         updateGlobal: vi.fn().mockRejectedValue('Unknown error'),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as MockPayload)
+      vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
