@@ -8,28 +8,21 @@ vi.mock('@/lib/payload', () => ({
 
 import { getPayloadAPI } from '@/lib/payload'
 
-interface MockPayloadMethods {
-  find?: ReturnType<typeof vi.fn>
-  create?: ReturnType<typeof vi.fn>
-  update?: ReturnType<typeof vi.fn>
-}
-
 describe('GET /api/create-admin', () => {
-  let originalEnv: Record<string, string | undefined>
-
   beforeEach(() => {
-    originalEnv = { ...process.env }
     vi.clearAllMocks()
+    vi.stubEnv('NODE_ENV', 'development')
+    vi.stubEnv('ADMIN_SECRET_TOKEN', '')
   })
 
   afterEach(() => {
-    process.env = originalEnv
+    vi.unstubAllEnvs()
   })
 
   describe('production environment', () => {
     it('should return 403 in production', async () => {
-      process.env.NODE_ENV = 'production'
-      process.env.ADMIN_SECRET_TOKEN = 'secret'
+      vi.stubEnv('NODE_ENV', 'production')
+      vi.stubEnv('ADMIN_SECRET_TOKEN', 'secret')
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -46,8 +39,8 @@ describe('GET /api/create-admin', () => {
 
   describe('token validation', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'development'
-      process.env.ADMIN_SECRET_TOKEN = 'my-secret-token'
+      vi.stubEnv('NODE_ENV', 'development')
+      vi.stubEnv('ADMIN_SECRET_TOKEN', 'my-secret-token')
     })
 
     it('should return 401 when no authorization header', async () => {
@@ -69,14 +62,14 @@ describe('GET /api/create-admin', () => {
     })
 
     it('should accept correct bearer token format', async () => {
-      process.env.PAYLOAD_INITIAL_ADMIN_EMAIL = 'admin@example.com'
-      process.env.PAYLOAD_INITIAL_ADMIN_PASSWORD = 'password123'
+      vi.stubEnv('PAYLOAD_INITIAL_ADMIN_EMAIL', 'admin@example.com')
+      vi.stubEnv('PAYLOAD_INITIAL_ADMIN_PASSWORD', 'password123')
 
-      const mockPayload: MockPayloadMethods = {
+      const mockPayload = {
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -91,18 +84,18 @@ describe('GET /api/create-admin', () => {
 
   describe('environment variable validation', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'development'
-      process.env.ADMIN_SECRET_TOKEN = 'test-token'
+      vi.stubEnv('NODE_ENV', 'development')
+      vi.stubEnv('ADMIN_SECRET_TOKEN', 'test-token')
     })
 
     it('should return 500 when PAYLOAD_INITIAL_ADMIN_EMAIL is missing', async () => {
-      delete process.env.PAYLOAD_INITIAL_ADMIN_EMAIL
-      process.env.PAYLOAD_INITIAL_ADMIN_PASSWORD = 'password123'
+      vi.stubEnv('PAYLOAD_INITIAL_ADMIN_EMAIL', '')
+      vi.stubEnv('PAYLOAD_INITIAL_ADMIN_PASSWORD', 'password123')
 
-      const mockPayload: MockPayloadMethods = {
+      const mockPayload = {
         find: vi.fn(),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -117,13 +110,13 @@ describe('GET /api/create-admin', () => {
     })
 
     it('should return 500 when PAYLOAD_INITIAL_ADMIN_PASSWORD is missing', async () => {
-      process.env.PAYLOAD_INITIAL_ADMIN_EMAIL = 'admin@example.com'
-      delete process.env.PAYLOAD_INITIAL_ADMIN_PASSWORD
+      vi.stubEnv('PAYLOAD_INITIAL_ADMIN_EMAIL', 'admin@example.com')
+      vi.stubEnv('PAYLOAD_INITIAL_ADMIN_PASSWORD', '')
 
-      const mockPayload: MockPayloadMethods = {
+      const mockPayload = {
         find: vi.fn(),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -138,13 +131,13 @@ describe('GET /api/create-admin', () => {
     })
 
     it('should return 500 when both email and password are missing', async () => {
-      delete process.env.PAYLOAD_INITIAL_ADMIN_EMAIL
-      delete process.env.PAYLOAD_INITIAL_ADMIN_PASSWORD
+      vi.stubEnv('PAYLOAD_INITIAL_ADMIN_EMAIL', '')
+      vi.stubEnv('PAYLOAD_INITIAL_ADMIN_PASSWORD', '')
 
-      const mockPayload: MockPayloadMethods = {
+      const mockPayload = {
         find: vi.fn(),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -159,18 +152,18 @@ describe('GET /api/create-admin', () => {
 
   describe('creating new admin', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'development'
-      process.env.ADMIN_SECRET_TOKEN = 'test-token'
-      process.env.PAYLOAD_INITIAL_ADMIN_EMAIL = 'admin@example.com'
-      process.env.PAYLOAD_INITIAL_ADMIN_PASSWORD = 'password123'
+      vi.stubEnv('NODE_ENV', 'development')
+      vi.stubEnv('ADMIN_SECRET_TOKEN', 'test-token')
+      vi.stubEnv('PAYLOAD_INITIAL_ADMIN_EMAIL', 'admin@example.com')
+      vi.stubEnv('PAYLOAD_INITIAL_ADMIN_PASSWORD', 'password123')
     })
 
     it('should create new admin when user does not exist', async () => {
-      const mockPayload: MockPayloadMethods = {
+      const mockPayload = {
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -193,11 +186,11 @@ describe('GET /api/create-admin', () => {
     })
 
     it('should return correct message when creating new admin', async () => {
-      const mockPayload: MockPayloadMethods = {
+      const mockPayload = {
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -213,11 +206,11 @@ describe('GET /api/create-admin', () => {
     })
 
     it('should use overrideAccess when creating user', async () => {
-      const mockPayload: MockPayloadMethods = {
+      const mockPayload = {
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -236,21 +229,21 @@ describe('GET /api/create-admin', () => {
 
   describe('updating existing admin', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'development'
-      process.env.ADMIN_SECRET_TOKEN = 'test-token'
-      process.env.PAYLOAD_INITIAL_ADMIN_EMAIL = 'admin@example.com'
-      process.env.PAYLOAD_INITIAL_ADMIN_PASSWORD = 'new-password123'
+      vi.stubEnv('NODE_ENV', 'development')
+      vi.stubEnv('ADMIN_SECRET_TOKEN', 'test-token')
+      vi.stubEnv('PAYLOAD_INITIAL_ADMIN_EMAIL', 'admin@example.com')
+      vi.stubEnv('PAYLOAD_INITIAL_ADMIN_PASSWORD', 'new-password123')
     })
 
     it('should update password when user already exists', async () => {
-      const mockPayload: MockPayloadMethods = {
+      const mockPayload = {
         find: vi.fn().mockResolvedValue({
           totalDocs: 1,
           docs: [{ id: 'user-1' }],
         }),
         update: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -273,14 +266,14 @@ describe('GET /api/create-admin', () => {
     })
 
     it('should return correct message when updating admin', async () => {
-      const mockPayload: MockPayloadMethods = {
+      const mockPayload = {
         find: vi.fn().mockResolvedValue({
           totalDocs: 1,
           docs: [{ id: 'user-1' }],
         }),
         update: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -296,14 +289,14 @@ describe('GET /api/create-admin', () => {
     })
 
     it('should use overrideAccess when updating user', async () => {
-      const mockPayload: MockPayloadMethods = {
+      const mockPayload = {
         find: vi.fn().mockResolvedValue({
           totalDocs: 1,
           docs: [{ id: 'user-1' }],
         }),
         update: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -322,17 +315,17 @@ describe('GET /api/create-admin', () => {
 
   describe('error handling', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'development'
-      process.env.ADMIN_SECRET_TOKEN = 'test-token'
-      process.env.PAYLOAD_INITIAL_ADMIN_EMAIL = 'admin@example.com'
-      process.env.PAYLOAD_INITIAL_ADMIN_PASSWORD = 'password123'
+      vi.stubEnv('NODE_ENV', 'development')
+      vi.stubEnv('ADMIN_SECRET_TOKEN', 'test-token')
+      vi.stubEnv('PAYLOAD_INITIAL_ADMIN_EMAIL', 'admin@example.com')
+      vi.stubEnv('PAYLOAD_INITIAL_ADMIN_PASSWORD', 'password123')
     })
 
     it('should return 500 on payload error', async () => {
       const mockPayload = {
         find: vi.fn().mockRejectedValue(new Error('Database connection failed')),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -350,7 +343,7 @@ describe('GET /api/create-admin', () => {
       const mockPayload = {
         find: vi.fn().mockRejectedValue('Unknown error string'),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {

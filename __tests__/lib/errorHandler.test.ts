@@ -27,19 +27,17 @@ describe('AppError', () => {
 })
 
 describe('sanitizeErrorForClient', () => {
-  let originalEnv: string | undefined
-
   beforeEach(() => {
-    originalEnv = process.env.NODE_ENV
+    vi.stubEnv('NODE_ENV', 'development')
   })
 
   afterEach(() => {
-    process.env.NODE_ENV = originalEnv
+    vi.unstubAllEnvs()
   })
 
   describe('in production', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'production'
+      vi.stubEnv('NODE_ENV', 'production')
     })
 
     it('should return AppError message and statusCode as-is', () => {
@@ -72,7 +70,7 @@ describe('sanitizeErrorForClient', () => {
 
   describe('in development', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'development'
+      vi.stubEnv('NODE_ENV', 'development')
     })
 
     it('should return full error message for Error objects', () => {
@@ -101,21 +99,20 @@ describe('sanitizeErrorForClient', () => {
 
 describe('logError', () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>
-  let originalEnv: string | undefined
 
   beforeEach(() => {
-    originalEnv = process.env.NODE_ENV
+    vi.stubEnv('NODE_ENV', 'development')
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
   afterEach(() => {
-    process.env.NODE_ENV = originalEnv
+    vi.unstubAllEnvs()
     consoleErrorSpy.mockRestore()
   })
 
   describe('in production', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'production'
+      vi.stubEnv('NODE_ENV', 'production')
     })
 
     it('should log structured error with timestamp', () => {
@@ -151,7 +148,7 @@ describe('logError', () => {
 
   describe('in development', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'development'
+      vi.stubEnv('NODE_ENV', 'development')
     })
 
     it('should log full error object without structure', () => {

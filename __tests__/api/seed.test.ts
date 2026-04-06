@@ -15,21 +15,21 @@ interface MockPayloadMethods {
 }
 
 describe('GET /api/seed', () => {
-  let originalEnv: Record<string, string | undefined>
+  # env will be stubbed
 
   beforeEach(() => {
-    originalEnv = { ...process.env }
+    vi.stubEnv("NODE_ENV", "development")
     vi.clearAllMocks()
   })
 
   afterEach(() => {
-    process.env = originalEnv
+    vi.unstubAllEnvs()
   })
 
   describe('production environment', () => {
     it('should return 403 in production', async () => {
-      process.env.NODE_ENV = 'production'
-      process.env.ADMIN_SECRET_TOKEN = 'secret'
+      vi.stubEnv("NODE_ENV", 'production'
+      vi.stubEnv("ADMIN_SECRET_TOKEN", 'secret'
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -46,8 +46,8 @@ describe('GET /api/seed', () => {
 
   describe('token validation', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'development'
-      process.env.ADMIN_SECRET_TOKEN = 'my-secret-token'
+      vi.stubEnv("NODE_ENV", 'development'
+      vi.stubEnv("ADMIN_SECRET_TOKEN", 'my-secret-token'
     })
 
     it('should return 401 when no authorization header', async () => {
@@ -86,7 +86,7 @@ describe('GET /api/seed', () => {
           .mockResolvedValueOnce({ totalDocs: 1 }), // users check
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -101,8 +101,8 @@ describe('GET /api/seed', () => {
 
   describe('seed execution', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'development'
-      process.env.ADMIN_SECRET_TOKEN = 'test-token'
+      vi.stubEnv("NODE_ENV", 'development'
+      vi.stubEnv("ADMIN_SECRET_TOKEN", 'test-token'
     })
 
     it('should return 200 with success on valid request', async () => {
@@ -111,7 +111,7 @@ describe('GET /api/seed', () => {
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -133,7 +133,7 @@ describe('GET /api/seed', () => {
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -151,7 +151,7 @@ describe('GET /api/seed', () => {
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -173,7 +173,7 @@ describe('GET /api/seed', () => {
         find: vi.fn().mockResolvedValue({ totalDocs: 1 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -193,7 +193,7 @@ describe('GET /api/seed', () => {
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -211,7 +211,7 @@ describe('GET /api/seed', () => {
       const mockPayload: MockPayloadMethods = {
         updateGlobal: vi.fn().mockRejectedValue(new Error('Database error')),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -233,7 +233,7 @@ describe('GET /api/seed', () => {
           .mockResolvedValueOnce({ totalDocs: 0 }), // users
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
