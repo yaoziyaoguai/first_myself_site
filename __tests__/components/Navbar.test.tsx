@@ -125,7 +125,7 @@ describe('Navbar Component', () => {
     })
 
     it('should update highlighting when pathname changes', () => {
-      const { rerender, container } = render(<Navbar />)
+      const { rerender } = render(<Navbar />)
       vi.mocked(usePathname).mockReturnValue('/')
       rerender(<Navbar />)
 

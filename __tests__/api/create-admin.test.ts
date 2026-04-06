@@ -8,6 +8,12 @@ vi.mock('@/lib/payload', () => ({
 
 import { getPayloadAPI } from '@/lib/payload'
 
+interface MockPayloadMethods {
+  find?: ReturnType<typeof vi.fn>
+  create?: ReturnType<typeof vi.fn>
+  update?: ReturnType<typeof vi.fn>
+}
+
 describe('GET /api/create-admin', () => {
   let originalEnv: Record<string, string | undefined>
 
@@ -66,11 +72,11 @@ describe('GET /api/create-admin', () => {
       process.env.PAYLOAD_INITIAL_ADMIN_EMAIL = 'admin@example.com'
       process.env.PAYLOAD_INITIAL_ADMIN_PASSWORD = 'password123'
 
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -93,10 +99,10 @@ describe('GET /api/create-admin', () => {
       delete process.env.PAYLOAD_INITIAL_ADMIN_EMAIL
       process.env.PAYLOAD_INITIAL_ADMIN_PASSWORD = 'password123'
 
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         find: vi.fn(),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -114,10 +120,10 @@ describe('GET /api/create-admin', () => {
       process.env.PAYLOAD_INITIAL_ADMIN_EMAIL = 'admin@example.com'
       delete process.env.PAYLOAD_INITIAL_ADMIN_PASSWORD
 
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         find: vi.fn(),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -135,10 +141,10 @@ describe('GET /api/create-admin', () => {
       delete process.env.PAYLOAD_INITIAL_ADMIN_EMAIL
       delete process.env.PAYLOAD_INITIAL_ADMIN_PASSWORD
 
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         find: vi.fn(),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -160,11 +166,11 @@ describe('GET /api/create-admin', () => {
     })
 
     it('should create new admin when user does not exist', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -187,11 +193,11 @@ describe('GET /api/create-admin', () => {
     })
 
     it('should return correct message when creating new admin', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -207,11 +213,11 @@ describe('GET /api/create-admin', () => {
     })
 
     it('should use overrideAccess when creating user', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -237,14 +243,14 @@ describe('GET /api/create-admin', () => {
     })
 
     it('should update password when user already exists', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         find: vi.fn().mockResolvedValue({
           totalDocs: 1,
           docs: [{ id: 'user-1' }],
         }),
         update: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -267,14 +273,14 @@ describe('GET /api/create-admin', () => {
     })
 
     it('should return correct message when updating admin', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         find: vi.fn().mockResolvedValue({
           totalDocs: 1,
           docs: [{ id: 'user-1' }],
         }),
         update: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -290,14 +296,14 @@ describe('GET /api/create-admin', () => {
     })
 
     it('should use overrideAccess when updating user', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         find: vi.fn().mockResolvedValue({
           totalDocs: 1,
           docs: [{ id: 'user-1' }],
         }),
         update: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -326,7 +332,7 @@ describe('GET /api/create-admin', () => {
       const mockPayload = {
         find: vi.fn().mockRejectedValue(new Error('Database connection failed')),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -344,7 +350,7 @@ describe('GET /api/create-admin', () => {
       const mockPayload = {
         find: vi.fn().mockRejectedValue('Unknown error string'),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { GET } from '@/app/(main)/api/seed/route'
 
 // Mock the payload API
@@ -7,6 +7,12 @@ vi.mock('@/lib/payload', () => ({
 }))
 
 import { getPayloadAPI } from '@/lib/payload'
+
+interface MockPayloadMethods {
+  updateGlobal?: ReturnType<typeof vi.fn>
+  find?: ReturnType<typeof vi.fn>
+  create?: ReturnType<typeof vi.fn>
+}
 
 describe('GET /api/seed', () => {
   let originalEnv: Record<string, string | undefined>
@@ -73,14 +79,14 @@ describe('GET /api/seed', () => {
     })
 
     it('should accept correct bearer token', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         updateGlobal: vi.fn().mockResolvedValue({}),
         find: vi.fn()
           .mockResolvedValueOnce({ totalDocs: 0 }) // projects check
           .mockResolvedValueOnce({ totalDocs: 1 }), // users check
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -100,12 +106,12 @@ describe('GET /api/seed', () => {
     })
 
     it('should return 200 with success on valid request', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         updateGlobal: vi.fn().mockResolvedValue({}),
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -122,12 +128,12 @@ describe('GET /api/seed', () => {
     })
 
     it('should call updateGlobal for each global', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         updateGlobal: vi.fn().mockResolvedValue({}),
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -140,12 +146,12 @@ describe('GET /api/seed', () => {
     })
 
     it('should call find to check existing projects', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         updateGlobal: vi.fn().mockResolvedValue({}),
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -162,12 +168,12 @@ describe('GET /api/seed', () => {
     })
 
     it('should skip project creation if projects exist', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         updateGlobal: vi.fn().mockResolvedValue({}),
         find: vi.fn().mockResolvedValue({ totalDocs: 1 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -182,12 +188,12 @@ describe('GET /api/seed', () => {
     })
 
     it('should create projects if none exist', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         updateGlobal: vi.fn().mockResolvedValue({}),
         find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -202,10 +208,10 @@ describe('GET /api/seed', () => {
     })
 
     it('should return 500 on error', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         updateGlobal: vi.fn().mockRejectedValue(new Error('Database error')),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {
@@ -220,14 +226,14 @@ describe('GET /api/seed', () => {
     })
 
     it('should include admin user check in results', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         updateGlobal: vi.fn().mockResolvedValue({}),
         find: vi.fn()
           .mockResolvedValueOnce({ totalDocs: 0 }) // projects
           .mockResolvedValueOnce({ totalDocs: 0 }), // users
         create: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const request = new Request('http://localhost:3000/api/seed', {
         headers: {

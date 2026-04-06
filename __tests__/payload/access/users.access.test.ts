@@ -4,6 +4,13 @@ import Users from '@/src/payload/collections/Users'
 describe('Users Collection - Access Control', () => {
   const usersAccess = Users.access!
 
+  interface MockAccessArgs {
+    req: {
+      user?: { id: string; role: string }
+    }
+    data?: Record<string, unknown>
+  }
+
   const mockRequest = (user?: { id: string; role: string }) => ({
     user,
   })
@@ -12,21 +19,21 @@ describe('Users Collection - Access Control', () => {
     const readAccess = usersAccess.read!
 
     it('should return false for unauthenticated users', () => {
-      const result = readAccess({ req: mockRequest() } as any)
+      const result = readAccess({ req: mockRequest() } as unknown as MockAccessArgs)
       expect(result).toBe(false)
     })
 
     it('should return true for admin users (can see all users)', () => {
       const result = readAccess({
         req: mockRequest({ id: 'admin-1', role: 'admin' }),
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toBe(true)
     })
 
     it('should return id filter for viewer/editor (can only see self)', () => {
       const result = readAccess({
         req: mockRequest({ id: 'user-123', role: 'viewer' }),
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toEqual({
         id: {
           equals: 'user-123',
@@ -37,7 +44,7 @@ describe('Users Collection - Access Control', () => {
     it('should return id filter for editor (can only see self, not all users)', () => {
       const result = readAccess({
         req: mockRequest({ id: 'editor-456', role: 'editor' }),
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toEqual({
         id: {
           equals: 'editor-456',
@@ -49,8 +56,8 @@ describe('Users Collection - Access Control', () => {
       const user1 = mockRequest({ id: 'user-1', role: 'viewer' })
       const user2 = mockRequest({ id: 'user-2', role: 'viewer' })
 
-      const result1 = readAccess({ req: user1 } as any)
-      const result2 = readAccess({ req: user2 } as any)
+      const result1 = readAccess({ req: user1 } as unknown as MockAccessArgs)
+      const result2 = readAccess({ req: user2 } as unknown as MockAccessArgs)
 
       expect(result1).toEqual({ id: { equals: 'user-1' } })
       expect(result2).toEqual({ id: { equals: 'user-2' } })
@@ -62,28 +69,28 @@ describe('Users Collection - Access Control', () => {
     const createAccess = usersAccess.create!
 
     it('should return false for unauthenticated users', () => {
-      const result = createAccess({ req: mockRequest() } as any)
+      const result = createAccess({ req: mockRequest() } as unknown as MockAccessArgs)
       expect(result).toBe(false)
     })
 
     it('should return false for viewer users', () => {
       const result = createAccess({
         req: mockRequest({ id: '1', role: 'viewer' }),
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toBe(false)
     })
 
     it('should return false for editor users', () => {
       const result = createAccess({
         req: mockRequest({ id: '2', role: 'editor' }),
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toBe(false)
     })
 
     it('should return true only for admin users', () => {
       const result = createAccess({
         req: mockRequest({ id: '3', role: 'admin' }),
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toBe(true)
     })
   })
@@ -95,7 +102,7 @@ describe('Users Collection - Access Control', () => {
       const result = updateAccess({
         req: mockRequest(),
         data: {},
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toBe(false)
     })
 
@@ -103,7 +110,7 @@ describe('Users Collection - Access Control', () => {
       const result = updateAccess({
         req: mockRequest({ id: 'admin-1', role: 'admin' }),
         data: { role: 'viewer' },
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toBe(true)
     })
 
@@ -111,7 +118,7 @@ describe('Users Collection - Access Control', () => {
       const result = updateAccess({
         req: mockRequest({ id: 'user-1', role: 'viewer' }),
         data: { name: 'New Name' },
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toEqual({
         id: {
           equals: 'user-1',
@@ -123,7 +130,7 @@ describe('Users Collection - Access Control', () => {
       const result = updateAccess({
         req: mockRequest({ id: 'user-1', role: 'viewer' }),
         data: { role: 'admin' },
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toBe(false)
     })
 
@@ -131,7 +138,7 @@ describe('Users Collection - Access Control', () => {
       const result = updateAccess({
         req: mockRequest({ id: 'user-2', role: 'viewer' }),
         data: { role: 'editor' },
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toBe(false)
     })
 
@@ -139,7 +146,7 @@ describe('Users Collection - Access Control', () => {
       const result = updateAccess({
         req: mockRequest({ id: 'user-3', role: 'viewer' }),
         data: { email: 'newemail@example.com' },
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toEqual({
         id: {
           equals: 'user-3',
@@ -151,7 +158,7 @@ describe('Users Collection - Access Control', () => {
       const result = updateAccess({
         req: mockRequest({ id: 'user-4', role: 'editor' }),
         data: { role: 'editor' },
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toEqual({
         id: {
           equals: 'user-4',
@@ -163,7 +170,7 @@ describe('Users Collection - Access Control', () => {
       const result = updateAccess({
         req: mockRequest({ id: 'user-5', role: 'editor' }),
         data: { role: 'admin' },
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toBe(false)
     })
 
@@ -171,7 +178,7 @@ describe('Users Collection - Access Control', () => {
       const result = updateAccess({
         req: mockRequest({ id: 'user-6', role: 'editor' }),
         data: { role: 'viewer' },
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toBe(false)
     })
 
@@ -179,7 +186,7 @@ describe('Users Collection - Access Control', () => {
       const result = updateAccess({
         req: mockRequest({ id: 'user-7', role: 'viewer' }),
         data: { email: 'other@example.com' },
-      } as any)
+      } as unknown as MockAccessArgs)
       // Should only allow update on their own id
       expect(result).toEqual({
         id: {
@@ -192,7 +199,7 @@ describe('Users Collection - Access Control', () => {
       const result = updateAccess({
         req: mockRequest({ id: 'user-8', role: 'viewer' }),
         data: { name: 'New Name' },
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toEqual({
         id: {
           equals: 'user-8',
@@ -204,7 +211,7 @@ describe('Users Collection - Access Control', () => {
       const result = updateAccess({
         req: mockRequest({ id: 'user-9', role: 'viewer' }),
         data: { role: 'admin' },
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toBe(false)
     })
   })
@@ -213,28 +220,28 @@ describe('Users Collection - Access Control', () => {
     const deleteAccess = usersAccess.delete!
 
     it('should return false for unauthenticated users', () => {
-      const result = deleteAccess({ req: mockRequest() } as any)
+      const result = deleteAccess({ req: mockRequest() } as unknown as MockAccessArgs)
       expect(result).toBe(false)
     })
 
     it('should return false for viewer users', () => {
       const result = deleteAccess({
         req: mockRequest({ id: '1', role: 'viewer' }),
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toBe(false)
     })
 
     it('should return false for editor users', () => {
       const result = deleteAccess({
         req: mockRequest({ id: '2', role: 'editor' }),
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toBe(false)
     })
 
     it('should return true only for admin users', () => {
       const result = deleteAccess({
         req: mockRequest({ id: '3', role: 'admin' }),
-      } as any)
+      } as unknown as MockAccessArgs)
       expect(result).toBe(true)
     })
   })

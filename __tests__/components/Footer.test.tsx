@@ -9,6 +9,10 @@ vi.mock('@/lib/payload', () => ({
 
 import { getPayloadAPI } from '@/lib/payload'
 
+interface MockPayloadMethods {
+  findGlobal?: ReturnType<typeof vi.fn>
+}
+
 describe('Footer Component', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -16,7 +20,7 @@ describe('Footer Component', () => {
 
   describe('with complete site settings', () => {
     it('should render site name', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         findGlobal: vi.fn().mockResolvedValue({
           name: 'Test Site',
           bioShort: 'A short bio',
@@ -26,49 +30,49 @@ describe('Footer Component', () => {
           ],
         }),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       render(await Footer())
       expect(screen.getByText('Test Site')).toBeInTheDocument()
     })
 
     it('should render bioShort when provided', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         findGlobal: vi.fn().mockResolvedValue({
           name: 'Test Site',
           bioShort: 'A short bio about the site',
           socialLinks: [],
         }),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       render(await Footer())
       expect(screen.getByText('A short bio about the site')).toBeInTheDocument()
     })
 
     it('should not render bioShort section when empty', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         findGlobal: vi.fn().mockResolvedValue({
           name: 'Test Site',
           bioShort: '', // Empty string should not render
           socialLinks: [],
         }),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const { container } = render(await Footer())
       expect(container.textContent).not.toContain('bio')
     })
 
     it('should not render bioShort section when undefined', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         findGlobal: vi.fn().mockResolvedValue({
           name: 'Test Site',
           bioShort: undefined, // undefined should not render
           socialLinks: [],
         }),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       render(await Footer())
       // Should still render name and other elements
@@ -76,7 +80,7 @@ describe('Footer Component', () => {
     })
 
     it('should render social links', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         findGlobal: vi.fn().mockResolvedValue({
           name: 'Test Site',
           bioShort: 'Bio',
@@ -86,7 +90,7 @@ describe('Footer Component', () => {
           ],
         }),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       render(await Footer())
       const github = screen.getByRole('link', { name: 'GitHub' })
@@ -96,7 +100,7 @@ describe('Footer Component', () => {
     })
 
     it('should render separators between social links', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         findGlobal: vi.fn().mockResolvedValue({
           name: 'Test Site',
           bioShort: 'Bio',
@@ -107,7 +111,7 @@ describe('Footer Component', () => {
           ],
         }),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const { container } = render(await Footer())
       // Separator should exist (implementation-dependent on CSS)
@@ -115,28 +119,28 @@ describe('Footer Component', () => {
     })
 
     it('should handle empty social links array', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         findGlobal: vi.fn().mockResolvedValue({
           name: 'Test Site',
           bioShort: 'Bio',
           socialLinks: [],
         }),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       render(await Footer())
       expect(screen.getByText('Test Site')).toBeInTheDocument()
     })
 
     it('should handle null social links', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         findGlobal: vi.fn().mockResolvedValue({
           name: 'Test Site',
           bioShort: 'Bio',
           socialLinks: null,
         }),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       render(await Footer())
       expect(screen.getByText('Test Site')).toBeInTheDocument()
@@ -146,14 +150,14 @@ describe('Footer Component', () => {
   describe('dynamic year rendering', () => {
     it('should include current year in footer', async () => {
       const currentYear = new Date().getFullYear()
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         findGlobal: vi.fn().mockResolvedValue({
           name: 'Test Site',
           bioShort: 'Bio',
           socialLinks: [],
         }),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       render(await Footer())
       expect(screen.getByText(currentYear.toString())).toBeInTheDocument()
@@ -162,28 +166,28 @@ describe('Footer Component', () => {
 
   describe('payload API calls', () => {
     it('should call getPayloadAPI', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         findGlobal: vi.fn().mockResolvedValue({
           name: 'Test Site',
           bioShort: null,
           socialLinks: [],
         }),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       await Footer()
       expect(getPayloadAPI).toHaveBeenCalled()
     })
 
     it('should call findGlobal with correct slug', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         findGlobal: vi.fn().mockResolvedValue({
           name: 'Test Site',
           bioShort: 'Bio',
           socialLinks: [],
         }),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       await Footer()
       expect(mockPayload.findGlobal).toHaveBeenCalledWith({
@@ -192,10 +196,10 @@ describe('Footer Component', () => {
     })
 
     it('should handle missing global config', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         findGlobal: vi.fn().mockResolvedValue({}),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       render(await Footer())
       // Should not crash, may render empty or default content
@@ -205,7 +209,7 @@ describe('Footer Component', () => {
 
   describe('accessibility', () => {
     it('should render footer element', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         findGlobal: vi.fn().mockResolvedValue({
           name: 'Test Site',
           bioShort: 'Bio',
@@ -214,7 +218,7 @@ describe('Footer Component', () => {
           ],
         }),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       const { container } = render(await Footer())
       const footer = container.querySelector('footer')
@@ -222,7 +226,7 @@ describe('Footer Component', () => {
     })
 
     it('should have proper link semantics', async () => {
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         findGlobal: vi.fn().mockResolvedValue({
           name: 'Test Site',
           bioShort: null,
@@ -231,7 +235,7 @@ describe('Footer Component', () => {
           ],
         }),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       render(await Footer())
       const link = screen.getByRole('link', { name: 'GitHub' })
@@ -243,14 +247,14 @@ describe('Footer Component', () => {
   describe('edge cases', () => {
     it('should handle long names', async () => {
       const longName = 'A'.repeat(100)
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         findGlobal: vi.fn().mockResolvedValue({
           name: longName,
           bioShort: 'Bio',
           socialLinks: [],
         }),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       render(await Footer())
       expect(screen.getByText(longName)).toBeInTheDocument()
@@ -258,14 +262,14 @@ describe('Footer Component', () => {
 
     it('should handle long bio', async () => {
       const longBio = 'Lorem ipsum dolor sit amet, '.repeat(20)
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         findGlobal: vi.fn().mockResolvedValue({
           name: 'Test',
           bioShort: longBio,
           socialLinks: [],
         }),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       render(await Footer())
       expect(screen.getByText(longBio)).toBeInTheDocument()
@@ -273,14 +277,14 @@ describe('Footer Component', () => {
 
     it('should handle special characters in names', async () => {
       const specialName = 'Test & Co. <Script>'
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         findGlobal: vi.fn().mockResolvedValue({
           name: specialName,
           bioShort: null,
           socialLinks: [],
         }),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       render(await Footer())
       expect(screen.getByText(specialName)).toBeInTheDocument()
@@ -291,14 +295,14 @@ describe('Footer Component', () => {
         href: `https://example.com/${i}`,
         label: `Link ${i}`,
       }))
-      const mockPayload = {
+      const mockPayload: MockPayloadMethods = {
         findGlobal: vi.fn().mockResolvedValue({
           name: 'Test',
           bioShort: 'Bio',
           socialLinks: manyLinks,
         }),
       }
-      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as any)
+      vi.mocked(getPayloadAPI).mockResolvedValue(mockPayload as unknown as MockPayloadMethods)
 
       render(await Footer())
       manyLinks.forEach((link) => {
