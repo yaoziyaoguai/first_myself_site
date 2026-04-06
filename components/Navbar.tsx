@@ -17,23 +17,23 @@ export function Navbar() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
-        <Link href="/" className="font-semibold text-lg">
+        <Link href="/" className="font-medium text-base" style={{ fontFamily: "'SF Pro Rounded', ui-sans-serif, system-ui" }}>
           <span className="text-primary">DW</span>Engineer
         </Link>
 
         {/* 桌面端导航 */}
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className={`text-sm font-medium transition-colors hover:text-foreground ${
+              className={`text-sm font-normal transition-colors ${
                 pathname === link.href
                   ? "text-foreground"
-                  : "text-muted-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {link.label}
@@ -67,17 +67,17 @@ export function Navbar() {
 
       {/* 移动端下拉菜单 */}
       {open && (
-        <nav className="md:hidden border-t bg-background">
+        <nav className="md:hidden border-t border-border bg-background">
           <div className="container mx-auto px-4 py-4 flex flex-col gap-3">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setOpen(false)}
-                className={`text-sm font-medium transition-colors hover:text-foreground py-1 ${
+                className={`text-sm font-normal transition-colors py-1 ${
                   pathname === link.href
                     ? "text-foreground"
-                    : "text-muted-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {link.label}

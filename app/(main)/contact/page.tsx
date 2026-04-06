@@ -22,53 +22,45 @@ export default async function ContactPage() {
   return (
     <div className="container mx-auto px-4 py-12">
       <section className="max-w-2xl mx-auto mb-12">
-        <h1 className="text-3xl md:text-4xl font-bold mb-4">联系我</h1>
+        <h1 className="text-4xl md:text-5xl font-medium mb-4" style={{ fontFamily: "'SF Pro Rounded', ui-sans-serif, system-ui" }}>联系我</h1>
         <p className="text-lg text-muted-foreground">{introText}</p>
       </section>
 
       <div className="max-w-2xl mx-auto space-y-6">
         {contactMethods.map((method) => (
-          <Card
+          <div
             key={method.title}
-            className="hover:shadow-md transition-shadow"
+            className="border border-border rounded-lg p-6 bg-background hover:bg-muted transition-colors"
           >
-            <CardHeader>
-              <CardTitle className="text-lg">{method.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-primary font-medium mb-1">{method.value}</p>
-              {method.description && (
-                <p className="text-sm text-muted-foreground mb-4">
-                  {method.description}
-                </p>
-              )}
-              <Link
-                href={method.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm font-medium hover:bg-muted transition-colors"
-              >
-                前往 {method.title}
-              </Link>
-            </CardContent>
-          </Card>
+            <h2 className="text-lg font-medium mb-2">{method.title}</h2>
+            <p className="text-primary font-medium mb-1">{method.value}</p>
+            {method.description && (
+              <p className="text-sm text-muted-foreground mb-4">
+                {method.description}
+              </p>
+            )}
+            <Link
+              href={method.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-full border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent transition-colors"
+            >
+              前往 {method.title}
+            </Link>
+          </div>
         ))}
       </div>
 
       {discussionTopics.length > 0 && (
         <section className="max-w-2xl mx-auto mt-16">
-          <Card className="bg-muted/50">
-            <CardHeader>
-              <CardTitle className="text-lg">我乐于交流的话题</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                {discussionTopics.map((topic) => (
-                  <li key={topic.label}>{topic.label}</li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+          <div className="border border-border rounded-lg p-6 bg-muted">
+            <h2 className="text-lg font-medium mb-4">我乐于交流的话题</h2>
+            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+              {discussionTopics.map((topic) => (
+                <li key={topic.label}>{topic.label}</li>
+              ))}
+            </ul>
+          </div>
         </section>
       )}
     </div>

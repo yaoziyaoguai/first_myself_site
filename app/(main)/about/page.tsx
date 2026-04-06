@@ -27,7 +27,7 @@ export default async function AboutPage() {
     <div className="container mx-auto px-4 py-12">
       {/* 自我介绍 */}
       <section className="max-w-3xl mx-auto mb-16">
-        <h1 className="text-3xl md:text-4xl font-bold mb-6">关于我</h1>
+        <h1 className="text-4xl md:text-5xl font-medium mb-6" style={{ fontFamily: "'SF Pro Rounded', ui-sans-serif, system-ui" }}>关于我</h1>
         <div className="space-y-4">
           <p className="text-lg text-muted-foreground leading-relaxed">
             我是 {name}，一名数据仓库工程师。
@@ -40,26 +40,22 @@ export default async function AboutPage() {
 
       {/* 工作方向 */}
       <section className="mb-16">
-        <h2 className="text-xl font-semibold mb-8">工作方向</h2>
+        <h2 className="text-2xl font-medium mb-8" style={{ fontFamily: "'SF Pro Rounded', ui-sans-serif, system-ui" }}>工作方向</h2>
         <div className="grid md:grid-cols-2 gap-6 max-w-3xl">
           {workDirections.map((direction) => (
-            <Card key={direction.title}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">{direction.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {direction.description}
-                </p>
-              </CardContent>
-            </Card>
+            <div key={direction.title} className="border border-border rounded-lg p-6 bg-background">
+              <h3 className="text-base font-medium mb-2">{direction.title}</h3>
+              <p className="text-sm text-muted-foreground">
+                {direction.description}
+              </p>
+            </div>
           ))}
         </div>
       </section>
 
       {/* 技术栈 */}
       <section className="mb-16">
-        <h2 className="text-xl font-semibold mb-8">技术栈</h2>
+        <h2 className="text-2xl font-medium mb-8" style={{ fontFamily: "'SF Pro Rounded', ui-sans-serif, system-ui" }}>技术栈</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6 max-w-3xl">
           {techStack.map((group) => (
             <div key={group.category}>
@@ -68,9 +64,12 @@ export default async function AboutPage() {
               </h3>
               <div className="flex flex-wrap gap-2">
                 {group.items.split(",").map((item) => (
-                  <Badge key={item.trim()} variant="secondary">
+                  <div
+                    key={item.trim()}
+                    className="inline-flex items-center rounded-full bg-accent text-accent-foreground px-2.5 py-1 text-xs font-medium border border-border"
+                  >
                     {item.trim()}
-                  </Badge>
+                  </div>
                 ))}
               </div>
             </div>
@@ -80,19 +79,15 @@ export default async function AboutPage() {
 
       {/* 关注的问题领域 */}
       <section>
-        <h2 className="text-xl font-semibold mb-8">我关注的问题</h2>
+        <h2 className="text-2xl font-medium mb-8" style={{ fontFamily: "'SF Pro Rounded', ui-sans-serif, system-ui" }}>我关注的问题</h2>
         <div className="grid md:grid-cols-2 gap-6 max-w-3xl">
           {focusAreas.map((area) => (
-            <Card key={area.title} className="bg-muted/30">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">{area.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {area.description}
-                </p>
-              </CardContent>
-            </Card>
+            <div key={area.title} className="border border-border rounded-lg p-6 bg-muted">
+              <h3 className="text-base font-medium mb-2">{area.title}</h3>
+              <p className="text-sm text-muted-foreground">
+                {area.description}
+              </p>
+            </div>
           ))}
         </div>
       </section>

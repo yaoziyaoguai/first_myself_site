@@ -69,7 +69,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         </Link>
 
         <header className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">{post.title}</h1>
+          <h1 className="text-4xl md:text-5xl font-medium mb-4" style={{ fontFamily: "'SF Pro Rounded', ui-sans-serif, system-ui" }}>{post.title}</h1>
           <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
             <span>{dateStr}</span>
             {post.readingTime && (
@@ -81,14 +81,14 @@ export default async function BlogPostPage({ params }: PageProps) {
           </div>
           <div className="flex flex-wrap gap-2">
             {tags.map((t) => (
-              <Badge key={t.tag} variant="secondary">
+              <div key={t.tag} className="inline-flex items-center rounded-full bg-accent text-accent-foreground px-3 py-1 text-xs font-medium border border-border">
                 {t.tag}
-              </Badge>
+              </div>
             ))}
           </div>
         </header>
 
-        <Separator className="my-8" />
+        <div className="h-px bg-border my-8" />
 
         {/* Lexical 富文本内容 */}
         <div className="prose prose-neutral dark:prose-invert max-w-none">
@@ -96,17 +96,15 @@ export default async function BlogPostPage({ params }: PageProps) {
           <RichText data={post.content as any} converters={defaultJSXConverters} />
         </div>
 
-        <Separator className="my-12" />
+        <div className="h-px bg-border my-12" />
 
         <footer>
-          <Card className="bg-muted/50">
-            <div className="p-6">
-              <h3 className="font-semibold mb-2">关于作者</h3>
-              <p className="text-sm text-muted-foreground">
-                数据仓库工程师，专注于数据工程、数据架构与 AI 应用落地。
-              </p>
-            </div>
-          </Card>
+          <div className="border border-border rounded-lg p-6 bg-muted">
+            <h3 className="font-medium mb-2">关于作者</h3>
+            <p className="text-sm text-muted-foreground">
+              数据仓库工程师，专注于数据工程、数据架构与 AI 应用落地。
+            </p>
+          </div>
         </footer>
       </article>
     </div>

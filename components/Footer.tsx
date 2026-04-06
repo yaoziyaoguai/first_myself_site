@@ -14,18 +14,18 @@ export async function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t">
+    <footer className="border-t border-border bg-background">
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="text-sm text-muted-foreground">
             &copy; {currentYear} {name}. All rights reserved.
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
             {socialLinks.map((link, index) => (
-              <span key={link.href} className="flex items-center gap-4">
+              <span key={link.href} className="flex items-center gap-6">
                 {index > 0 && (
-                  <Separator orientation="vertical" className="h-4" />
+                  <div className="h-4 w-px bg-border" />
                 )}
                 <Link
                   href={link.href}
