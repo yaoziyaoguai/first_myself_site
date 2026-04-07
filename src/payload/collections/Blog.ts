@@ -15,6 +15,41 @@ const Blog: CollectionConfig = {
         }
         return data;
       },
+      ({ data, operation, originalDoc }) => {
+        if (operation === "create") {
+          const hasContent =
+            !!data?.content && JSON.stringify(data.content) !== "{}";
+          const hasMarkdown =
+            typeof data?.contentMarkdown === "string" &&
+            data.contentMarkdown.trim().length > 0;
+
+          if (!hasContent && !hasMarkdown) {
+            throw new Error("请填写『文章内容 (富文本)』或『文章内容 (Markdown)』至少一项");
+          }
+        }
+
+        if (operation === "update" && originalDoc) {
+          const finalContent =
+            data?.content !== undefined ? data.content : originalDoc.content;
+
+          const finalMarkdown =
+            data?.contentMarkdown !== undefined
+              ? data.contentMarkdown
+              : originalDoc.contentMarkdown;
+
+          const hasContent =
+            !!finalContent && JSON.stringify(finalContent) !== "{}";
+
+          const hasMarkdown =
+            typeof finalMarkdown === "string" && finalMarkdown.trim().length > 0;
+
+          if (!hasContent && !hasMarkdown) {
+            throw new Error("请填写『文章内容 (富文本)』或『文章内容 (Markdown)』至少一项");
+          }
+        }
+
+        return data;
+      },
     ],
   },
   fields: [
@@ -77,17 +112,17 @@ const Blog: CollectionConfig = {
     {
       name: "content",
       type: "richText",
-      label: "文章内容",
-      required: true,
+      label: "文章内容 (富文本)",
+      required: false,
     },
     {
       name: "contentMarkdown",
-      type: "code",
+      type: "textarea",
       label: "文章内容 (Markdown)",
       required: false,
       admin: {
-        language: "markdown",
-        description: "使用 Markdown 格式编写文章。如果填写了此字段，将优先使用 Markdown 渲染。",
+        description: "使用 Markdown 格式编写文章。如果填写了此字段，将优先使用 Markdown 渲染。支持标准 Markdown 语法和表格、任务列表等 GFM 扩展。",
+        rows: 20,
       },
     },
     {

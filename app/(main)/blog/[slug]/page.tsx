@@ -91,14 +91,25 @@ export default async function BlogPostPage({ params }: PageProps) {
 
         {/* 文章内容渲染 - 优先使用 Markdown，回退到 RichText */}
         <div className="prose prose-neutral dark:prose-invert max-w-none">
-          {post.contentMarkdown ? (
-            <Markdown remarkPlugins={[remarkGfm]}>
-              {post.contentMarkdown as string}
-            </Markdown>
-          ) : (
-            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-            <RichText data={post.content as any} converters={defaultJSXConverters} />
-          )}
+          {(() => {
+            const markdownContent =
+              typeof post.contentMarkdown === "string"
+                ? post.contentMarkdown.trim()
+                : "";
+
+            if (markdownContent) {
+              return (
+                <Markdown remarkPlugins={[remarkGfm]}>
+                  {markdownContent}
+                </Markdown>
+              );
+            }
+
+            return (
+              /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+              <RichText data={post.content as any} converters={defaultJSXConverters} />
+            );
+          })()}
         </div>
 
         <div className="h-px bg-border my-12" />
