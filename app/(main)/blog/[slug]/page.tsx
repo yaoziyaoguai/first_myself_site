@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getPayloadAPI } from "@/lib/payload";
 import { RichText } from "@payloadcms/richtext-lexical/react";
 import { defaultJSXConverters } from "@payloadcms/richtext-lexical/react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export const dynamic = "force-dynamic";
 
@@ -87,10 +89,16 @@ export default async function BlogPostPage({ params }: PageProps) {
 
         <div className="h-px bg-border my-8" />
 
-        {/* Lexical 富文本内容 */}
+        {/* 文章内容渲染 - 优先使用 Markdown，回退到 RichText */}
         <div className="prose prose-neutral dark:prose-invert max-w-none">
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          <RichText data={post.content as any} converters={defaultJSXConverters} />
+          {post.contentMarkdown ? (
+            <Markdown remarkPlugins={[remarkGfm]}>
+              {post.contentMarkdown as string}
+            </Markdown>
+          ) : (
+            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+            <RichText data={post.content as any} converters={defaultJSXConverters} />
+          )}
         </div>
 
         <div className="h-px bg-border my-12" />

@@ -81,6 +81,16 @@ const Blog: CollectionConfig = {
       required: true,
     },
     {
+      name: "contentMarkdown",
+      type: "code",
+      label: "文章内容 (Markdown)",
+      required: false,
+      admin: {
+        language: "markdown",
+        description: "使用 Markdown 格式编写文章。如果填写了此字段，将优先使用 Markdown 渲染。",
+      },
+    },
+    {
       name: "attachments",
       type: "relationship",
       relationTo: "media",
