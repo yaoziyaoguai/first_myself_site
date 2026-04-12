@@ -1,0 +1,186 @@
+/**
+ * MarkdownPreviewField Styles
+ * 用于 Payload Admin 的自定义字段样式
+ */
+
+/* 字段容器 */
+.markdown-preview-field {
+  width: 100%;
+}
+
+/* 标签样式 */
+.markdown-preview-label {
+  margin-bottom: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--theme-text);
+}
+
+.markdown-preview-label label {
+  cursor: pointer;
+}
+
+.required-indicator {
+  color: var(--theme-error-500);
+}
+
+/* 描述文字 */
+.markdown-preview-description {
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--theme-elevation-500);
+  line-height: 1.5;
+}
+
+/* 双栏容器 */
+.markdown-preview-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border: 1px solid var(--theme-border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* 桌面端：左右布局 */
+@media (min-width: 1024px) {
+  .markdown-preview-container {
+    flex-direction: row;
+    height: 500px;
+  }
+}
+
+/* 左右栏通用样式 */
+.markdown-editor-pane,
+.markdown-preview-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 250px;
+}
+
+.markdown-editor-pane {
+  border-bottom: 1px solid var(--theme-border-color);
+}
+
+@media (min-width: 1024px) {
+  .markdown-editor-pane {
+    border-bottom: none;
+    border-right: 1px solid var(--theme-border-color);
+  }
+}
+
+/* 栏标题 */
+.pane-header {
+  padding: 8px 12px;
+  background-color: var(--theme-elevation-100);
+  border-bottom: 1px solid var(--theme-border-color);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--theme-elevation-600);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 文本编辑区 */
+.markdown-textarea {
+  flex: 1;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  background-color: var(--theme-input-bg);
+  color: var(--theme-text);
+}
+
+.markdown-textarea:focus {
+  background-color: var(--theme-elevation-50);
+}
+
+.markdown-textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.markdown-textarea.has-error {
+  background-color: var(--theme-error-50);
+}
+
+/* 预览区 */
+.markdown-preview-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  background-color: var(--theme-bg);
+}
+
+/* 空内容提示 */
+.markdown-preview-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--theme-elevation-400);
+  font-style: italic;
+}
+
+.markdown-preview-empty p {
+  margin: 0;
+}
+
+/* 错误信息 */
+.markdown-preview-error {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--theme-error-500);
+}
+
+/* ==================== */
+/* Markdown 内容样式修正 */
+/* ==================== */
+
+/* 确保预览区的 prose 样式正确应用 */
+.markdown-preview-content.prose {
+  max-width: none;
+}
+
+/* 代码块样式 */
+.markdown-preview-content pre {
+  background-color: var(--theme-elevation-100);
+  padding: 12px;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.markdown-preview-content code {
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+/* 表格样式 */
+.markdown-preview-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+
+.markdown-preview-content th,
+.markdown-preview-content td {
+  border: 1px solid var(--theme-border-color);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.markdown-preview-content th {
+  background-color: var(--theme-elevation-100);
+  font-weight: 600;
+}
+
+/* 任务列表样式 */
+.markdown-preview-content input[type="checkbox"] {
+  margin-right: 8px;
+}
