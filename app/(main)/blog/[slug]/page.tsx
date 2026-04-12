@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getPayloadAPI } from "@/lib/payload";
+import { isAdmin } from "@/lib/auth";
 import { RichText } from "@payloadcms/richtext-lexical/react";
 import { defaultJSXConverters } from "@payloadcms/richtext-lexical/react";
 import Markdown from "react-markdown";
@@ -52,6 +53,10 @@ export default async function BlogPostPage({ params }: PageProps) {
     notFound();
   }
 
+  // 检查是否为 Admin
+  const admin = await isAdmin();
+  const editUrl = admin && post.id ? `/admin/collections/blog/${post.id}` : null;
+
   const tags = (post.tags as { tag: string }[] | undefined) || [];
   const dateStr = post.publishedDate
     ? new Date(post.publishedDate).toISOString().split("T")[0]
@@ -68,7 +73,17 @@ export default async function BlogPostPage({ params }: PageProps) {
         </Link>
 
         <header className="mb-8">
-          <h1 className="text-4xl md:text-5xl font-medium mb-4" style={{ fontFamily: "'SF Pro Rounded', ui-sans-serif, system-ui" }}>{post.title}</h1>
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="text-4xl md:text-5xl font-medium mb-4" style={{ fontFamily: "'SF Pro Rounded', ui-sans-serif, system-ui" }}>{post.title}</h1>
+            {editUrl && (
+              <a
+                href={editUrl}
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-border rounded-md bg-muted hover:bg-accent transition-colors shrink-0"
+              >
+                <span>编辑</span>
+              </a>
+            )}
+          </div>
           <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
             <span>{dateStr}</span>
             {post.readingTime && (
