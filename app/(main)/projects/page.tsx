@@ -1,4 +1,6 @@
 import { getPayloadAPI } from "@/lib/payload";
+import { isAdmin } from "@/lib/auth";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -11,14 +13,29 @@ export default async function ProjectsPage() {
   });
   const projects = result.docs;
 
+  // 检查是否为 Admin
+  const admin = await isAdmin();
+
   return (
     <div className="container mx-auto px-4 py-12">
       <section className="mb-12">
-        <h1 className="text-4xl md:text-5xl font-medium mb-4" style={{ fontFamily: "'SF Pro Rounded', ui-sans-serif, system-ui" }}>项目经历</h1>
-        <p className="text-lg text-muted-foreground max-w-2xl">
-          以下是我参与过的主要项目，涵盖实时数仓、数据治理、性能优化等多个方向。
-          每个项目都注重实际业务价值与技术落地的平衡。
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-4xl md:text-5xl font-medium mb-4" style={{ fontFamily: "'SF Pro Rounded', ui-sans-serif, system-ui" }}>项目经历</h1>
+            <p className="text-lg text-muted-foreground max-w-2xl">
+              以下是我参与过的主要项目，涵盖实时数仓、数据治理、性能优化等多个方向。
+              每个项目都注重实际业务价值与技术落地的平衡。
+            </p>
+          </div>
+          {admin && (
+            <Link
+              href="/admin/collections/projects"
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-border rounded-md bg-muted hover:bg-accent transition-colors shrink-0"
+            >
+              <span>管理项目</span>
+            </Link>
+          )}
+        </div>
       </section>
 
       <div className="space-y-8">
