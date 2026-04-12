@@ -3,6 +3,7 @@ import { Geist_Mono } from "next/font/google";
 import "../globals.css";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { AdminLink } from "@/components/AdminLink";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -26,6 +27,10 @@ export default function MainRootLayout({
         className={`${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
         <Navbar />
+        {/* Admin 入口 - 仅 Admin 用户可见 */}
+        <div className="absolute top-16 right-4 z-40 hidden md:block">
+          <AdminLink />
+        </div>
         <main className="flex-1">{children}</main>
         <Footer />
       </body>
