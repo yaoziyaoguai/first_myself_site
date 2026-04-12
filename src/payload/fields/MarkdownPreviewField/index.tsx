@@ -54,74 +54,80 @@ export function MarkdownPreviewField({
   // 合并 readOnly 状态（来自 props 或 field 配置）
   const readOnly = readOnlyFromProps || disabled;
 
-  // Refs for scroll sync
+  // Refs for scroll sync (左侧绝对主导精简版)
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
-  const isProgramScrolling = useRef(false);
-  const isUserScrollingPreview = useRef(false);
-  const resumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSyncing = useRef(false);      // 标记是否正在程序同步中
+  const rafId = useRef<number | null>(null);  // 动画帧 ID
 
-  // 清理 timer
-  useEffect(() => {
-    return () => {
-      if (resumeTimer.current) {
-        clearTimeout(resumeTimer.current);
+  // 轻量平滑过渡（80ms ease-out）
+  const smoothScrollTo = useCallback((target: number) => {
+    const preview = previewRef.current;
+    if (!preview) return;
+
+    // 差距很小，直接设置
+    if (Math.abs(preview.scrollTop - target) < 5) {
+      preview.scrollTop = target;
+      return;
+    }
+
+    const start = preview.scrollTop;
+    const diff = target - start;
+    const duration = 80;  // 80ms 轻量过渡
+    const startTime = performance.now();
+
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const p = Math.min(elapsed / duration, 1);
+      // ease-out
+      const ease = 1 - Math.pow(1 - p, 2);
+
+      isSyncing.current = true;
+      preview.scrollTop = start + diff * ease;
+
+      if (p < 1) {
+        rafId.current = requestAnimationFrame(step);
+      } else {
+        isSyncing.current = false;
       }
     };
+
+    if (rafId.current) cancelAnimationFrame(rafId.current);
+    rafId.current = requestAnimationFrame(step);
   }, []);
 
-  // 左侧 textarea 滚动 - 驱动右侧同步
+  // 左侧 textarea 滚动 - 绝对主导，立即接管
   const handleTextareaScroll = useCallback(() => {
     const textarea = textareaRef.current;
     const preview = previewRef.current;
     if (!textarea || !preview) return;
 
-    // 用户操作左侧时，立即夺回同步控制权
-    if (isUserScrollingPreview.current) {
-      isUserScrollingPreview.current = false;
-      if (resumeTimer.current) {
-        clearTimeout(resumeTimer.current);
-        resumeTimer.current = null;
-      }
-    }
+    // 计算左侧比例
+    const maxScroll = textarea.scrollHeight - textarea.clientHeight;
+    if (maxScroll <= 0) return;
+    const ratio = textarea.scrollTop / maxScroll;
 
-    // 计算滚动比例
-    const textareaScrollHeight = textarea.scrollHeight - textarea.clientHeight;
-    const previewScrollHeight = preview.scrollHeight - preview.clientHeight;
-    if (textareaScrollHeight <= 0 || previewScrollHeight <= 0) return;
+    // 目标位置
+    const previewMax = preview.scrollHeight - preview.clientHeight;
+    const target = ratio * previewMax;
 
-    const ratio = textarea.scrollTop / textareaScrollHeight;
-    const previewScrollTop = ratio * previewScrollHeight;
+    // 轻量平滑过渡到目标位置
+    smoothScrollTo(target);
+  }, [smoothScrollTo]);
 
-    // 设置标志：接下来右侧的 scroll 是程序产生的
-    isProgramScrolling.current = true;
-    preview.scrollTop = previewScrollTop;
-
-    // 下一帧清除标志
-    requestAnimationFrame(() => {
-      isProgramScrolling.current = false;
-    });
+  // 右侧预览区滚动 - 仅忽略程序触发的scroll
+  const handlePreviewScroll = useCallback(() => {
+    // 如果是程序同步导致的 scroll，忽略
+    if (isSyncing.current) return;
+    // 用户手动滚动，不做任何处理
+    // 左侧下一次滚动时会立即接管
   }, []);
 
-  // 右侧预览区滚动 - 检测用户手动滚动
-  const handlePreviewScroll = useCallback(() => {
-    // 如果是程序设置的 scrollTop，忽略
-    if (isProgramScrolling.current) {
-      return;
-    }
-
-    // 用户手动滚动
-    isUserScrollingPreview.current = true;
-
-    // 清除之前的延时
-    if (resumeTimer.current) {
-      clearTimeout(resumeTimer.current);
-    }
-
-    // 150ms 后允许重新被左侧驱动
-    resumeTimer.current = setTimeout(() => {
-      isUserScrollingPreview.current = false;
-    }, 150);
+  // 清理
+  useEffect(() => {
+    return () => {
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+    };
   }, []);
 
   // 获取字段标签和描述
