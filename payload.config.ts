@@ -18,6 +18,9 @@ export default buildConfig({
   serverURL: process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:3000",
   admin: {
     user: "users",
+    components: {
+      beforeNavLinks: ["@/src/payload/components/BackToSite#BackToSite"]
+    }
   },
   editor: lexicalEditor(),
   globals: [Home, SiteSettings, About, Contact],
