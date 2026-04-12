@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useField } from "@payloadcms/ui";
@@ -53,6 +53,76 @@ export function MarkdownPreviewField({
 
   // 合并 readOnly 状态（来自 props 或 field 配置）
   const readOnly = readOnlyFromProps || disabled;
+
+  // Refs for scroll sync
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const isProgramScrolling = useRef(false);
+  const isUserScrollingPreview = useRef(false);
+  const resumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 清理 timer
+  useEffect(() => {
+    return () => {
+      if (resumeTimer.current) {
+        clearTimeout(resumeTimer.current);
+      }
+    };
+  }, []);
+
+  // 左侧 textarea 滚动 - 驱动右侧同步
+  const handleTextareaScroll = useCallback(() => {
+    const textarea = textareaRef.current;
+    const preview = previewRef.current;
+    if (!textarea || !preview) return;
+
+    // 用户操作左侧时，立即夺回同步控制权
+    if (isUserScrollingPreview.current) {
+      isUserScrollingPreview.current = false;
+      if (resumeTimer.current) {
+        clearTimeout(resumeTimer.current);
+        resumeTimer.current = null;
+      }
+    }
+
+    // 计算滚动比例
+    const textareaScrollHeight = textarea.scrollHeight - textarea.clientHeight;
+    const previewScrollHeight = preview.scrollHeight - preview.clientHeight;
+    if (textareaScrollHeight <= 0 || previewScrollHeight <= 0) return;
+
+    const ratio = textarea.scrollTop / textareaScrollHeight;
+    const previewScrollTop = ratio * previewScrollHeight;
+
+    // 设置标志：接下来右侧的 scroll 是程序产生的
+    isProgramScrolling.current = true;
+    preview.scrollTop = previewScrollTop;
+
+    // 下一帧清除标志
+    requestAnimationFrame(() => {
+      isProgramScrolling.current = false;
+    });
+  }, []);
+
+  // 右侧预览区滚动 - 检测用户手动滚动
+  const handlePreviewScroll = useCallback(() => {
+    // 如果是程序设置的 scrollTop，忽略
+    if (isProgramScrolling.current) {
+      return;
+    }
+
+    // 用户手动滚动
+    isUserScrollingPreview.current = true;
+
+    // 清除之前的延时
+    if (resumeTimer.current) {
+      clearTimeout(resumeTimer.current);
+    }
+
+    // 150ms 后允许重新被左侧驱动
+    resumeTimer.current = setTimeout(() => {
+      isUserScrollingPreview.current = false;
+    }, 150);
+  }, []);
 
   // 获取字段标签和描述
   const rawLabel = field?.label || "文章内容 (Markdown)";
@@ -109,9 +179,11 @@ export function MarkdownPreviewField({
         <div className="markdown-editor-pane">
           <div className="pane-header">编辑</div>
           <textarea
+            ref={textareaRef}
             id={fieldPath}
             value={value || ""}
             onChange={handleChange}
+            onScroll={handleTextareaScroll}
             disabled={readOnly}
             rows={20}
             className={`markdown-textarea ${showError ? "has-error" : ""}`}
@@ -122,7 +194,11 @@ export function MarkdownPreviewField({
         {/* 右侧：预览区 */}
         <div className="markdown-preview-pane">
           <div className="pane-header">预览</div>
-          <div className="markdown-preview-content prose prose-neutral max-w-none">
+          <div
+            ref={previewRef}
+            onScroll={handlePreviewScroll}
+            className="markdown-preview-content prose prose-neutral max-w-none"
+          >
             {renderPreview()}
           </div>
         </div>
