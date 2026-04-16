@@ -13,6 +13,8 @@ import Users from "./src/payload/collections/Users";
 import Projects from "./src/payload/collections/Projects";
 import Media from "./src/payload/collections/Media";
 import Blog from "./src/payload/collections/Blog";
+import Comments from "./src/payload/collections/Comments";
+import Likes from "./src/payload/collections/Likes";
 
 export default buildConfig({
   serverURL: process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:3000",
@@ -24,7 +26,7 @@ export default buildConfig({
   },
   editor: lexicalEditor(),
   globals: [Home, SiteSettings, About, Contact],
-  collections: [Users, Media, Blog, Projects],
+  collections: [Users, Media, Blog, Projects, Comments, Likes],
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URL || "postgresql://payload:payload_secret_2026@localhost:5432/first_myself_site",

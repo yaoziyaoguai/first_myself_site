@@ -6,6 +6,8 @@ import { RichText } from "@payloadcms/richtext-lexical/react";
 import { defaultJSXConverters } from "@payloadcms/richtext-lexical/react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { CommentSection } from "@/components/CommentSection";
+import { LikeButton } from "@/components/LikeButton";
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +94,8 @@ export default async function BlogPostPage({ params }: PageProps) {
                 <span>{post.readingTime}</span>
               </>
             )}
+            <span>·</span>
+            <LikeButton targetId={String(post.id)} targetType="blog" size="sm" />
           </div>
           <div className="flex flex-wrap gap-2">
             {tags.map((t) => (
@@ -137,6 +141,10 @@ export default async function BlogPostPage({ params }: PageProps) {
             </p>
           </div>
         </footer>
+
+        <div className="mt-12">
+          <CommentSection targetId={String(post.id)} targetType="blog" />
+        </div>
       </article>
     </div>
   );
