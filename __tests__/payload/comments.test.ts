@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { CollectionConfig } from "payload";
+import type { CollectionConfig, AccessArgs, TextareaField, SelectField } from "payload";
 
 // Mock payload config
 vi.mock("payload", () => ({
@@ -31,7 +31,7 @@ describe("Comments Collection", () => {
     expect(createAccess).toBeDefined();
 
     if (typeof createAccess === "function") {
-      const result = createAccess({ req: { user: null } as any });
+      const result = createAccess({ req: { user: null } } as AccessArgs);
       expect(result).toBe(true);
     }
   });
@@ -41,7 +41,7 @@ describe("Comments Collection", () => {
     expect(readAccess).toBeDefined();
 
     if (typeof readAccess === "function") {
-      const result = readAccess({ req: { user: null } as any });
+      const result = readAccess({ req: { user: null } } as AccessArgs);
       expect(result).toBe(true);
     }
   });
@@ -53,20 +53,20 @@ describe("Comments Collection", () => {
     if (typeof updateAccess === "function") {
       // Anonymous user cannot update
       const anonResult = updateAccess({
-        req: { user: null } as any,
+        req: { user: null },
         data: {},
         doc: {},
         id: "test-id",
-      });
+      } as AccessArgs);
       expect(anonResult).toBe(false);
 
       // Admin can update
       const adminResult = updateAccess({
-        req: { user: { role: "admin" } } as any,
+        req: { user: { role: "admin" } },
         data: {},
         doc: {},
         id: "test-id",
-      });
+      } as AccessArgs);
       expect(adminResult).toBe(true);
     }
   });
@@ -83,7 +83,7 @@ describe("Comments Collection", () => {
       );
       expect(contentField).toBeDefined();
       expect(contentField?.type).toBe("textarea");
-      expect((contentField as any).maxLength).toBe(1000);
+      expect((contentField as TextareaField).maxLength).toBe(1000);
     });
 
     it("should have targetType with correct options", () => {
@@ -93,7 +93,7 @@ describe("Comments Collection", () => {
       expect(targetTypeField).toBeDefined();
       expect(targetTypeField?.type).toBe("select");
 
-      const options = (targetTypeField as any).options;
+      const options = (targetTypeField as SelectField).options;
       expect(options).toContainEqual({ label: "博客文章", value: "blog" });
       expect(options).toContainEqual({ label: "项目", value: "project" });
     });

@@ -5,6 +5,7 @@ vi.mock("payload", () => ({
   buildConfig: vi.fn((config) => config),
 }));
 
+import type { AccessArgs, SelectField, Field, CompoundIndex } from "payload";
 import Likes from "@/src/payload/collections/Likes";
 
 describe("Likes Collection", () => {
@@ -27,7 +28,7 @@ describe("Likes Collection", () => {
     expect(createAccess).toBeDefined();
 
     if (typeof createAccess === "function") {
-      const result = createAccess({ req: { user: null } as any });
+      const result = createAccess({ req: { user: null } } as AccessArgs);
       expect(result).toBe(true);
     }
   });
@@ -37,7 +38,7 @@ describe("Likes Collection", () => {
     expect(readAccess).toBeDefined();
 
     if (typeof readAccess === "function") {
-      const result = readAccess({ req: { user: null } as any });
+      const result = readAccess({ req: { user: null } } as AccessArgs);
       expect(result).toBe(true);
     }
   });
@@ -47,7 +48,7 @@ describe("Likes Collection", () => {
     expect(updateAccess).toBeDefined();
 
     if (typeof updateAccess === "function") {
-      const result = updateAccess({ req: { user: { role: "admin" } } as any });
+      const result = updateAccess({ req: { user: { role: "admin" } } } as AccessArgs);
       expect(result).toBe(false);
     }
   });
@@ -57,7 +58,7 @@ describe("Likes Collection", () => {
     expect(deleteAccess).toBeDefined();
 
     if (typeof deleteAccess === "function") {
-      const result = deleteAccess({ req: { user: { role: "admin" } } as any });
+      const result = deleteAccess({ req: { user: { role: "admin" } } } as AccessArgs);
       expect(result).toBe(false);
     }
   });
@@ -66,7 +67,7 @@ describe("Likes Collection", () => {
     const indexes = Likes.indexes || [];
     expect(indexes.length).toBeGreaterThan(0);
 
-    const uniqueIndex = indexes.find((idx: any) => idx.unique === true);
+    const uniqueIndex = indexes.find((idx: CompoundIndex) => idx.unique === true);
     expect(uniqueIndex).toBeDefined();
     expect(uniqueIndex?.fields).toContain("targetId");
     expect(uniqueIndex?.fields).toContain("targetType");
@@ -82,7 +83,7 @@ describe("Likes Collection", () => {
       expect(targetTypeField).toBeDefined();
       expect(targetTypeField?.type).toBe("select");
 
-      const options = (targetTypeField as any).options;
+      const options = (targetTypeField as SelectField).options;
       expect(options).toContainEqual({ label: "博客文章", value: "blog" });
       expect(options).toContainEqual({ label: "项目", value: "project" });
     });
@@ -95,7 +96,7 @@ describe("Likes Collection", () => {
           (f: { name?: string }) => f.name === fieldName
         );
         expect(field).toBeDefined();
-        expect((field as any).required).toBe(true);
+        expect((field as Field).required).toBe(true);
       });
     });
   });
