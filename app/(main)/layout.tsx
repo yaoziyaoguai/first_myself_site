@@ -11,8 +11,29 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DWEngineer - 数据仓库工程师",
-  description: "数据仓库工程师个人网站，专注于数据工程、数据架构与 AI 应用",
+  title: "Jinkun Wang | Personal Website",
+  description: "个人项目、博客与技术思考，聚焦数据工程、AI 与软件架构。",
+  openGraph: {
+    title: "Jinkun Wang | Personal Website",
+    description: "个人项目、博客与技术思考，聚焦数据工程、AI 与软件架构。",
+    type: "website",
+    locale: "zh_CN",
+    siteName: "Jinkun Wang",
+    images: [
+      {
+        url: "https://wangjinkun333.me/og-image.svg",
+        width: 1200,
+        height: 630,
+        alt: "Jinkun Wang Personal Website",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Jinkun Wang | Personal Website",
+    description: "个人项目、博客与技术思考，聚焦数据工程、AI 与软件架构。",
+    images: ["https://wangjinkun333.me/og-image.svg"],
+  },
 };
 
 export default function MainRootLayout({
