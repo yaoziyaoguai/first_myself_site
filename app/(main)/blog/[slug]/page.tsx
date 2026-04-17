@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { getPayloadAPI } from "@/lib/payload";
 import { isAdmin } from "@/lib/auth";
 import { RichText } from "@payloadcms/richtext-lexical/react";
@@ -15,7 +16,7 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export async function generateMetadata({ params }: PageProps) {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug);
   const payload = await getPayloadAPI();
@@ -29,10 +30,43 @@ export async function generateMetadata({ params }: PageProps) {
     limit: 1,
   });
   const post = result.docs[0];
-  if (!post) return { title: "文章未找到" };
+
+  // 站点默认描述
+  const defaultDescription = "个人项目、博客与技术思考，聚焦数据工程、AI 与软件架构。";
+  // 使用文章摘要，缺失时回退到默认描述
+  const description = post?.excerpt || defaultDescription;
+
+  if (!post) {
+    return {
+      title: "文章未找到",
+      description: defaultDescription,
+    };
+  }
+
   return {
-    title: `${post.title} - DWEngineer`,
-    description: post.excerpt,
+    title: `${post.title} | Jinkun Wang`,
+    description,
+    openGraph: {
+      title: `${post.title} | Jinkun Wang`,
+      description,
+      type: "article",
+      locale: "zh_CN",
+      siteName: "Jinkun Wang",
+      images: [
+        {
+          url: "https://wangjinkun333.me/og-image.svg",
+          width: 1200,
+          height: 630,
+          alt: post.title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${post.title} | Jinkun Wang`,
+      description,
+      images: ["https://wangjinkun333.me/og-image.svg"],
+    },
   };
 }
 
