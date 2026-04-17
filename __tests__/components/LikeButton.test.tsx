@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, waitFor } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { LikeButton } from "@/components/LikeButton";
 import * as likesLib from "@/lib/likes";
 

@@ -33,8 +33,9 @@ describe("CommentForm", () => {
   it("should show error when submitting empty content", async () => {
     render(<CommentForm onSubmit={vi.fn()} />);
 
-    const submitButton = screen.getByText("发表评论");
-    fireEvent.click(submitButton);
+    // 直接触发表单提交（因为按钮在空内容时禁用）
+    const form = screen.getByPlaceholderText("写下你的评论...").closest("form")!;
+    fireEvent.submit(form);
 
     await waitFor(() => {
       expect(screen.getByText("评论内容不能为空")).toBeInTheDocument();
@@ -50,8 +51,9 @@ describe("CommentForm", () => {
     const textarea = screen.getByPlaceholderText("写下你的评论...");
     fireEvent.change(textarea, { target: { value: "Test content" } });
 
-    const submitButton = screen.getByText("发表评论");
-    fireEvent.click(submitButton);
+    // 直接触发表单提交
+    const form = textarea.closest("form")!;
+    fireEvent.submit(form);
 
     await waitFor(() => {
       expect(screen.getByText("请输入有效的邮箱地址")).toBeInTheDocument();
@@ -191,12 +193,19 @@ describe("CommentForm", () => {
       render(<CommentForm onSubmit={vi.fn()} />);
 
       const textarea = screen.getByPlaceholderText("写下你的评论...");
-      const tooLongText = "a".repeat(1001);
+      const longText = "a".repeat(1000);
 
+      fireEvent.change(textarea, { target: { value: longText } });
+
+      // 组件允许最多 1000 字符
+      expect(textarea).toHaveValue(longText);
+
+      // 尝试输入超过 1000 字符，组件会忽略超长部分
+      const tooLongText = "a".repeat(1001);
       fireEvent.change(textarea, { target: { value: tooLongText } });
 
-      // Should be truncated to 1000
-      expect(textarea).toHaveValue("a".repeat(1000));
+      // 由于 state 未更新，textarea 仍显示旧值
+      expect(textarea).toHaveValue(longText);
     });
   });
 });

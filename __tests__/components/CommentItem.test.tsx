@@ -4,7 +4,7 @@ import { CommentItem } from "@/components/CommentItem";
 import type { Comment } from "@/lib/comments";
 
 // Mock child components
-vi.mock("./CommentForm", () => ({
+vi.mock("@/components/CommentForm", () => ({
   CommentForm: ({ onSubmit, submitLabel }: { onSubmit: (c: string) => void; submitLabel: string }) => (
     <form data-testid="comment-form">
       <textarea data-testid="comment-textarea" />

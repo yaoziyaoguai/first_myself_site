@@ -1,11 +1,11 @@
-import { describe, it, expect, vi, beforeEach, waitFor } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { CommentSection } from "@/components/CommentSection";
 import * as commentsLib from "@/lib/comments";
 import * as authLib from "@/lib/auth";
 
 // Mock child components
-vi.mock("./CommentItem", () => ({
+vi.mock("@/components/CommentItem", () => ({
   CommentItem: ({
     comment,
     onDelete,
@@ -31,7 +31,7 @@ vi.mock("./CommentItem", () => ({
   ),
 }));
 
-vi.mock("./CommentForm", () => ({
+vi.mock("@/components/CommentForm", () => ({
   CommentForm: ({ onSubmit, isSubmitting }: { onSubmit: (c: string, n: string, e: string) => Promise<void>; isSubmitting?: boolean }) => (
     <form data-testid="comment-form">
       <textarea data-testid="comment-textarea" />
@@ -115,7 +115,9 @@ describe("CommentSection", () => {
     render(<CommentSection targetId="blog-1" targetType="blog" />);
 
     await waitFor(() => {
-      expect(screen.getByText(/评论/)).toBeInTheDocument();
+      // 使用级别选择器匹配主标题 h3
+      const heading = screen.getByRole('heading', { level: 3, name: /评论/ });
+      expect(heading).toBeInTheDocument();
       expect(screen.getByText(/\(2\)/)).toBeInTheDocument();
     });
   });
@@ -141,13 +143,30 @@ describe("CommentSection", () => {
   });
 
   it("should check admin status on mount", async () => {
-    const isAdminSpy = vi.spyOn(authLib, "isAdmin").mockResolvedValue(true);
+    // Mock fetch for auth check
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url === "/api/auth/check") {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ isAdmin: true }),
+        });
+      }
+      // 默认返回 IP API mock
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ ip: "127.0.0.1" }),
+      });
+    });
 
     render(<CommentSection targetId="blog-1" targetType="blog" />);
 
+    // 等待组件加载完成
     await waitFor(() => {
-      expect(isAdminSpy).toHaveBeenCalled();
+      expect(screen.getByText("评论")).toBeInTheDocument();
     });
+
+    // 验证 fetch 被调用
+    expect(global.fetch).toHaveBeenCalledWith("/api/auth/check");
   });
 
   it("should show loading state initially", () => {
@@ -235,7 +254,20 @@ describe("CommentSection", () => {
   });
 
   it("should handle comment deletion for admin", async () => {
-    vi.spyOn(authLib, "isAdmin").mockResolvedValue(true);
+    // Mock auth check to return admin
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      if (url === "/api/auth/check") {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ isAdmin: true }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ ip: "127.0.0.1" }),
+      });
+    });
+
     const softDeleteSpy = vi.spyOn(commentsLib, "softDeleteComment").mockResolvedValue({
       id: "1",
       content: "First comment",
