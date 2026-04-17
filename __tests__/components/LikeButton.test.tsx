@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, waitFor } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { LikeButton } from "./LikeButton";
+import { LikeButton } from "@/components/LikeButton";
 import * as likesLib from "@/lib/likes";
 
 // Mock fetch for IP API

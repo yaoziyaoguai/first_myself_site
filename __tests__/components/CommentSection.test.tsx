@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, waitFor } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { CommentSection } from "./CommentSection";
+import { CommentSection } from "@/components/CommentSection";
 import * as commentsLib from "@/lib/comments";
 import * as authLib from "@/lib/auth";
 

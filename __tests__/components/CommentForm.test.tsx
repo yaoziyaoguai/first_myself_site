@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, waitFor } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
-import { CommentForm } from "./CommentForm";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { CommentForm } from "@/components/CommentForm";
 
 describe("CommentForm", () => {
   it("should render form elements", () => {
@@ -30,16 +30,18 @@ describe("CommentForm", () => {
     expect(screen.getByText("11 / 1000")).toBeInTheDocument();
   });
 
-  it("should show error when submitting empty content", () => {
+  it("should show error when submitting empty content", async () => {
     render(<CommentForm onSubmit={vi.fn()} />);
 
     const submitButton = screen.getByText("发表评论");
     fireEvent.click(submitButton);
 
-    expect(screen.getByText("评论内容不能为空")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("评论内容不能为空")).toBeInTheDocument();
+    });
   });
 
-  it("should show error for invalid email", () => {
+  it("should show error for invalid email", async () => {
     render(<CommentForm onSubmit={vi.fn()} />);
 
     const emailInput = screen.getByPlaceholderText("your@email.com");
@@ -51,7 +53,9 @@ describe("CommentForm", () => {
     const submitButton = screen.getByText("发表评论");
     fireEvent.click(submitButton);
 
-    expect(screen.getByText("请输入有效的邮箱地址")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("请输入有效的邮箱地址")).toBeInTheDocument();
+    });
   });
 
   it("should call onSubmit with correct data", async () => {

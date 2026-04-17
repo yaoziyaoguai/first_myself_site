@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { CommentItem } from "./CommentItem";
+import { CommentItem } from "@/components/CommentItem";
 import type { Comment } from "@/lib/comments";
 
 // Mock child components
