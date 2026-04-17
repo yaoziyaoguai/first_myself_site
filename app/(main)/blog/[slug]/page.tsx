@@ -9,6 +9,7 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CommentSection } from "@/components/CommentSection";
 import { LikeButton } from "@/components/LikeButton";
+import { ShareActions } from "@/components/ShareActions";
 
 export const dynamic = "force-dynamic";
 
@@ -166,6 +167,13 @@ export default async function BlogPostPage({ params }: PageProps) {
         </div>
 
         <div className="h-px bg-border my-12" />
+
+        {/* 分享区域 */}
+        <ShareActions
+          url={`https://wangjinkun333.me/blog/${post.slug}`}
+          title={post.title}
+          summary={post.excerpt}
+        />
 
         <footer>
           <div className="border border-border rounded-lg p-6 bg-muted">
