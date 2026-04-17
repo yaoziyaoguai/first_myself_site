@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getLikeStatus, createLike } from "@/lib/likes";
+import { getLikeStatus, createLike } from "@/lib/likes.server";
 
 export const dynamic = "force-dynamic";
 

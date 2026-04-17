@@ -4,7 +4,7 @@ import {
   getReplies,
   createComment,
   softDeleteComment,
-} from "@/lib/comments";
+} from "@/lib/comments.server";
 import { isAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
