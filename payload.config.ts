@@ -2,19 +2,22 @@ import { buildConfig } from "payload";
 import { postgresAdapter } from "@payloadcms/db-postgres";
 import { lexicalEditor } from "@payloadcms/richtext-lexical";
 
+// Relative imports use `.js` extensions (TS-ESM idiom) — required by
+// `payload generate:importmap` under Node ESM strict resolution.
+
 // Globals
-import Home from "./src/payload/globals/Home";
-import SiteSettings from "./src/payload/globals/SiteSettings";
-import About from "./src/payload/globals/About";
-import Contact from "./src/payload/globals/Contact";
+import Home from "./src/payload/globals/Home.js";
+import SiteSettings from "./src/payload/globals/SiteSettings.js";
+import About from "./src/payload/globals/About.js";
+import Contact from "./src/payload/globals/Contact.js";
 
 // Collections
-import Users from "./src/payload/collections/Users";
-import Projects from "./src/payload/collections/Projects";
-import Media from "./src/payload/collections/Media";
-import Blog from "./src/payload/collections/Blog";
-import Comments from "./src/payload/collections/Comments";
-import Likes from "./src/payload/collections/Likes";
+import Users from "./src/payload/collections/Users.js";
+import Projects from "./src/payload/collections/Projects.js";
+import Media from "./src/payload/collections/Media.js";
+import Blog from "./src/payload/collections/Blog.js";
+import Comments from "./src/payload/collections/Comments.js";
+import Likes from "./src/payload/collections/Likes.js";
 
 export default buildConfig({
   serverURL: process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:3000",
