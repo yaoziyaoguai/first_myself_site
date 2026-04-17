@@ -21,6 +21,19 @@ export interface LikeStatus {
 }
 
 /**
+ * 获取 API 基础 URL
+ * 服务端使用绝对 URL，浏览器端使用相对路径
+ */
+function getApiBaseUrl(): string {
+  if (typeof window === "undefined") {
+    // Server-side: use absolute URL
+    return process.env.NEXT_PUBLIC_SERVER_URL || "https://wangjinkun333.me";
+  }
+  // Browser-side: relative path works fine
+  return "";
+}
+
+/**
  * 获取点赞状态
  * 包括点赞总数和当前用户是否已点赞
  */
@@ -37,7 +50,8 @@ export async function getLikeStatus(
     fingerprint,
   });
 
-  const response = await fetch(`/api/likes?${params}`);
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}/api/likes?${params}`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch like status");
@@ -50,7 +64,8 @@ export async function getLikeStatus(
  * 创建新点赞
  */
 export async function createLike(data: CreateLikeData): Promise<Like> {
-  const response = await fetch("/api/likes", {
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}/api/likes`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

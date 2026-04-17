@@ -27,6 +27,19 @@ export interface CreateCommentData {
 }
 
 /**
+ * 获取 API 基础 URL
+ * 服务端使用绝对 URL，浏览器端使用相对路径
+ */
+function getApiBaseUrl(): string {
+  if (typeof window === "undefined") {
+    // Server-side: use absolute URL
+    return process.env.NEXT_PUBLIC_SERVER_URL || "https://wangjinkun333.me";
+  }
+  // Browser-side: relative path works fine
+  return "";
+}
+
+/**
  * 查询顶层评论（parentId 为 null）
  * 按时间倒序排列
  */
@@ -42,7 +55,8 @@ export async function getComments(
     page: page.toString(),
   });
 
-  const response = await fetch(`/api/comments?${params}`);
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}/api/comments?${params}`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch comments");
@@ -62,7 +76,8 @@ export async function getReplies(parentId: string): Promise<Comment[]> {
     parentId,
   });
 
-  const response = await fetch(`/api/comments?${params}`);
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}/api/comments?${params}`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch replies");
@@ -76,7 +91,8 @@ export async function getReplies(parentId: string): Promise<Comment[]> {
  * 创建新评论
  */
 export async function createComment(data: CreateCommentData): Promise<Comment> {
-  const response = await fetch("/api/comments", {
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}/api/comments`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -100,7 +116,8 @@ export async function softDeleteComment(
   commentId: string,
   _deletedBy: string = "admin"
 ): Promise<Comment> {
-  const response = await fetch(`/api/comments?id=${commentId}`, {
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}/api/comments?id=${commentId}`, {
     method: "PATCH",
   });
 
