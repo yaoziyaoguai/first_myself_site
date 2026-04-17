@@ -175,17 +175,19 @@ export default async function BlogPostPage({ params }: PageProps) {
           summary={post.excerpt}
         />
 
-        <footer>
+        {/* 评论区 */}
+        <div className="mt-8">
+          <CommentSection targetId={String(post.id)} targetType="blog" />
+        </div>
+
+        {/* 关于作者 */}
+        <div className="mt-12 pt-8 border-t border-border">
           <div className="border border-border rounded-lg p-6 bg-muted">
             <h3 className="font-medium mb-2">关于作者</h3>
             <p className="text-sm text-muted-foreground">
               数据仓库工程师，专注于数据工程、数据架构与 AI 应用落地。
             </p>
           </div>
-        </footer>
-
-        <div className="mt-12">
-          <CommentSection targetId={String(post.id)} targetType="blog" />
         </div>
       </article>
     </div>

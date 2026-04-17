@@ -92,9 +92,9 @@ export function CommentForm({
               placeholder="匿名用户"
               maxLength={30}
               className={cn(
-                "w-full px-3 py-2 text-sm rounded-md border border-input bg-background",
-                "focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",
-                "placeholder:text-muted-foreground"
+                "w-full px-3 py-2 text-sm rounded-md border border-border bg-muted/50",
+                "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary",
+                "placeholder:text-foreground/50"
               )}
             />
           </div>
@@ -113,9 +113,9 @@ export function CommentForm({
               placeholder="your@email.com"
               maxLength={100}
               className={cn(
-                "w-full px-3 py-2 text-sm rounded-md border border-input bg-background",
-                "focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",
-                "placeholder:text-muted-foreground"
+                "w-full px-3 py-2 text-sm rounded-md border border-border bg-muted/50",
+                "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary",
+                "placeholder:text-foreground/50"
               )}
             />
           </div>
@@ -131,9 +131,9 @@ export function CommentForm({
           rows={compact ? 3 : 4}
           maxLength={MAX_CHARS}
           className={cn(
-            "w-full px-3 py-2 text-sm rounded-md border border-input bg-background resize-none",
-            "focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",
-            "placeholder:text-muted-foreground"
+            "w-full px-3 py-2 text-sm rounded-md border border-border bg-muted/50 resize-none",
+            "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary",
+            "placeholder:text-foreground/50"
           )}
           disabled={isSubmitting}
         />
