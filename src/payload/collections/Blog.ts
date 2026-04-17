@@ -123,7 +123,7 @@ const Blog: CollectionConfig = {
       admin: {
         description: "使用 Markdown 格式编写文章。如果填写了此字段，将优先使用 Markdown 渲染。支持标准 Markdown 语法和表格、任务列表等 GFM 扩展。",
         components: {
-          Field: "@/src/payload/fields/MarkdownPreviewField#MarkdownPreviewField"
+          Field: "@/payload/fields/MarkdownPreviewField#MarkdownPreviewField"
         }
       },
     },
