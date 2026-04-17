@@ -66,3 +66,5 @@ media/*
 .cache
 nginx.conf
 .env.docker.prod
+
+resume
