@@ -20,8 +20,8 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 
 # 安装构建依赖（native 模块编译需要）
-RUN apk add --no-cache libc6-compat python3 make g++
-
+RUN sed -i 's|https://dl-cdn.alpinelinux.org/alpine|https://mirrors.aliyun.com/alpine|g' /etc/apk/repositories \
+    && apk add --no-cache libc6-compat python3 make g++
 # 复制依赖文件
 COPY package.json package-lock.json* pnpm-lock.yaml* yarn.lock* ./
 
