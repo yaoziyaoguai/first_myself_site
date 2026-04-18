@@ -11,8 +11,12 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      // Order matters: vite alias is first-match-wins (declaration order).
+      // '@/app' must be listed BEFORE '@', otherwise '@' would intercept
+      // imports like '@/app/foo' and resolve them to './src/app/foo'.
+      '@/app': path.resolve(__dirname, './app'),
       '@payload-config': path.resolve(__dirname, './payload.config.ts'),
+      '@': path.resolve(__dirname, './src'),
     },
   },
 })
