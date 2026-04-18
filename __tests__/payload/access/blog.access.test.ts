@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { AccessArgs } from 'payload'
-import Blog from '@/src/payload/collections/Blog'
+import Blog from '@/payload/collections/Blog'
 
 describe('Blog Collection - Access Control', () => {
   // Extract access functions from Blog collection config

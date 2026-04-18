@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { AccessArgs } from 'payload'
-import Users from '@/src/payload/collections/Users'
+import Users from '@/payload/collections/Users'
 
 describe('Users Collection - Access Control', () => {
   const usersAccess = Users.access!

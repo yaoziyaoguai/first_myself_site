@@ -21,7 +21,7 @@ export default buildConfig({
   admin: {
     user: "users",
     components: {
-      beforeNavLinks: ["@/src/payload/components/BackToSite#BackToSite"]
+      beforeNavLinks: ["@/payload/components/BackToSite#BackToSite"]
     }
   },
   editor: lexicalEditor(),

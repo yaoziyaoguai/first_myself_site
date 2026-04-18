@@ -7,7 +7,7 @@ vi.mock("payload", () => ({
 }));
 
 // Import the collection to test
-import Comments from "@/src/payload/collections/Comments";
+import Comments from "@/payload/collections/Comments";
 
 describe("Comments Collection", () => {
   it("should have correct slug", () => {

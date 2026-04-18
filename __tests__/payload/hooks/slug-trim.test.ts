@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import type { CollectionBeforeValidateHook } from 'payload'
-import Blog from '@/src/payload/collections/Blog'
-import Posts from '@/src/payload/collections/Posts'
-import Projects from '@/src/payload/collections/Projects'
+import Blog from '@/payload/collections/Blog'
+import Posts from '@/payload/collections/Posts'
+import Projects from '@/payload/collections/Projects'
 
 type HookArg = Parameters<CollectionBeforeValidateHook>[0]
 

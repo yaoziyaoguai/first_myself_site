@@ -6,7 +6,7 @@ vi.mock("payload", () => ({
 }));
 
 import type { AccessArgs, SelectField, Field, CompoundIndex } from "payload";
-import Likes from "@/src/payload/collections/Likes";
+import Likes from "@/payload/collections/Likes";
 
 describe("Likes Collection", () => {
   it("should have correct slug", () => {
