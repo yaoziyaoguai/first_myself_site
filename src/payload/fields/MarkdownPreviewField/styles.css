@@ -1,0 +1,264 @@
+/*
+ * MarkdownPreviewField
+ * Side-by-side Markdown editor + live preview inside the Payload admin.
+ *
+ * Visual conventions:
+ *   - All colors via var(--theme-*) — inherited from @payloadcms/ui theme
+ *     tokens (src: node_modules/@payloadcms/ui/dist/scss/colors.scss). Auto
+ *     switches with light / dark theme.
+ *   - The composite field is ONE card: outer border + radius on .mpf-panes,
+ *     the inner textarea is borderless content so the two panes read as one.
+ *   - Inputs manually re-implement the essential subset of Payload's
+ *     `formInput` mixin (src: @payloadcms/ui/dist/scss/vars.scss:131) —
+ *     padding, placeholder color, readOnly — rather than coupling to
+ *     `.field-type.textarea textarea`, which is a Payload admin internal
+ *     selector that may change across minor versions.
+ *   - Every rule below has a functional reason. No hover, no transitions,
+ *     no shadows, no decorative animation.
+ */
+
+/* ---------- Composite card ---------- */
+
+.mpf-panes {
+  /*
+   * Shared pane height. Single source of truth — both .mpf-textarea and
+   * .mpf-preview reference this, so the two panes stay aligned when tuned.
+   * Derivation: 20px line-height × ~25 rows = 500px. Blog posts on this site
+   * run roughly 100-500 lines; 25 visible rows is a reasonable editing
+   * surface without dominating the form. Inner scroll handles overflow.
+   */
+  --mpf-pane-height: 500px;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--theme-border-color);
+  border-radius: var(--style-radius-s);
+  background: var(--theme-input-bg);
+  overflow: hidden; /* clip child panes to the outer rounded corners */
+}
+
+/*
+ * Functional focus indicator. Mirrors formInput's :focus border darkening
+ * (var(--theme-elevation-400)). Without this, the user can't tell which
+ * composite field has focus — the inner textarea has no border of its own.
+ */
+.mpf-panes:focus-within {
+  border-color: var(--theme-elevation-400);
+}
+
+/*
+ * Error state. Matches Payload's convention of red-border on invalid input
+ * (lightInputError mixin → border: 1px solid var(--theme-error-500)).
+ */
+.mpf-panes--error {
+  border-color: var(--theme-error-500);
+}
+
+/* ---------- Panes ---------- */
+
+.mpf-pane {
+  display: flex;
+  flex-direction: column;
+}
+
+.mpf-pane--preview {
+  border-left: 1px solid var(--theme-border-color);
+}
+
+/*
+ * Pane header ("编辑" / "预览"). Elevation-100 background + elevation-400
+ * text gives a subdued label that does not compete with content below.
+ * Uppercase + letter-spacing matches the low-key label style Payload uses
+ * for nav section titles inside the admin sidebar.
+ */
+.mpf-pane-header {
+  padding: 8px 15px;
+  background: var(--theme-elevation-100);
+  color: var(--theme-elevation-400);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--theme-border-color);
+  flex-shrink: 0; /* keep header intact when pane content scrolls */
+}
+
+/* ---------- Textarea (left pane) ---------- */
+/*
+ * Subset of formInput (see header note). Deliberately omits border /
+ * border-radius / box-shadow — the outer card owns those. Deliberately
+ * overrides:
+ *   - resize: none — fixed-height scroll region is required so left and
+ *     right panes stay aligned.
+ *   - font-family: monospace — Markdown source is easier to read and edit
+ *     in a fixed-width face (alignment of tables, indentation of lists).
+ * font-size is NOT set — inherits admin default so the textarea tracks any
+ * future admin-wide type-scale change.
+ */
+.mpf-textarea {
+  flex: 1;
+  min-height: var(--mpf-pane-height);
+  width: 100%;
+  padding: 8px 15px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  color: var(--theme-elevation-800);
+  font-family: var(--font-mono);
+  resize: none;
+  outline: 0; /* focus indicator lives on .mpf-panes:focus-within */
+  /* font-size and line-height NOT set — inherit admin defaults so the
+     textarea tracks any future admin-wide type-scale change. */
+}
+
+.mpf-textarea::placeholder {
+  color: var(--theme-elevation-400);
+}
+
+.mpf-textarea:disabled {
+  background: var(--theme-elevation-100);
+  color: var(--theme-elevation-400);
+  cursor: not-allowed;
+}
+
+/* ---------- Preview (right pane) ---------- */
+
+.mpf-preview {
+  flex: 1;
+  min-height: var(--mpf-pane-height);
+  /*
+   * max-height cap: without this, a very long Markdown document stretches
+   * the preview div to thousands of pixels tall, turning the whole admin
+   * form into an unusable scroll mess. 80vh keeps the editing experience
+   * bounded while still giving plenty of preview space on any reasonable
+   * viewport. Scroll handles content beyond.
+   */
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 8px 15px;
+  color: var(--theme-text);
+  line-height: 1.6; /* preview is a read surface; slightly taller leading aids scanning */
+}
+
+.mpf-preview-empty {
+  color: var(--theme-elevation-400);
+  font-style: italic;
+}
+
+/* ---------- Prose inside preview ---------- */
+/*
+ * Minimal typography — enough to render Markdown legibly without pulling in
+ * @tailwindcss/typography or duplicating front-end prose styles. Only rules
+ * that make a real difference for readability inside the admin panel.
+ */
+
+.mpf-preview h1,
+.mpf-preview h2,
+.mpf-preview h3,
+.mpf-preview h4 {
+  margin: 1em 0 0.5em;
+  font-weight: 600;
+  color: var(--theme-elevation-800);
+  line-height: 1.3;
+}
+
+.mpf-preview h1 { font-size: 1.6em; }
+.mpf-preview h2 { font-size: 1.35em; }
+.mpf-preview h3 { font-size: 1.15em; }
+.mpf-preview h4 { font-size: 1em; }
+
+.mpf-preview p,
+.mpf-preview ul,
+.mpf-preview ol {
+  margin: 0.5em 0;
+}
+
+.mpf-preview ul,
+.mpf-preview ol {
+  padding-left: 1.5em;
+}
+
+.mpf-preview code {
+  background: var(--theme-elevation-100);
+  padding: 2px 4px;
+  border-radius: var(--style-radius-s);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.mpf-preview pre {
+  background: var(--theme-elevation-100);
+  padding: 12px 15px;
+  border-radius: var(--style-radius-s);
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+
+.mpf-preview pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+.mpf-preview blockquote {
+  margin: 0.5em 0;
+  padding-left: 1em;
+  border-left: 3px solid var(--theme-border-color);
+  color: var(--theme-elevation-600);
+}
+
+.mpf-preview a {
+  /* Match admin's global <a> rule (app.scss:166 `color: currentColor`).
+     Payload has no dedicated link-color token — anchors inherit text color
+     and rely on underline + :active opacity for interaction feedback. */
+  color: currentColor;
+  text-decoration: underline;
+}
+
+.mpf-preview a:active {
+  opacity: 0.7; /* mirrors admin global a:active feedback */
+}
+
+.mpf-preview img {
+  max-width: 100%;
+  height: auto;
+}
+
+.mpf-preview table {
+  border-collapse: collapse;
+  margin: 0.5em 0;
+}
+
+.mpf-preview th,
+.mpf-preview td {
+  border: 1px solid var(--theme-border-color);
+  padding: 6px 10px;
+}
+
+.mpf-preview th {
+  background: var(--theme-elevation-100);
+  font-weight: 600;
+}
+
+.mpf-preview hr {
+  border: 0;
+  border-top: 1px solid var(--theme-border-color);
+  margin: 1em 0;
+}
+
+/* ---------- Responsive fallback ---------- */
+/*
+ * Admin is rarely used on mobile; when it is, stacked panes keep both
+ * editor and preview usable. Not the primary target — purely a safety net.
+ */
+@media (max-width: 768px) {
+  .mpf-panes {
+    grid-template-columns: 1fr;
+  }
+  .mpf-pane--preview {
+    border-left: 0;
+    border-top: 1px solid var(--theme-border-color);
+  }
+}
