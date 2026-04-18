@@ -25,19 +25,18 @@ import "./styles.css";
  * Registered via `admin.components.Field` on the textarea field config, e.g.
  *   Field: '@/payload/fields/MarkdownPreviewField#MarkdownPreviewField'
  *
- * Alignment strategy (see plan for rationale):
- *   - Scroll-driven sync  : left textarea onScroll → preview scrollTop by ratio.
- *   - Cursor-driven sync  : onFocus / onClick / onKeyUp / onSelect / onInput →
- *                           preview follows the textarea caret's line number.
- *                           onFocus + onClick only re-sync when
- *                           selectionStart actually changed.
- *   - Both drivers share a single rAF + 80ms ease-out scrollPreviewTo().
+ * Alignment strategy:
+ *   - Scroll-driven sync: left textarea onScroll → preview scrollTop by
+ *     proportional ratio. Single direction — the left pane is authoritative.
  *   - `isSyncing` prevents programmatic scrolls from re-entering the loop.
- *   - Cursor sync is wrapped in a 40ms leading+trailing debounce so rapid
- *     typing does not fight the smooth scroll animation.
+ *   - rAF + 80ms ease-out (scrollPreviewTo) for smooth transitions.
+ *
+ * Cursor-driven sync was tried and removed (see commit history): the precision
+ * benefit was too small to justify the interaction complexity. Typing still
+ * updates the preview content (Markdown re-renders from `value`), but the
+ * preview scroll position is only driven by the user scrolling the editor.
  */
 
-const CURSOR_DEBOUNCE_MS = 40;
 const SMOOTH_SCROLL_MS = 80;
 
 /**
@@ -71,9 +70,6 @@ export const MarkdownPreviewField: TextareaFieldClientComponent = ({
   const previewRef = useRef<HTMLDivElement>(null);
   const isSyncing = useRef(false);
   const rafId = useRef<number | null>(null);
-  const lastSelectionStart = useRef<number>(-1);
-  const cursorDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cursorDebounceLastCall = useRef<number>(0);
 
   /**
    * rAF-driven smooth scroll of the preview pane. Always flips `isSyncing` so
@@ -134,60 +130,6 @@ export const MarkdownPreviewField: TextareaFieldClientComponent = ({
     scrollPreviewTo(ratio * previewMax);
   }, [scrollPreviewTo]);
 
-  /**
-   * Cursor-driven: map the textarea caret's line number to a preview ratio.
-   * This intentionally uses ratio (not AST line-mapping) — we chose Plan A.
-   */
-  const syncPreviewToCursorImmediate = useCallback(() => {
-    const textarea = textareaRef.current;
-    const preview = previewRef.current;
-    if (!textarea || !preview) return;
-
-    const text = textarea.value;
-    if (!text) {
-      scrollPreviewTo(0);
-      return;
-    }
-
-    const lineCount = text.split("\n").length; // 1-indexed total line count
-    if (lineCount <= 1) {
-      // Single-line text — no meaningful caret-to-ratio mapping; keep preview at top.
-      scrollPreviewTo(0);
-      return;
-    }
-
-    const caret = textarea.selectionStart ?? 0;
-    const beforeCaret = text.slice(0, caret);
-    const caretLineIndex = beforeCaret.split("\n").length - 1; // 0-indexed
-
-    const previewMax = preview.scrollHeight - preview.clientHeight;
-    if (previewMax <= 0) return;
-
-    scrollPreviewTo((caretLineIndex / (lineCount - 1)) * previewMax);
-  }, [scrollPreviewTo]);
-
-  /**
-   * 40ms leading + trailing debounce. First call fires immediately (leading),
-   * subsequent rapid calls are coalesced into one trailing call after the
-   * quiet period. Keeps point-and-click responsive while taming typing bursts.
-   */
-  const syncPreviewToCursor = useCallback(() => {
-    const now = Date.now();
-    const elapsed = now - cursorDebounceLastCall.current;
-
-    if (elapsed >= CURSOR_DEBOUNCE_MS) {
-      cursorDebounceLastCall.current = now;
-      syncPreviewToCursorImmediate();
-    }
-
-    if (cursorDebounceTimer.current) clearTimeout(cursorDebounceTimer.current);
-    cursorDebounceTimer.current = setTimeout(() => {
-      cursorDebounceLastCall.current = Date.now();
-      syncPreviewToCursorImmediate();
-      cursorDebounceTimer.current = null;
-    }, CURSOR_DEBOUNCE_MS);
-  }, [syncPreviewToCursorImmediate]);
-
   // --- Event handlers -----------------------------------------------------
 
   const handleChange = useCallback(
@@ -200,37 +142,6 @@ export const MarkdownPreviewField: TextareaFieldClientComponent = ({
     [setValue]
   );
 
-  const handleInput = useCallback(() => {
-    const sel = textareaRef.current?.selectionStart ?? -1;
-    lastSelectionStart.current = sel;
-    syncPreviewToCursor();
-  }, [syncPreviewToCursor]);
-
-  const handleKeyUp = useCallback(() => {
-    const sel = textareaRef.current?.selectionStart ?? -1;
-    lastSelectionStart.current = sel;
-    syncPreviewToCursor();
-  }, [syncPreviewToCursor]);
-
-  const handleSelect = useCallback(() => {
-    const sel = textareaRef.current?.selectionStart ?? -1;
-    lastSelectionStart.current = sel;
-    syncPreviewToCursor();
-  }, [syncPreviewToCursor]);
-
-  /**
-   * onFocus / onClick only re-sync when the caret actually moved. Prevents
-   * the "user clicks back into the editor after scrolling → preview snaps
-   * away from where they were reading" regression for no-op clicks.
-   */
-  const handleMaybeCursorMoved = useCallback(() => {
-    const sel = textareaRef.current?.selectionStart ?? -1;
-    if (sel !== lastSelectionStart.current) {
-      lastSelectionStart.current = sel;
-      syncPreviewToCursor();
-    }
-  }, [syncPreviewToCursor]);
-
   const handleTextareaScroll = useCallback(() => {
     syncPreviewToScrollRatio();
   }, [syncPreviewToScrollRatio]);
@@ -240,7 +151,6 @@ export const MarkdownPreviewField: TextareaFieldClientComponent = ({
   useEffect(() => {
     return () => {
       if (rafId.current) cancelAnimationFrame(rafId.current);
-      if (cursorDebounceTimer.current) clearTimeout(cursorDebounceTimer.current);
     };
   }, []);
 
@@ -275,11 +185,6 @@ export const MarkdownPreviewField: TextareaFieldClientComponent = ({
             disabled={readOnly}
             onChange={handleChange}
             onScroll={handleTextareaScroll}
-            onFocus={handleMaybeCursorMoved}
-            onClick={handleMaybeCursorMoved}
-            onKeyUp={handleKeyUp}
-            onSelect={handleSelect}
-            onInput={handleInput}
             placeholder="在此输入 Markdown…"
             spellCheck={false}
           />
