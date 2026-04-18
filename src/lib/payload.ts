@@ -1,5 +1,5 @@
 import { getPayload as getPayloadClient } from "payload";
-import config from "../payload.config";
+import config from "@payload-config";
 
 /**
  * 获取 Payload Local API 客户端

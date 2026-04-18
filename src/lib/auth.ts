@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { getPayload } from "payload";
-import config from "../payload.config";
+import config from "@payload-config";
 
 /**
  * 获取当前登录用户
