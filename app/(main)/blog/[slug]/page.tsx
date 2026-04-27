@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getPayloadAPI } from "@/lib/payload";
-import { isAdmin } from "@/lib/auth";
+import { isAdmin, getCurrentUser } from "@/lib/auth";
+import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
 import { RichText } from "@payloadcms/richtext-lexical/react";
 import { defaultJSXConverters } from "@payloadcms/richtext-lexical/react";
 import Markdown from "react-markdown";
@@ -20,13 +21,15 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug);
+  // metadata 同样要按登录态决定 where：作者本人访问 private 文章时，
+  // 应该拿到真实标题/摘要，而不是「文章未找到」。
+  const viewer = await getCurrentUser();
   const payload = await getPayloadAPI();
   const result = await payload.find({
     collection: "blog",
     where: {
+      ...buildBlogFrontendWhere(viewer),
       slug: { equals: decodedSlug },
-      status: { equals: "published" },
-      visibility: { equals: "public" },
     },
     limit: 1,
   });
@@ -74,13 +77,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function BlogPostPage({ params }: PageProps) {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug);
+  // 详情页同样基于登录态构造可见性过滤：
+  // - 未登录 / 普通用户：只能直接访问 published + public 的文章，private 一律 404
+  // - admin / editor：可以直接访问 published 的 private 文章
+  // 草稿（status != published）即使是作者也不在前台展示，符合 publish 工作流；
+  // 后台编辑入口在 admin UI（下方 editUrl 提供快捷跳转）。
+  const viewer = await getCurrentUser();
   const payload = await getPayloadAPI();
   const result = await payload.find({
     collection: "blog",
     where: {
+      ...buildBlogFrontendWhere(viewer),
       slug: { equals: decodedSlug },
-      status: { equals: "published" },
-      visibility: { equals: "public" },
     },
     limit: 1,
   });

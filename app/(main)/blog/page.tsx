@@ -1,16 +1,22 @@
 import Link from "next/link";
 import { getPayloadAPI } from "@/lib/payload";
+import { getCurrentUser } from "@/lib/auth";
+import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
 
 export const dynamic = "force-dynamic";
 
 export default async function BlogPage() {
+  // 先识别当前请求的登录态（基于 payload-token cookie）：
+  // - 未登录 / 普通用户：只能看到公开 + 已发布的文章
+  // - 作者本人 (admin) / 编辑 (editor)：看到全部已发布文章（含 private）
+  // 之所以在这一层手动加 where，是因为 Local API 默认 overrideAccess: true，
+  // Blog.access.read 在前台 server component 链路上不会自动生效。
+  // 详细原因见 src/lib/blogVisibility.ts 顶部注释。
+  const viewer = await getCurrentUser();
   const payload = await getPayloadAPI();
   const result = await payload.find({
     collection: "blog",
-    where: {
-      status: { equals: "published" },
-      visibility: { equals: "public" },
-    },
+    where: buildBlogFrontendWhere(viewer),
     sort: "-publishedDate",
     limit: 50,
   });
