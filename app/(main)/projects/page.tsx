@@ -1,90 +1,90 @@
-import { getPayloadAPI } from "@/lib/payload";
-import { isAdmin } from "@/lib/auth";
+import type { Metadata } from "next";
 import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
+import { siteDefaults } from "@/content/siteDefaults";
+import { isAdmin } from "@/lib/auth";
+import { getPayloadAPI } from "@/lib/payload";
 
 export const dynamic = "force-dynamic";
 
+export const metadata: Metadata = {
+  title: "项目",
+  description: "围绕数据工程、AI 评测与 Agent 系统的个人项目和实验。",
+  alternates: { canonical: "/projects" },
+};
+
 export default async function ProjectsPage() {
   const payload = await getPayloadAPI();
-  const result = await payload.find({
-    collection: "projects",
-    sort: "sortOrder",
-    limit: 50,
-  });
-  const projects = result.docs;
-
-  // 检查是否为 Admin
-  const admin = await isAdmin();
+  const [result, admin] = await Promise.all([
+    payload.find({ collection: "projects", sort: "sortOrder", limit: 50 }),
+    isAdmin(),
+  ]);
+  const projects = result.docs.length > 0 ? result.docs : siteDefaults.projects;
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <section className="mb-12">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-4xl md:text-5xl font-medium mb-4" style={{ fontFamily: "'SF Pro Rounded', ui-sans-serif, system-ui" }}>项目经历</h1>
-            <p className="text-lg text-muted-foreground max-w-2xl">
-              以下是我参与过的主要项目，涵盖实时数仓、数据治理、性能优化等多个方向。
-              每个项目都注重实际业务价值与技术落地的平衡。
-            </p>
-          </div>
-          {admin && (
-            <Link
-              href="/admin/collections/projects"
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-border rounded-md bg-muted hover:bg-accent transition-colors shrink-0"
+    <div className="site-shell page-space">
+      <header className="page-header relative">
+        <p className="eyebrow">PROJECTS</p>
+        <h1>用项目验证正在学习的东西。</h1>
+        <p>
+          这里不是成果陈列柜，而是实践记录。每个项目都对应一组仍在推敲的问题。
+        </p>
+        {admin ? (
+          <Link className="text-link mt-6" href="/admin/collections/projects">
+            管理项目 →
+          </Link>
+        ) : null}
+      </header>
+
+      <div className="divide-y divide-border border-y border-border">
+        {projects.map((project, index) => {
+          const href = "href" in project ? project.href : null;
+          const Wrapper = href ? Link : "article";
+
+          return (
+            <Wrapper
+              className="group grid gap-7 py-10 md:grid-cols-[5rem_minmax(0,0.8fr)_minmax(0,1.2fr)] md:py-14"
+              href={href ?? "/projects"}
+              key={String(project.id)}
+              target={href?.startsWith("http") ? "_blank" : undefined}
+              rel={href?.startsWith("http") ? "noreferrer" : undefined}
             >
-              <span>管理项目</span>
-            </Link>
-          )}
-        </div>
-      </section>
-
-      <div className="space-y-8">
-        {projects.map((project) => (
-          <div
-            key={project.id}
-            className="border border-border rounded-lg p-6 bg-background hover:bg-muted transition-colors"
-          >
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 mb-4">
-              <div>
-                <h2 className="text-xl font-medium">
-                  {project.title}
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+              <span className="font-mono text-xs text-muted-foreground">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <span>
+                <span className="flex items-start gap-3">
+                  <span className="text-2xl font-semibold tracking-tight">{project.title}</span>
+                  {href ? <ArrowUpRight aria-hidden="true" size={18} /> : null}
+                </span>
+                <span className="mt-3 block text-xs uppercase tracking-[0.14em] text-muted-foreground">
                   {project.role} · {project.period}
-                </p>
-              </div>
-            </div>
-
-            <p className="text-muted-foreground mb-4">
-              {project.description}
-            </p>
-
-            {/* 技术标签 */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              {(
-                project.tags as { tag: string; id?: string }[] | undefined
-              )?.map((t) => (
-                <div key={t.tag} className="inline-flex items-center rounded-full bg-accent text-accent-foreground px-3 py-1 text-xs font-medium border border-border">
-                  {t.tag}
-                </div>
-              ))}
-            </div>
-
-            {/* 项目亮点 */}
-            <div className="bg-muted rounded-lg p-4">
-              <h4 className="text-sm font-medium mb-2">项目成果</h4>
-              <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                {(
-                  project.highlights as
-                    | { text: string; id?: string }[]
-                    | undefined
-                )?.map((h, i) => (
-                  <li key={i}>{h.text}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        ))}
+                </span>
+              </span>
+              <span>
+                <span className="block text-sm leading-7 text-muted-foreground">
+                  {project.description}
+                </span>
+                <span className="mt-6 flex flex-wrap gap-2">
+                  {project.tags?.map((tag) => (
+                    <span className="topic-pill" key={tag.tag ?? "tag"}>
+                      {tag.tag}
+                    </span>
+                  ))}
+                </span>
+                {project.highlights?.length ? (
+                  <span className="mt-7 block border-l border-primary pl-5">
+                    {project.highlights.map((highlight) => (
+                      <span className="block text-sm leading-7 text-foreground/80" key={highlight.text ?? "highlight"}>
+                        {highlight.text}
+                      </span>
+                    ))}
+                  </span>
+                ) : null}
+              </span>
+            </Wrapper>
+          );
+        })}
       </div>
     </div>
   );

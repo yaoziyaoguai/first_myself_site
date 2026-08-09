@@ -1,49 +1,46 @@
 import Link from "next/link";
+import { siteDefaults } from "@/content/siteDefaults";
+import { resolveArray, resolveText } from "@/lib/contentFallback";
 import { getPayloadAPI } from "@/lib/payload";
 
 export async function Footer() {
   const payload = await getPayloadAPI();
   const settings = await payload.findGlobal({ slug: "site-settings" });
-
-  const name = settings?.name || "Jinkun Wang";
-  const bioShort = (settings?.bioShort as string) || "";
-  const socialLinks =
-    (settings?.socialLinks as { href: string; label: string }[]) || [];
-
-  const currentYear = new Date().getFullYear();
+  const name = resolveText(settings?.name, siteDefaults.identity.name);
+  const bioShort = resolveText(settings?.bioShort, siteDefaults.identity.role);
+  const socialLinks = resolveArray<{ href: string; label: string }>(
+    settings?.socialLinks,
+    [{ href: "https://github.com/yaoziyaoguai", label: "GitHub" }],
+  );
 
   return (
-    <footer className="border-t border-border bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="text-sm text-muted-foreground">
-            &copy; {currentYear} {name}. All rights reserved.
-          </div>
-
-          <div className="flex items-center gap-6">
-            {socialLinks.map((link, index) => (
-              <span key={link.href} className="flex items-center gap-6">
-                {index > 0 && (
-                  <div className="h-4 w-px bg-border" />
-                )}
-                <Link
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {link.label}
-                </Link>
-              </span>
-            ))}
-          </div>
+    <footer className="mt-12 border-t border-border bg-foreground text-background">
+      <div className="site-shell grid gap-10 py-12 md:grid-cols-[1fr_auto] md:items-end">
+        <div>
+          <p className="max-w-xl text-2xl font-medium leading-snug tracking-tight">{bioShort}</p>
+          <p className="mt-5 text-xs uppercase tracking-[0.16em] text-background/55">
+            © {new Date().getFullYear()} {name}
+          </p>
         </div>
-
-        {bioShort && (
-          <div className="mt-4 text-center text-xs text-muted-foreground">
-            {bioShort}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {socialLinks.map((link) => (
+            <Link
+              className="inline-flex min-h-11 items-center rounded-full border border-background/25 px-4 text-sm transition-colors hover:bg-background hover:text-foreground"
+              href={link.href}
+              key={link.href}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              {link.label} ↗
+            </Link>
+          ))}
+          <Link
+            className="inline-flex min-h-11 items-center rounded-full border border-background/25 px-4 text-sm transition-colors hover:bg-background hover:text-foreground"
+            href="/rss.xml"
+          >
+            RSS
+          </Link>
+        </div>
       </div>
     </footer>
   );

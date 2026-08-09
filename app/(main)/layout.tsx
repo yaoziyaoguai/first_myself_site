@@ -1,58 +1,61 @@
 import type { Metadata } from "next";
-import { Geist_Mono } from "next/font/google";
 import "../globals.css";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
 import { AdminLink } from "@/components/AdminLink";
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { Footer } from "@/components/Footer";
+import { Navbar } from "@/components/Navbar";
+import { SITE_URL, siteDefaults } from "@/content/siteDefaults";
 
 export const metadata: Metadata = {
-  title: "Jinkun Wang | Personal Website",
-  description: "个人项目、博客与技术思考，聚焦数据工程、AI 与软件架构。",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Jinkun Wang · 数据工程与 AI 学习记录",
+    template: "%s · Jinkun Wang",
+  },
+  description: siteDefaults.identity.bio,
+  alternates: {
+    canonical: "/",
+    types: { "application/rss+xml": "/rss.xml" },
+  },
   openGraph: {
-    title: "Jinkun Wang | Personal Website",
-    description: "个人项目、博客与技术思考，聚焦数据工程、AI 与软件架构。",
+    title: "Jinkun Wang · 数据工程与 AI 学习记录",
+    description: siteDefaults.identity.bio,
     type: "website",
     locale: "zh_CN",
     siteName: "Jinkun Wang",
+    url: SITE_URL,
     images: [
       {
-        url: "https://wangjinkun333.me/og-image.svg",
+        url: "/og-image.svg",
         width: 1200,
         height: 630,
-        alt: "Jinkun Wang Personal Website",
+        alt: "Jinkun Wang 的个人网站",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Jinkun Wang | Personal Website",
-    description: "个人项目、博客与技术思考，聚焦数据工程、AI 与软件架构。",
-    images: ["https://wangjinkun333.me/og-image.svg"],
+    title: "Jinkun Wang · 数据工程与 AI 学习记录",
+    description: siteDefaults.identity.bio,
+    images: ["/og-image.svg"],
   },
 };
 
 export default function MainRootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="zh-CN">
-      <body
-        style={{ "--font-system-sans": "'SF Pro Rounded', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" } as React.CSSProperties}
-        className={`${geistMono.variable} antialiased min-h-screen flex flex-col`}
-      >
+      <body className="flex min-h-screen flex-col antialiased">
+        <a className="skip-link" href="#main-content">
+          跳到主要内容
+        </a>
         <Navbar />
-        {/* Admin 入口 - 仅 Admin 用户可见 */}
-        <div className="absolute top-16 right-4 z-40 hidden md:block">
+        <div className="absolute right-4 top-20 z-40 hidden md:block">
           <AdminLink />
         </div>
-        <main className="flex-1">{children}</main>
+        <main className="flex-1" id="main-content">
+          {children}
+        </main>
         <Footer />
       </body>
     </html>
