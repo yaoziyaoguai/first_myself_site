@@ -25,7 +25,7 @@ export function CommentItem({
   onDelete,
   onReply,
   depth = 0,
-  maxDepth = 5,
+  maxDepth = 2,
 }: CommentItemProps) {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [showReplies, setShowReplies] = useState(true);
@@ -55,23 +55,6 @@ export function CommentItem({
       setIsSubmitting(false);
     }
   };
-
-  // 已删除的评论
-  if (comment.isDeleted) {
-    return (
-      <div
-        className={cn(
-          "py-4 border-b border-border/50",
-          depth > 0 && "ml-6 pl-4 border-l-2 border-l-border/30"
-        )}
-      >
-        <p className="text-sm text-muted-foreground italic">
-          评论已删除
-          {comment.deletedBy && `（由 ${comment.deletedBy} 删除）`}
-        </p>
-      </div>
-    );
-  }
 
   const hasReplies = comment.replies && comment.replies.length > 0;
   const canReply = depth < maxDepth - 1; // 限制回复层级
@@ -107,7 +90,7 @@ export function CommentItem({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-xs"
+            className="min-h-11 text-xs"
             onClick={() => setShowReplyForm(!showReplyForm)}
           >
             <MessageCircle className="w-3.5 h-3.5 mr-1" />
@@ -119,7 +102,7 @@ export function CommentItem({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-xs text-destructive hover:text-destructive"
+            className="min-h-11 text-xs text-destructive hover:text-destructive"
             onClick={() => onDelete(comment.id)}
           >
             <Trash2 className="w-3.5 h-3.5 mr-1" />
@@ -146,7 +129,7 @@ export function CommentItem({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-xs text-muted-foreground"
+            className="min-h-11 text-xs text-muted-foreground"
             onClick={() => setShowReplies(!showReplies)}
           >
             {showReplies ? (
@@ -168,7 +151,7 @@ export function CommentItem({
                 <CommentItem
                   key={reply.id}
                   comment={reply}
-                  isAuthor={reply.ipHash === comment.ipHash && reply.authorName === "博主"} // 简化判断，实际应通过用户身份
+                  isAuthor={false}
                   currentUserIsAdmin={currentUserIsAdmin}
                   onDelete={onDelete}
                   onReply={onReply}

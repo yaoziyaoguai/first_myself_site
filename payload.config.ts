@@ -1,6 +1,7 @@
 import { buildConfig } from "payload";
 import { postgresAdapter } from "@payloadcms/db-postgres";
 import { lexicalEditor } from "@payloadcms/richtext-lexical";
+import { validateRequiredEnvVars } from "@/lib/env";
 
 // Globals
 import Home from "./src/payload/globals/Home";
@@ -16,6 +17,8 @@ import Blog from "./src/payload/collections/Blog";
 import Comments from "./src/payload/collections/Comments";
 import Likes from "./src/payload/collections/Likes";
 
+validateRequiredEnvVars();
+
 export default buildConfig({
   serverURL: process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:3000",
   admin: {
@@ -29,17 +32,8 @@ export default buildConfig({
   collections: [Users, Media, Blog, Projects, Comments, Likes],
   db: postgresAdapter({
     pool: {
-      connectionString: process.env.DATABASE_URL || "postgresql://payload:payload_secret_2026@localhost:5432/first_myself_site",
+      connectionString: process.env.DATABASE_URL!,
     },
   }),
-  secret: (() => {
-    const secret = process.env.PAYLOAD_SECRET;
-    if (!secret) {
-      throw new Error(
-        'PAYLOAD_SECRET environment variable is required. ' +
-        'Generate a random string with: openssl rand -base64 32'
-      );
-    }
-    return secret;
-  })(),
+  secret: process.env.PAYLOAD_SECRET!,
 });

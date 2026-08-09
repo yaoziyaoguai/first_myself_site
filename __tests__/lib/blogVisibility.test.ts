@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   buildBlogFrontendWhere,
+  canUsePublicInteractions,
   canViewPrivateBlog,
 } from '@/lib/blogVisibility'
 
@@ -91,5 +92,13 @@ describe('buildBlogFrontendWhere - 前台 Blog 可见性过滤构造器', () => 
         expect(where.status).toEqual({ equals: 'published' })
       }
     })
+  })
+})
+
+describe('canUsePublicInteractions', () => {
+  it('只允许 public 文章使用公开互动接口', () => {
+    expect(canUsePublicInteractions('public')).toBe(true)
+    expect(canUsePublicInteractions('private')).toBe(false)
+    expect(canUsePublicInteractions(undefined)).toBe(false)
   })
 })

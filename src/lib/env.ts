@@ -4,7 +4,7 @@
  */
 
 export function validateRequiredEnvVars() {
-  const required = ["PAYLOAD_SECRET"];
+  const required = ["DATABASE_URL", "PAYLOAD_SECRET"];
   const missing = required.filter((key) => !process.env[key]);
 
   if (missing.length > 0) {

@@ -1,10 +1,8 @@
-# syntax=docker/dockerfile:1
-
 # ============================================
-# Payload CMS + Next.js 测试环境 Dockerfile（简化版）
+# Payload CMS + Next.js 应用镜像
 #
-# 用途: 本地开发测试、CI 测试、快速验证
-# 说明: 这是测试环境简化方案，非生产优化方案
+# 用途: 生产部署和容器化测试
+# 说明: 采用简单的多阶段构建
 #       - 未使用 Next.js standalone 输出
 #       - 未做最小化 node_modules 优化
 #       - 优先考虑构建简单性和兼容性
@@ -15,28 +13,21 @@
 # -------------------------------------------------
 # 阶段 1: 依赖安装
 # -------------------------------------------------
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 
 WORKDIR /app
 
 # 安装构建依赖（native 模块编译需要）
 RUN sed -i 's|https://dl-cdn.alpinelinux.org/alpine|https://mirrors.aliyun.com/alpine|g' /etc/apk/repositories \
     && apk add --no-cache libc6-compat python3 make g++
-# 复制依赖文件
-COPY package.json package-lock.json* pnpm-lock.yaml* yarn.lock* ./
-
-# 安装依赖（包含 devDependencies，用于构建）
-RUN \
-  if [ -f pnpm-lock.yaml ]; then npm install -g pnpm && pnpm i --frozen-lockfile; \
-  elif [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm install; \
-  else npm install; \
-  fi
+# 仓库使用 npm 锁文件，构建必须与 CI 安装同一依赖图。
+COPY package.json package-lock.json ./
+RUN npm ci
 
 # -------------------------------------------------
 # 阶段 2: 构建应用
 # -------------------------------------------------
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -48,25 +39,20 @@ COPY . .
 
 # Build-time 环境变量
 ARG NEXT_PUBLIC_SERVER_URL
-ARG DATABASE_URL
-ARG PAYLOAD_SECRET
-ARG NEXTAUTH_SECRET
-ARG NEXTAUTH_URL
 
 ENV NEXT_PUBLIC_SERVER_URL=${NEXT_PUBLIC_SERVER_URL}
-ENV DATABASE_URL=${DATABASE_URL}
-ENV PAYLOAD_SECRET=${PAYLOAD_SECRET}
-ENV NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-ENV NEXTAUTH_URL=${NEXTAUTH_URL}
+# 构建阶段只需通过配置校验，不能接收或保留生产密钥。
+ENV DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build
+ENV PAYLOAD_SECRET=build-only-placeholder-not-used-at-runtime
 ENV NODE_ENV=production
 
 # 构建应用
 RUN npm run build
 
 # -------------------------------------------------
-# 阶段 3: 运行环境（测试环境简化版）
+# 阶段 3: 运行环境
 # -------------------------------------------------
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 
 WORKDIR /app
 

@@ -1,125 +1,127 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAdmin } from "@/lib/auth";
 import {
+  createComment,
   getComments,
   getReplies,
-  createComment,
   softDeleteComment,
 } from "@/lib/comments.server";
-import { isAdmin } from "@/lib/auth";
+import { isInteractionTargetType } from "@/lib/interactionTarget";
+import {
+  parentMatchesTarget,
+  targetExists,
+} from "@/lib/interactionTarget.server";
+import { isRateLimited } from "@/lib/rateLimit";
+import { readJsonObject } from "@/lib/requestBody";
+import { deriveRequestIdentity } from "@/lib/requestIdentity";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/comments?targetId=xxx&targetType=xxx&page=1
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function errorResponse(error: string, status: number) {
+  return NextResponse.json({ error }, { status });
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const targetId = searchParams.get("targetId");
-    const targetType = searchParams.get("targetType") as "blog" | "project" | null;
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const parentId = searchParams.get("parentId");
+    const targetId = searchParams.get("targetId")?.trim() ?? "";
+    const targetType = searchParams.get("targetType");
+    const parentId = searchParams.get("parentId")?.trim() ?? "";
+    const requestedPage = Number.parseInt(searchParams.get("page") || "1", 10);
+    const page = Number.isFinite(requestedPage) && requestedPage > 0
+      ? Math.min(requestedPage, 1000)
+      : 1;
 
-    if (!targetId || !targetType) {
-      return NextResponse.json(
-        { error: "Missing targetId or targetType" },
-        { status: 400 }
-      );
+    if (!targetId || !isInteractionTargetType(targetType)) {
+      return errorResponse("Invalid target", 400);
     }
 
     if (parentId) {
-      // 获取回复
-      const replies = await getReplies(parentId);
-      return NextResponse.json({ docs: replies });
+      if (!(await parentMatchesTarget(parentId, targetId, targetType))) {
+        return errorResponse("Parent comment not found", 404);
+      }
+      return NextResponse.json({ docs: await getReplies(parentId) });
     }
 
-    // 获取顶层评论
-    const result = await getComments(targetId, targetType, 10, page);
-    return NextResponse.json(result);
+    if (!(await targetExists(targetId, targetType))) {
+      return errorResponse("Target not found", 404);
+    }
+    return NextResponse.json(await getComments(targetId, targetType, 10, page));
   } catch (error) {
     console.error("Error fetching comments:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch comments" },
-      { status: 500 }
-    );
+    return errorResponse("Failed to fetch comments", 500);
   }
 }
 
-// POST /api/comments - 创建评论
 export async function POST(request: NextRequest) {
+  const data = await readJsonObject(request);
+  if (!data) return errorResponse("Invalid JSON body", 400);
+
+  const targetId = typeof data.targetId === "string" ? data.targetId.trim() : "";
+  const targetType = data.targetType;
+  const content = typeof data.content === "string" ? data.content.trim() : "";
+  const authorName =
+    typeof data.authorName === "string" && data.authorName.trim()
+      ? data.authorName.trim().slice(0, 80)
+      : "匿名用户";
+  const authorEmail =
+    typeof data.authorEmail === "string" ? data.authorEmail.trim() : "";
+  const parentId = typeof data.parentId === "string" ? data.parentId.trim() : "";
+
+  if (!targetId || targetId.length > 128 || !isInteractionTargetType(targetType)) {
+    return errorResponse("Invalid target", 400);
+  }
+  if (!content || content.length > 1000) {
+    return errorResponse("Content must contain 1 to 1000 characters", 400);
+  }
+  if (authorEmail && (authorEmail.length > 254 || !EMAIL_PATTERN.test(authorEmail))) {
+    return errorResponse("Invalid email", 400);
+  }
+  if (parentId.length > 128) return errorResponse("Invalid parent comment", 400);
+
   try {
-    const data = await request.json();
-
-    // 验证必要字段
-    if (!data.content?.trim()) {
-      return NextResponse.json(
-        { error: "Content is required" },
-        { status: 400 }
-      );
+    const identity = deriveRequestIdentity(request);
+    if (isRateLimited(`comment:${identity.rateLimitKey}`, 5, 10 * 60 * 1000)) {
+      return errorResponse("Too many comments. Please try again later.", 429);
     }
-
-    if (!data.targetId || !data.targetType) {
-      return NextResponse.json(
-        { error: "targetId and targetType are required" },
-        { status: 400 }
-      );
+    if (!(await targetExists(targetId, targetType))) {
+      return errorResponse("Target not found", 404);
     }
-
-    if (!data.ipHash) {
-      return NextResponse.json(
-        { error: "ipHash is required" },
-        { status: 400 }
-      );
+    if (
+      parentId &&
+      !(await parentMatchesTarget(parentId, targetId, targetType))
+    ) {
+      return errorResponse("Parent comment not found", 404);
     }
 
     const comment = await createComment({
-      targetId: data.targetId,
-      targetType: data.targetType,
-      parentId: data.parentId || null,
-      content: data.content.trim(),
-      authorName: data.authorName?.trim() || "匿名用户",
-      authorEmail: data.authorEmail?.trim() || "",
-      ipHash: data.ipHash,
-      fingerprint: data.fingerprint || "",
+      targetId,
+      targetType,
+      parentId: parentId || null,
+      content,
+      authorName,
+      authorEmail,
+      ipHash: identity.ipHash,
+      fingerprint: identity.fingerprint,
     });
-
-    return NextResponse.json(comment);
+    return NextResponse.json(comment, { status: 201 });
   } catch (error) {
     console.error("Error creating comment:", error);
-    return NextResponse.json(
-      { error: "Failed to create comment" },
-      { status: 500 }
-    );
+    return errorResponse("Failed to create comment", 500);
   }
 }
 
-// PATCH /api/comments?id=xxx - 软删除评论
 export async function PATCH(request: NextRequest) {
+  const id = new URL(request.url).searchParams.get("id")?.trim();
+  if (!id) return errorResponse("Comment ID is required", 400);
+  if (!(await isAdmin())) return errorResponse("Unauthorized", 403);
+
   try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
-
-    if (!id) {
-      return NextResponse.json(
-        { error: "Comment ID is required" },
-        { status: 400 }
-      );
-    }
-
-    // 检查是否为管理员
-    const admin = await isAdmin();
-    if (!admin) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 403 }
-      );
-    }
-
-    const comment = await softDeleteComment(id, "admin");
-    return NextResponse.json(comment);
+    return NextResponse.json(await softDeleteComment(id));
   } catch (error) {
     console.error("Error deleting comment:", error);
-    return NextResponse.json(
-      { error: "Failed to delete comment" },
-      { status: 500 }
-    );
+    return errorResponse("Failed to delete comment", 500);
   }
 }

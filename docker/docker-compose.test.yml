@@ -1,5 +1,3 @@
-version: "3.8"
-
 # ============================================
 # Payload CMS 测试环境 Docker Compose
 # 用途: 快速启动隔离的测试环境
@@ -32,16 +30,10 @@ services:
       dockerfile: docker/Dockerfile
       args:
         NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL:-http://localhost:3001}
-        PAYLOAD_SECRET: ${PAYLOAD_SECRET}
-        DATABASE_URL: postgresql://${POSTGRES_USER:-payload_test_user}:${POSTGRES_PASSWORD:-changeme_test}@postgres:5432/${POSTGRES_DB:-payload_test}
-        NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-        NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3001}
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-payload_test_user}:${POSTGRES_PASSWORD:-changeme_test}@postgres:5432/${POSTGRES_DB:-payload_test}
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3001}
       NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL:-http://localhost:3001}
       NODE_ENV: production
       PORT: 3001

@@ -9,6 +9,17 @@ interface RateLimitEntry {
 }
 
 const rateLimitStore = new Map<string, RateLimitEntry>();
+let nextCleanupTime = 0;
+const CLEANUP_INTERVAL_MS = 60 * 1000;
+
+function cleanupExpiredEntries(now: number): void {
+  if (now < nextCleanupTime) return;
+
+  for (const [key, entry] of rateLimitStore) {
+    if (now > entry.resetTime) rateLimitStore.delete(key);
+  }
+  nextCleanupTime = now + CLEANUP_INTERVAL_MS;
+}
 
 /**
  * Check if a request should be rate limited
@@ -19,6 +30,7 @@ const rateLimitStore = new Map<string, RateLimitEntry>();
  */
 export function isRateLimited(key: string, limit: number, windowMs: number): boolean {
   const now = Date.now();
+  cleanupExpiredEntries(now);
   const entry = rateLimitStore.get(key);
 
   if (!entry) {
@@ -84,15 +96,11 @@ export const RATE_LIMITS = {
 
 /**
  * Extract client IP from request headers
- * Works with Vercel and typical proxy setups
+ * Works with typical reverse proxy setups, including Nginx.
  */
 export function getClientIp(request: Request): string {
-  // Vercel sets x-forwarded-for header
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) {
-    return forwarded.split(",")[0].trim();
-  }
-
-  // Fallback
-  return request.headers.get("x-real-ip") || "unknown";
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const realIp = request.headers.get("x-real-ip")?.trim();
+  // 生产 Nginx 会覆盖 X-Real-IP；优先使用它，避免信任客户端可追加的 XFF 首项。
+  return (realIp || forwarded || "unknown").slice(0, 128);
 }

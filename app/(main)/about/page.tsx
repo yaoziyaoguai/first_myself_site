@@ -1,86 +1,91 @@
+import type { Metadata } from "next";
+import { siteDefaults, type ContentCard, type TechGroup } from "@/content/siteDefaults";
+import { resolveArray, resolveText } from "@/lib/contentFallback";
 import { getPayloadAPI } from "@/lib/payload";
 
 export const dynamic = "force-dynamic";
 
+export const metadata: Metadata = {
+  title: "关于",
+  description: "从数据工程出发，学习 AI 评测与 Agent 系统的个人介绍。",
+  alternates: { canonical: "/about" },
+};
+
 export default async function AboutPage() {
   const payload = await getPayloadAPI();
-  const settings = await payload.findGlobal({ slug: "site-settings" });
-  const about = await payload.findGlobal({ slug: "about" });
+  const [settings, about] = await Promise.all([
+    payload.findGlobal({ slug: "site-settings" }),
+    payload.findGlobal({ slug: "about" }),
+  ]);
 
-  const name = settings?.name || "Jinkun Wang";
-  const introText = (about?.introText as string) || "";
-  const workDirections =
-    (about?.workDirections as { title: string; description: string }[]) || [];
-  const techStack =
-    (about?.techStack as { category: string; items: string }[]) || [];
-  const focusAreas =
-    (about?.focusAreas as { title: string; description: string }[]) || [];
+  const name = resolveText(settings?.name, siteDefaults.identity.name);
+  const introText = resolveText(about?.introText, siteDefaults.about.introText);
+  const workDirections = resolveArray<ContentCard>(
+    about?.workDirections,
+    siteDefaults.about.workDirections,
+  );
+  const techStack = resolveArray<TechGroup>(
+    about?.techStack,
+    siteDefaults.about.techStack,
+  );
+  const focusAreas = resolveArray<ContentCard>(
+    about?.focusAreas,
+    siteDefaults.about.focusAreas,
+  );
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      {/* 自我介绍 */}
-      <section className="max-w-3xl mx-auto mb-16">
-        <h1 className="text-4xl md:text-5xl font-medium mb-6" style={{ fontFamily: "'SF Pro Rounded', ui-sans-serif, system-ui" }}>关于我</h1>
-        <div className="space-y-4">
-          <p className="text-lg text-muted-foreground leading-relaxed">
-            我是 {name}，一名数据仓库工程师。
-          </p>
-          <p className="text-lg text-muted-foreground leading-relaxed">
-            {introText}
-          </p>
-        </div>
-      </section>
+    <div className="site-shell page-space">
+      <header className="page-header">
+        <p className="eyebrow">ABOUT</p>
+        <h1>保持好奇，也保持诚实。</h1>
+        <p>
+          我是 {name}。{introText}
+        </p>
+      </header>
 
-      {/* 工作方向 */}
-      <section className="mb-16">
-        <h2 className="text-2xl font-medium mb-8" style={{ fontFamily: "'SF Pro Rounded', ui-sans-serif, system-ui" }}>工作方向</h2>
-        <div className="grid md:grid-cols-2 gap-6 max-w-3xl">
+      <section className="section-grid">
+        <div>
+          <p className="section-number">01</p>
+          <h2 className="section-title">当前方向</h2>
+        </div>
+        <div className="divide-y divide-border border-y border-border">
           {workDirections.map((direction) => (
-            <div key={direction.title} className="border border-border rounded-lg p-6 bg-background">
-              <h3 className="text-base font-medium mb-2">{direction.title}</h3>
-              <p className="text-sm text-muted-foreground">
-                {direction.description}
-              </p>
-            </div>
+            <article className="grid gap-3 py-7 sm:grid-cols-[11rem_1fr]" key={direction.title}>
+              <h3 className="font-medium">{direction.title}</h3>
+              <p className="text-sm leading-7 text-muted-foreground">{direction.description}</p>
+            </article>
           ))}
         </div>
       </section>
 
-      {/* 技术栈 */}
-      <section className="mb-16">
-        <h2 className="text-2xl font-medium mb-8" style={{ fontFamily: "'SF Pro Rounded', ui-sans-serif, system-ui" }}>技术栈</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-6 max-w-3xl">
+      <section className="section-grid">
+        <div>
+          <p className="section-number">02</p>
+          <h2 className="section-title">使用中的工具</h2>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-3">
           {techStack.map((group) => (
-            <div key={group.category}>
-              <h3 className="text-sm font-medium mb-3 text-muted-foreground">
-                {group.category}
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {group.items.split(",").map((item) => (
-                  <div
-                    key={item.trim()}
-                    className="inline-flex items-center rounded-full bg-accent text-accent-foreground px-2.5 py-1 text-xs font-medium border border-border"
-                  >
-                    {item.trim()}
-                  </div>
-                ))}
-              </div>
-            </div>
+            <article className="rounded-2xl border border-border bg-card p-6" key={group.category}>
+              <h3 className="text-sm font-medium">{group.category}</h3>
+              <p className="mt-4 text-sm leading-7 text-muted-foreground">
+                {group.items.split(",").map((item) => item.trim()).join(" · ")}
+              </p>
+            </article>
           ))}
         </div>
       </section>
 
-      {/* 关注的问题领域 */}
-      <section>
-        <h2 className="text-2xl font-medium mb-8" style={{ fontFamily: "'SF Pro Rounded', ui-sans-serif, system-ui" }}>我关注的问题</h2>
-        <div className="grid md:grid-cols-2 gap-6 max-w-3xl">
+      <section className="section-grid">
+        <div>
+          <p className="section-number">03</p>
+          <h2 className="section-title">反复追问的问题</h2>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2">
           {focusAreas.map((area) => (
-            <div key={area.title} className="border border-border rounded-lg p-6 bg-muted">
-              <h3 className="text-base font-medium mb-2">{area.title}</h3>
-              <p className="text-sm text-muted-foreground">
-                {area.description}
-              </p>
-            </div>
+            <article className="rounded-2xl bg-foreground p-7 text-background" key={area.title}>
+              <h3 className="text-lg font-medium">{area.title}</h3>
+              <p className="mt-3 text-sm leading-7 text-background/70">{area.description}</p>
+            </article>
           ))}
         </div>
       </section>

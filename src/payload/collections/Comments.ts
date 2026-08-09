@@ -1,5 +1,7 @@
 import type { CollectionConfig } from "payload";
 
+const canModerate = (role: unknown) => role === "admin" || role === "editor";
+
 const Comments: CollectionConfig = {
   slug: "comments",
   admin: {
@@ -110,10 +112,9 @@ const Comments: CollectionConfig = {
     },
   ],
   access: {
-    // 任何人都可以读取（包括未登录用户）
-    read: () => true,
-    // 匿名用户可以创建评论
-    create: () => true,
+    // 公开访问只通过 /api/comments，由服务端显式投影公共字段。
+    read: ({ req }) => canModerate(req.user?.role),
+    create: ({ req }) => canModerate(req.user?.role),
     // 只有管理员可以更新（用于软删除）
     update: ({ req }) => req.user?.role === "admin",
     // 只有管理员可以硬删除（一般不直接使用，使用软删除）

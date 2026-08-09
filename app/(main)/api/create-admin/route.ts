@@ -12,6 +12,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Not allowed in production" }, { status: 403 });
   }
 
+  if (!process.env.ADMIN_SECRET_TOKEN) {
+    return NextResponse.json(
+      { error: "ADMIN_SECRET_TOKEN is required" },
+      { status: 500 },
+    );
+  }
+
   // 验证管理员密钥
   const adminToken = request.headers.get("Authorization");
   const expectedToken = `Bearer ${process.env.ADMIN_SECRET_TOKEN}`;
@@ -52,7 +59,6 @@ export async function GET(request: Request) {
       return NextResponse.json({
         message: `管理员密码已重置`,
         email,
-        password,
       });
     }
 
@@ -66,7 +72,6 @@ export async function GET(request: Request) {
     return NextResponse.json({
       message: `管理员已创建`,
       email,
-      password,
     });
   } catch (error) {
     return NextResponse.json(

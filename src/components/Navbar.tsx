@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 const navLinks = [
   { href: "/", label: "首页" },
   { href: "/about", label: "关于" },
   { href: "/projects", label: "项目" },
-  { href: "/blog", label: "博客" },
+  { href: "/blog", label: "文章" },
   { href: "/contact", label: "联系" },
 ];
 
@@ -17,75 +17,68 @@ export function Navbar() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        {/* Logo */}
-        <Link href="/" className="font-medium text-base" style={{ fontFamily: "'SF Pro Rounded', ui-sans-serif, system-ui" }}>
-          <span className="text-primary">DW</span>Engineer
+    <header className="sticky top-0 z-50 border-b border-border/80 bg-background/90 backdrop-blur-md">
+      <div className="site-shell flex h-[4.5rem] items-center justify-between">
+        <Link className="inline-flex min-h-11 items-center gap-3 font-semibold tracking-tight" href="/">
+          <span className="grid size-8 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+            JW
+          </span>
+          <span>Jinkun / Notes</span>
         </Link>
 
-        {/* 桌面端导航 */}
-        <nav className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`text-sm font-normal transition-colors ${
-                pathname === link.href
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
+        <nav aria-label="主要导航" className="hidden items-center md:flex">
+          {navLinks.map((link) => {
+            const active =
+              link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+            return (
+              <Link
+                aria-current={active ? "page" : undefined}
+                className={`inline-flex min-h-11 items-center rounded-full px-4 text-sm transition-colors ${
+                  active
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+                href={link.href}
+                key={link.href}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* 移动端汉堡按钮 */}
         <button
-          className="md:hidden flex flex-col justify-center items-center w-8 h-8 gap-1.5"
-          onClick={() => setOpen(!open)}
+          aria-controls="mobile-navigation"
+          aria-expanded={open}
           aria-label={open ? "关闭菜单" : "打开菜单"}
+          className="grid min-h-11 min-w-11 place-items-center rounded-full border border-border md:hidden"
+          onClick={() => setOpen((current) => !current)}
+          type="button"
         >
-          <span
-            className={`block w-5 h-0.5 bg-foreground transition-transform ${
-              open ? "rotate-45 translate-y-1" : ""
-            }`}
-          />
-          <span
-            className={`block w-5 h-0.5 bg-foreground transition-opacity ${
-              open ? "opacity-0" : ""
-            }`}
-          />
-          <span
-            className={`block w-5 h-0.5 bg-foreground transition-transform ${
-              open ? "-rotate-45 -translate-y-1" : ""
-            }`}
-          />
+          <span className="relative block h-4 w-5" aria-hidden="true">
+            <span className={`absolute left-0 top-1 block h-px w-5 bg-foreground transition-transform ${open ? "translate-y-1 rotate-45" : ""}`} />
+            <span className={`absolute bottom-1 left-0 block h-px w-5 bg-foreground transition-transform ${open ? "-translate-y-1 -rotate-45" : ""}`} />
+          </span>
         </button>
       </div>
 
-      {/* 移动端下拉菜单 */}
-      {open && (
-        <nav className="md:hidden border-t border-border bg-background">
-          <div className="container mx-auto px-4 py-4 flex flex-col gap-3">
+      {open ? (
+        <nav aria-label="移动端导航" className="border-t border-border bg-background md:hidden" id="mobile-navigation">
+          <div className="site-shell grid py-3">
             {navLinks.map((link) => (
               <Link
-                key={link.href}
+                className="flex min-h-12 items-center justify-between border-b border-border/70 text-sm"
                 href={link.href}
+                key={link.href}
                 onClick={() => setOpen(false)}
-                className={`text-sm font-normal transition-colors py-1 ${
-                  pathname === link.href
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
               >
                 {link.label}
+                <span aria-hidden="true">↗</span>
               </Link>
             ))}
           </div>
         </nav>
-      )}
+      ) : null}
     </header>
   );
 }

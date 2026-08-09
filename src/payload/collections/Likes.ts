@@ -1,5 +1,7 @@
 import type { CollectionConfig } from "payload";
 
+const canModerate = (role: unknown) => role === "admin" || role === "editor";
+
 const Likes: CollectionConfig = {
   slug: "likes",
   admin: {
@@ -53,10 +55,9 @@ const Likes: CollectionConfig = {
     },
   ],
   access: {
-    // 任何人都可以读取点赞数
-    read: () => true,
-    // 匿名用户可以创建点赞
-    create: () => true,
+    // 公开访问只通过 /api/likes，不暴露匿名标识符。
+    read: ({ req }) => canModerate(req.user?.role),
+    create: ({ req }) => canModerate(req.user?.role),
     // 不允许更新点赞（创建后不可修改）
     update: () => false,
     // 不允许删除点赞（简化设计，不支持取消点赞）

@@ -22,9 +22,15 @@ const Users: CollectionConfig = {
       admin: {
         description: "决定用户可以执行的操作权限",
       },
+      access: {
+        create: ({ req }) => req.user?.role === "admin",
+        update: ({ req }) => req.user?.role === "admin",
+      },
     },
   ],
   access: {
+    admin: ({ req }) =>
+      req.user?.role === "admin" || req.user?.role === "editor",
     // 只有认证用户才能查看用户列表
     read: ({ req }) => {
       if (!req.user) return false;
@@ -38,14 +44,11 @@ const Users: CollectionConfig = {
     },
     // 只有管理员可以创建用户
     create: ({ req }) => req.user?.role === "admin",
-    // 只有管理员可以更新其他用户，用户可以更新自己（但不能改角色）
+    // 非管理员只能更新自己的普通资料；role 字段还有独立的管理员校验。
     update: ({ req, data }) => {
       if (!req.user) return false;
       if (req.user.role === "admin") return true;
-      // 普通用户只能更新自己，且不能改角色
-      if (data?.role && data.role !== req.user.role) {
-        return false; // 防止权限提升
-      }
+      if (data?.role && data.role !== req.user.role) return false;
       return {
         id: {
           equals: req.user.id,

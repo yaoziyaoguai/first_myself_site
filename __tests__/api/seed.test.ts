@@ -77,9 +77,7 @@ describe('GET /api/seed', () => {
     it('should accept correct bearer token', async () => {
       const mockPayload = {
         updateGlobal: vi.fn().mockResolvedValue({}),
-        find: vi.fn()
-          .mockResolvedValueOnce({ totalDocs: 0 })
-          .mockResolvedValueOnce({ totalDocs: 1 }),
+        count: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
       vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
@@ -104,7 +102,7 @@ describe('GET /api/seed', () => {
     it('should return 200 with success on valid request', async () => {
       const mockPayload = {
         updateGlobal: vi.fn().mockResolvedValue({}),
-        find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
+        count: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
       vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
@@ -124,7 +122,7 @@ describe('GET /api/seed', () => {
     it('should call updateGlobal for home settings', async () => {
       const mockPayload = {
         updateGlobal: vi.fn().mockResolvedValue({}),
-        find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
+        count: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
       vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))
@@ -146,7 +144,7 @@ describe('GET /api/seed', () => {
     it('should create projects', async () => {
       const mockPayload = {
         updateGlobal: vi.fn().mockResolvedValue({}),
-        find: vi.fn().mockResolvedValue({ totalDocs: 0 }),
+        count: vi.fn().mockResolvedValue({ totalDocs: 0 }),
         create: vi.fn().mockResolvedValue({}),
       }
       vi.mocked(getPayloadAPI).mockResolvedValue(castPayload(mockPayload))

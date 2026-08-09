@@ -1,57 +1,92 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Backup script for Aliyun ECS
-# Run this script regularly to backup your application data
+PROJECT_DIR="${PROJECT_DIR:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)}"
+BACKUP_DIR="${BACKUP_DIR:-}"
+ENV_FILE="${ENV_FILE:-$PROJECT_DIR/.env.docker.prod}"
+COMPOSE_FILE="$PROJECT_DIR/docker/docker-compose.prod.yml"
+MAX_BACKUPS="${MAX_BACKUPS:-7}"
 
-BACKUP_DIR="/opt/backups"
-APP_DIR="/opt/mysites-app"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="$BACKUP_DIR/backup_$TIMESTAMP.tar.gz"
-MAX_BACKUPS=7  # Keep last 7 backups
-
-# Create backup directory if it doesn't exist
-mkdir -p "$BACKUP_DIR"
-
-echo "Starting backup at $(date)"
-echo "Backup file: $BACKUP_FILE"
-
-# Create backup
-cd "$APP_DIR"
-tar -czf "$BACKUP_FILE" \
-  .payload/ \
-  public/media/ \
-  .env \
-  docker-compose.yml \
-  nginx.conf \
-  --exclude=node_modules \
-  --exclude=.next \
-  --exclude=.git \
-  2>/dev/null
-
-if [ $? -eq 0 ]; then
-  echo "✓ Backup completed successfully"
-  ls -lh "$BACKUP_FILE"
-
-  # Remove old backups
-  echo "Cleaning up old backups..."
-  CLEANUP_FAILED=0
-  if ! find "$BACKUP_DIR" -name "backup_*.tar.gz" -type f | sort -r | tail -n +$((MAX_BACKUPS+1)) | xargs -r rm -v; then
-    CLEANUP_FAILED=1
-    echo "⚠ Warning: Some old backups could not be deleted"
-  fi
-
-  echo "✓ Cleanup completed"
-  if [ $CLEANUP_FAILED -eq 1 ]; then
-    echo "⚠ Note: Check disk space if cleanup had issues"
-  fi
-
-  echo "Backup summary:"
-  du -sh "$BACKUP_DIR"
-  echo "Backups kept:"
-  ls -1 "$BACKUP_DIR"/backup_*.tar.gz | wc -l
-else
-  echo "✗ Backup failed"
+if [[ -z "$BACKUP_DIR" ]]; then
+  echo "BACKUP_DIR must point to a dedicated backup directory" >&2
   exit 1
 fi
 
-echo "Backup completed at $(date)"
+for command in docker tar; do
+  command -v "$command" >/dev/null || {
+    echo "Missing required command: $command" >&2
+    exit 1
+  }
+done
+
+if [[ ! -f "$ENV_FILE" ]]; then
+  echo "Production environment file not found: $ENV_FILE" >&2
+  exit 1
+fi
+
+if [[ ! -f "$COMPOSE_FILE" ]]; then
+  echo "Compose file not found: $COMPOSE_FILE" >&2
+  exit 1
+fi
+
+if [[ ! "$MAX_BACKUPS" =~ ^[1-9][0-9]*$ ]]; then
+  echo "MAX_BACKUPS must be a positive integer" >&2
+  exit 1
+fi
+
+set -a
+# shellcheck disable=SC1090
+source "$ENV_FILE"
+set +a
+
+: "${POSTGRES_USER:?POSTGRES_USER is required in $ENV_FILE}"
+: "${POSTGRES_DB:?POSTGRES_DB is required in $ENV_FILE}"
+
+COMPOSE=(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE")
+"${COMPOSE[@]}" config --quiet
+
+if [[ -z "$("${COMPOSE[@]}" ps --status running --quiet postgres)" ]]; then
+  echo "PostgreSQL container is not running" >&2
+  exit 1
+fi
+
+if [[ -z "$("${COMPOSE[@]}" ps --status running --quiet app)" ]]; then
+  echo "Application container is not running" >&2
+  exit 1
+fi
+
+mkdir -p -- "$BACKUP_DIR"
+scratch_dir="$(mktemp -d)"
+trap 'rm -rf -- "$scratch_dir"' EXIT
+
+timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+backup_file="$BACKUP_DIR/first_myself_site_$timestamp.tar.gz"
+temporary_file="$(mktemp "$BACKUP_DIR/.backup_XXXXXX.tar.gz")"
+trap 'rm -rf -- "$scratch_dir"; rm -f -- "$temporary_file"' EXIT
+
+"${COMPOSE[@]}" exec -T postgres \
+  pg_dump --format=custom --no-owner --no-privileges \
+  --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
+  >"$scratch_dir/database.dump"
+
+"${COMPOSE[@]}" exec -T app \
+  tar -C /app/media -czf - . >"$scratch_dir/media.tar.gz"
+
+cat >"$scratch_dir/README.txt" <<EOF
+Created: $timestamp
+Contents: PostgreSQL custom-format dump and /app/media archive
+Restore into a separate environment and verify before replacing production data.
+EOF
+
+tar -C "$scratch_dir" -czf "$temporary_file" .
+chmod 600 "$temporary_file"
+mv -- "$temporary_file" "$backup_file"
+trap 'rm -rf -- "$scratch_dir"' EXIT
+
+find "$BACKUP_DIR" -maxdepth 1 -type f -name 'first_myself_site_*.tar.gz' \
+  -printf '%T@ %p\n' | sort -rn | tail -n +$((MAX_BACKUPS + 1)) | \
+  cut -d' ' -f2- | while IFS= read -r old_backup; do
+    [[ -n "$old_backup" ]] && rm -- "$old_backup"
+  done
+
+echo "Backup created: $backup_file"
