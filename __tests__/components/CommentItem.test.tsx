@@ -8,7 +8,7 @@ vi.mock("@/components/CommentForm", () => ({
   CommentForm: ({ onSubmit, submitLabel }: { onSubmit: (c: string) => void; submitLabel: string }) => (
     <form data-testid="comment-form">
       <textarea data-testid="comment-textarea" />
-      <button data-testid="submit-reply" onClick={() => onSubmit("Test reply")}>
+      <button type="button" data-testid="submit-reply" onClick={() => onSubmit("Test reply")}>
         {submitLabel}
       </button>
     </form>
@@ -21,9 +21,6 @@ describe("CommentItem", () => {
     content: "Test comment content",
     authorName: "Test User",
     createdAt: "2026-04-17T10:00:00.000Z",
-    updatedAt: "2026-04-17T10:00:00.000Z",
-    isDeleted: false,
-    ipHash: "hash1",
     targetId: "blog-1",
     targetType: "blog",
   };
@@ -79,23 +76,25 @@ describe("CommentItem", () => {
     expect(screen.queryByText("删除")).not.toBeInTheDocument();
   });
 
-  it("should show deleted message for deleted comments", () => {
-    const deletedComment = {
+  it("should not render private moderation metadata", () => {
+    const storedComment = {
       ...mockComment,
-      isDeleted: true,
+      authorEmail: "private@example.com",
+      ipHash: "private-ip",
+      fingerprint: "private-fingerprint",
       deletedBy: "admin",
-    };
+    } as Comment;
 
     render(
       <CommentItem
-        comment={deletedComment}
+        comment={storedComment}
         isAuthor={false}
         currentUserIsAdmin={false}
       />
     );
 
-    expect(screen.getByText(/评论已删除/)).toBeInTheDocument();
-    expect(screen.getByText(/由 admin 删除/)).toBeInTheDocument();
+    expect(screen.queryByText("private@example.com")).not.toBeInTheDocument();
+    expect(screen.queryByText(/admin/)).not.toBeInTheDocument();
   });
 
   it("should toggle reply form on reply button click", () => {
@@ -122,9 +121,6 @@ describe("CommentItem", () => {
           content: "Reply content",
           authorName: "Reply User",
           createdAt: "2026-04-17T11:00:00.000Z",
-          updatedAt: "2026-04-17T11:00:00.000Z",
-          isDeleted: false,
-          ipHash: "hash2",
           targetId: "blog-1",
           targetType: "blog",
           parentId: "1",

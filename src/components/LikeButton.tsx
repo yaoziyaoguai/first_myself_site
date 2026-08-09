@@ -33,53 +33,13 @@ export function LikeButton({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 获取客户端 IP 哈希
-  const getClientIpHash = async (): Promise<string> => {
-    try {
-      const response = await fetch("/api/ip");
-      if (response.ok) {
-        const data = await response.json();
-        return hashString(data.ip || "unknown");
-      }
-    } catch (_e) {
-      // 降级：使用随机字符串
-    }
-    return hashString("unknown-" + Date.now());
-  };
-
-  // 简单的浏览器指纹
-  const getBrowserFingerprint = (): string => {
-    const components = [
-      navigator.userAgent,
-      navigator.language,
-      screen.colorDepth,
-      screen.width + "x" + screen.height,
-      new Date().getTimezoneOffset(),
-    ];
-    return hashString(components.join("|"));
-  };
-
-  // 简单的字符串哈希
-  const hashString = (str: string): string => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(16);
-  };
-
   // 加载点赞状态
   const loadLikeStatus = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const ipHash = await getClientIpHash();
-      const fingerprint = getBrowserFingerprint();
-
-      const likeStatus = await getLikeStatus(targetId, targetType, ipHash, fingerprint);
+      const likeStatus = await getLikeStatus(targetId, targetType);
       setStatus(likeStatus);
     } catch (err) {
       console.error("Failed to load like status:", err);
@@ -104,21 +64,12 @@ export function LikeButton({
     setError(null);
 
     try {
-      const ipHash = await getClientIpHash();
-      const fingerprint = getBrowserFingerprint();
-
-      await createLike({
+      const nextStatus = await createLike({
         targetId,
         targetType,
-        ipHash,
-        fingerprint,
       });
 
-      // 更新本地状态
-      setStatus((prev) => ({
-        count: prev.count + 1,
-        hasLiked: true,
-      }));
+      setStatus(nextStatus);
     } catch (err) {
       console.error("Failed to create like:", err);
       if (err instanceof Error && err.message.includes("已经点赞")) {
@@ -133,8 +84,8 @@ export function LikeButton({
 
   // 尺寸配置
   const sizeClasses = {
-    sm: "h-7 px-2 text-xs",
-    md: "h-9 px-3 text-sm",
+    sm: "min-h-11 px-3 text-xs",
+    md: "min-h-11 px-3 text-sm",
     lg: "h-11 px-4 text-base",
   };
 

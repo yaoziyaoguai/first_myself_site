@@ -1,65 +1,89 @@
+import type { Comment } from "./comments";
+import type { InteractionTargetType } from "./interactionTarget.server";
+import {
+  parentMatchesTarget,
+  targetExists,
+} from "./interactionTarget.server";
 import { getPayloadAPI } from "./payload";
-import type { Comment, CreateCommentData } from "./comments";
 
-/**
- * 服务端专用：查询顶层评论（parentId 为 null）
- * 按时间倒序排列
- */
+export { parentMatchesTarget, targetExists };
+
+type StoredComment = Record<string, unknown> & { id: number | string };
+
+export function toPublicComment(doc: StoredComment): Comment {
+  return {
+    id: String(doc.id),
+    targetId: String(doc.targetId ?? ""),
+    targetType: doc.targetType === "project" ? "project" : "blog",
+    parentId: doc.parentId ? String(doc.parentId) : null,
+    content: String(doc.content ?? ""),
+    authorName: String(doc.authorName || "匿名用户"),
+    createdAt: String(doc.createdAt ?? ""),
+  };
+}
+
 export async function getComments(
   targetId: string,
-  targetType: "blog" | "project",
-  limit: number = 10,
-  page: number = 1
+  targetType: InteractionTargetType,
+  limit = 10,
+  page = 1,
 ): Promise<{ docs: Comment[]; totalDocs: number; totalPages: number }> {
   const payload = await getPayloadAPI();
-
   const result = await payload.find({
     collection: "comments",
     where: {
-      targetId: { equals: targetId },
-      targetType: { equals: targetType },
-      isDeleted: { equals: false },
-      // parentId 为 null 或不存在表示顶层评论
-      parentId: { exists: false },
+      and: [
+        { targetId: { equals: targetId } },
+        { targetType: { equals: targetType } },
+        { isDeleted: { equals: false } },
+        { parentId: { exists: false } },
+      ],
     },
     sort: "-createdAt",
     limit,
     page,
+    overrideAccess: true,
   });
 
   return {
-    docs: result.docs as unknown as Comment[],
+    docs: result.docs.map((doc) => toPublicComment(doc as StoredComment)),
     totalDocs: result.totalDocs,
     totalPages: result.totalPages,
   };
 }
 
-/**
- * 服务端专用：查询指定评论的回复
- * 按时间正序排列（先回复的在前）
- */
 export async function getReplies(parentId: string): Promise<Comment[]> {
   const payload = await getPayloadAPI();
-
   const result = await payload.find({
     collection: "comments",
     where: {
-      parentId: { equals: parentId },
-      isDeleted: { equals: false },
+      and: [
+        { parentId: { equals: parentId } },
+        { isDeleted: { equals: false } },
+      ],
     },
-    sort: "createdAt", // 正序
+    sort: "createdAt",
     limit: 100,
+    overrideAccess: true,
   });
-
-  return result.docs as unknown as Comment[];
+  return result.docs.map((doc) => toPublicComment(doc as StoredComment));
 }
 
-/**
- * 服务端专用：创建新评论
- */
-export async function createComment(data: CreateCommentData): Promise<Comment> {
-  const payload = await getPayloadAPI();
+type CreateStoredCommentData = {
+  targetId: string;
+  targetType: InteractionTargetType;
+  parentId?: string | null;
+  content: string;
+  authorName?: string;
+  authorEmail?: string;
+  ipHash: string;
+  fingerprint: string;
+};
 
+export async function createComment(
+  data: CreateStoredCommentData,
+): Promise<Comment> {
+  const payload = await getPayloadAPI();
   const result = await payload.create({
     collection: "comments",
     data: {
@@ -70,43 +94,28 @@ export async function createComment(data: CreateCommentData): Promise<Comment> {
       authorName: data.authorName || "匿名用户",
       authorEmail: data.authorEmail || "",
       ipHash: data.ipHash,
-      fingerprint: data.fingerprint || "",
+      fingerprint: data.fingerprint,
       isDeleted: false,
     },
+    overrideAccess: true,
   });
-
-  return result as unknown as Comment;
+  return toPublicComment(result as StoredComment);
 }
 
-/**
- * 服务端专用：软删除评论
- * 仅管理员可调用
- */
-export async function softDeleteComment(
-  commentId: string,
-  deletedBy: string = "admin"
-): Promise<Comment> {
+export async function softDeleteComment(commentId: string): Promise<{ id: string }> {
   const payload = await getPayloadAPI();
-
   const result = await payload.update({
     collection: "comments",
     id: commentId,
-    data: {
-      isDeleted: true,
-      deletedBy,
-    },
+    data: { isDeleted: true, deletedBy: "admin" },
+    overrideAccess: true,
   });
-
-  return result as unknown as Comment;
+  return { id: String(result.id) };
 }
 
-/**
- * 服务端专用：获取评论数量统计
- */
 export async function getCommentCount(
   targetId: string,
-  targetType: "blog" | "project"
+  targetType: InteractionTargetType,
 ): Promise<number> {
-  const result = await getComments(targetId, targetType, 1, 1);
-  return result.totalDocs;
+  return (await getComments(targetId, targetType, 1, 1)).totalDocs;
 }

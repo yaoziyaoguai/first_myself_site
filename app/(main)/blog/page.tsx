@@ -62,7 +62,7 @@ export default async function BlogPage() {
                         : ""}
                     </time>
                     {post.readingTime ? <span>{post.readingTime}</span> : null}
-                    {tags.map((tag) => (
+                    {tags.map((tag: { tag?: string | null }) => (
                       <span key={tag.tag ?? "tag"}>#{tag.tag}</span>
                     ))}
                   </span>

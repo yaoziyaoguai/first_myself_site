@@ -1,11 +1,9 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
-
+import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import {
-  getLikeCount,
-  hasLiked,
   createLike,
+  getLikeCount,
   getLikeStatus,
-  type Like,
+  hasLiked,
 } from "@/lib/likes";
 
 describe("likes utilities", () => {
@@ -14,187 +12,76 @@ describe("likes utilities", () => {
     global.fetch = vi.fn();
   });
 
-  describe("getLikeStatus", () => {
-    it("should return count and hasLiked status", async () => {
-      (global.fetch as Mock).mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            count: 100,
-            hasLiked: true,
-          }),
-      });
-
-      const status = await getLikeStatus(
-        "blog-123",
-        "blog",
-        "ip-hash-1",
-        "fingerprint-1"
-      );
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/likes?targetId=blog-123&targetType=blog&ipHash=ip-hash-1&fingerprint=fingerprint-1"
-      );
-      expect(status.count).toBe(100);
-      expect(status.hasLiked).toBe(true);
+  it("gets server-derived like status without client identity fields", async () => {
+    (global.fetch as Mock).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ count: 100, hasLiked: true }),
     });
 
-    it("should throw error when fetch fails", async () => {
-      (global.fetch as Mock).mockResolvedValueOnce({
-        ok: false,
+    expect(await getLikeStatus("blog-123", "blog")).toEqual({
+      count: 100,
+      hasLiked: true,
+    });
+    expect(global.fetch).toHaveBeenCalledWith(
+      "/api/likes?targetId=blog-123&targetType=blog",
+    );
+  });
+
+  it("throws when status loading fails", async () => {
+    (global.fetch as Mock).mockResolvedValueOnce({ ok: false });
+    await expect(getLikeStatus("blog-123", "blog")).rejects.toThrow(
+      "Failed to fetch like status",
+    );
+  });
+
+  it("returns count and current visitor status", async () => {
+    (global.fetch as Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ count: 42, hasLiked: false }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ count: 42, hasLiked: true }),
       });
 
-      await expect(
-        getLikeStatus("blog-123", "blog", "ip-hash-1", "fingerprint-1")
-      ).rejects.toThrow("Failed to fetch like status");
+    expect(await getLikeCount("blog-123", "blog")).toBe(42);
+    expect(await hasLiked("blog-123", "blog")).toBe(true);
+  });
+
+  it("creates a like without sending hashes or fingerprints", async () => {
+    const status = { count: 3, hasLiked: true };
+    (global.fetch as Mock).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(status),
+    });
+
+    expect(
+      await createLike({ targetId: "blog-123", targetType: "blog" }),
+    ).toEqual(status);
+    expect(global.fetch).toHaveBeenCalledWith("/api/likes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetId: "blog-123", targetType: "blog" }),
     });
   });
 
-  describe("getLikeCount", () => {
-    it("should return count from status", async () => {
-      (global.fetch as Mock).mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            count: 42,
-            hasLiked: false,
-          }),
-      });
-
-      const count = await getLikeCount("blog-123", "blog");
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/likes?targetId=blog-123&targetType=blog&ipHash=&fingerprint="
-      );
-      expect(count).toBe(42);
-    });
-
-    it("should return 0 when no likes", async () => {
-      (global.fetch as Mock).mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            count: 0,
-            hasLiked: false,
-          }),
-      });
-
-      const count = await getLikeCount("blog-456", "blog");
-
-      expect(count).toBe(0);
-    });
-  });
-
-  describe("hasLiked", () => {
-    it("should return true if user has already liked", async () => {
-      (global.fetch as Mock).mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            count: 10,
-            hasLiked: true,
-          }),
-      });
-
-      const result = await hasLiked(
-        "blog-123",
-        "blog",
-        "ip-hash-1",
-        "fingerprint-1"
-      );
-
-      expect(global.fetch).toHaveBeenCalledWith(
-        "/api/likes?targetId=blog-123&targetType=blog&ipHash=ip-hash-1&fingerprint=fingerprint-1"
-      );
-      expect(result).toBe(true);
-    });
-
-    it("should return false if user has not liked", async () => {
-      (global.fetch as Mock).mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            count: 10,
-            hasLiked: false,
-          }),
-      });
-
-      const result = await hasLiked(
-        "blog-123",
-        "blog",
-        "ip-hash-2",
-        "fingerprint-2"
-      );
-
-      expect(result).toBe(false);
-    });
-  });
-
-  describe("createLike", () => {
-    it("should create like successfully", async () => {
-      const mockLike: Partial<Like> = {
-        id: "new-like-1",
-        targetId: "blog-123",
-        targetType: "blog",
-        ipHash: "ip-hash-1",
-        fingerprint: "fingerprint-1",
-      };
-
-      (global.fetch as Mock).mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockLike),
-      });
-
-      const result = await createLike({
-        targetId: "blog-123",
-        targetType: "blog",
-        ipHash: "ip-hash-1",
-        fingerprint: "fingerprint-1",
-      });
-
-      expect(global.fetch).toHaveBeenCalledWith("/api/likes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          targetId: "blog-123",
-          targetType: "blog",
-          ipHash: "ip-hash-1",
-          fingerprint: "fingerprint-1",
-        }),
-      });
-      expect(result).toEqual(mockLike);
-    });
-
-    it("should throw error with duplicate message when 409", async () => {
-      (global.fetch as Mock).mockResolvedValueOnce({
+  it("keeps duplicate and server error messages", async () => {
+    (global.fetch as Mock)
+      .mockResolvedValueOnce({
         ok: false,
         json: () => Promise.resolve({ error: "您已经点赞过了" }),
-      });
-
-      await expect(
-        createLike({
-          targetId: "blog-123",
-          targetType: "blog",
-          ipHash: "ip-hash-1",
-          fingerprint: "fingerprint-1",
-        })
-      ).rejects.toThrow("已经点赞");
-    });
-
-    it("should throw error when create fails", async () => {
-      (global.fetch as Mock).mockResolvedValueOnce({
+      })
+      .mockResolvedValueOnce({
         ok: false,
         json: () => Promise.resolve({ error: "database error" }),
       });
 
-      await expect(
-        createLike({
-          targetId: "blog-123",
-          targetType: "blog",
-          ipHash: "ip-hash-1",
-          fingerprint: "fingerprint-1",
-        })
-      ).rejects.toThrow("database error");
-    });
+    await expect(
+      createLike({ targetId: "blog-123", targetType: "blog" }),
+    ).rejects.toThrow("已经点赞");
+    await expect(
+      createLike({ targetId: "blog-123", targetType: "blog" }),
+    ).rejects.toThrow("database error");
   });
 });

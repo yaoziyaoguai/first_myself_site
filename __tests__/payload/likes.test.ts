@@ -1,103 +1,55 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-// Mock payload config
-vi.mock("payload", () => ({
-  buildConfig: vi.fn((config) => config),
-}));
+vi.mock("payload", () => ({ buildConfig: vi.fn((config) => config) }));
 
-import type { AccessArgs, SelectField, Field, CompoundIndex } from "payload";
 import Likes from "@/payload/collections/Likes";
 
+type NamedField = {
+  name?: string;
+  type: string;
+  required?: boolean;
+  options?: unknown[];
+};
+
 describe("Likes Collection", () => {
-  it("should have correct slug", () => {
+  const fields = Likes.fields as unknown as NamedField[];
+
+  it("defines the anonymous identity fields and unique index", () => {
     expect(Likes.slug).toBe("likes");
-  });
-
-  it("should have required fields defined", () => {
-    const fields = Likes.fields || [];
-    const fieldNames = fields.map((f: { name?: string }) => f.name);
-
-    expect(fieldNames).toContain("targetId");
-    expect(fieldNames).toContain("targetType");
-    expect(fieldNames).toContain("ipHash");
-    expect(fieldNames).toContain("fingerprint");
-  });
-
-  it("should allow anonymous create access", () => {
-    const createAccess = Likes.access?.create;
-    expect(createAccess).toBeDefined();
-
-    if (typeof createAccess === "function") {
-      const result = createAccess({ req: { user: null } } as AccessArgs);
-      expect(result).toBe(true);
-    }
-  });
-
-  it("should allow public read access", () => {
-    const readAccess = Likes.access?.read;
-    expect(readAccess).toBeDefined();
-
-    if (typeof readAccess === "function") {
-      const result = readAccess({ req: { user: null } } as AccessArgs);
-      expect(result).toBe(true);
-    }
-  });
-
-  it("should disallow update access", () => {
-    const updateAccess = Likes.access?.update;
-    expect(updateAccess).toBeDefined();
-
-    if (typeof updateAccess === "function") {
-      const result = updateAccess({ req: { user: { role: "admin" } } } as AccessArgs);
-      expect(result).toBe(false);
-    }
-  });
-
-  it("should disallow delete access", () => {
-    const deleteAccess = Likes.access?.delete;
-    expect(deleteAccess).toBeDefined();
-
-    if (typeof deleteAccess === "function") {
-      const result = deleteAccess({ req: { user: { role: "admin" } } } as AccessArgs);
-      expect(result).toBe(false);
-    }
-  });
-
-  it("should have unique index on target + ip + fingerprint", () => {
-    const indexes = Likes.indexes || [];
-    expect(indexes.length).toBeGreaterThan(0);
-
-    const uniqueIndex = indexes.find((idx: CompoundIndex) => idx.unique === true);
-    expect(uniqueIndex).toBeDefined();
-    expect(uniqueIndex?.fields).toContain("targetId");
-    expect(uniqueIndex?.fields).toContain("targetType");
-    expect(uniqueIndex?.fields).toContain("ipHash");
-    expect(uniqueIndex?.fields).toContain("fingerprint");
-  });
-
-  describe("Field validations", () => {
-    it("should have targetType with correct options", () => {
-      const targetTypeField = Likes.fields?.find(
-        (f: { name?: string }) => f.name === "targetType"
-      );
-      expect(targetTypeField).toBeDefined();
-      expect(targetTypeField?.type).toBe("select");
-
-      const options = (targetTypeField as SelectField).options;
-      expect(options).toContainEqual({ label: "博客文章", value: "blog" });
-      expect(options).toContainEqual({ label: "项目", value: "project" });
+    expect(fields.map((field) => field.name)).toEqual(
+      expect.arrayContaining(["targetId", "targetType", "ipHash", "fingerprint"]),
+    );
+    expect(Likes.indexes).toContainEqual({
+      fields: ["targetId", "targetType", "ipHash", "fingerprint"],
+      unique: true,
     });
+  });
 
-    it("should require all fields", () => {
-      const requiredFields = ["targetId", "targetType", "ipHash", "fingerprint"];
+  it("denies anonymous collection reads and creates", () => {
+    expect(Likes.access?.read?.({ req: { user: null } } as never)).toBe(false);
+    expect(Likes.access?.create?.({ req: { user: null } } as never)).toBe(false);
+  });
 
-      requiredFields.forEach((fieldName) => {
-        const field = Likes.fields?.find(
-          (f: { name?: string }) => f.name === fieldName
-        );
-        expect(field).toBeDefined();
-        expect((field as Field).required).toBe(true);
-      });
-    });
+  it("allows admin and editor moderation reads", () => {
+    for (const role of ["admin", "editor"]) {
+      expect(Likes.access?.read?.({ req: { user: { role } } } as never)).toBe(true);
+    }
+  });
+
+  it("does not support direct update or delete", () => {
+    expect(Likes.access?.update?.({ req: { user: { role: "admin" } } } as never)).toBe(false);
+    expect(Likes.access?.delete?.({ req: { user: { role: "admin" } } } as never)).toBe(false);
+  });
+
+  it("requires all stored identity fields and validates target type", () => {
+    for (const name of ["targetId", "targetType", "ipHash", "fingerprint"]) {
+      expect(fields.find((field) => field.name === name)?.required).toBe(true);
+    }
+    expect(fields.find((field) => field.name === "targetType")?.options).toEqual(
+      expect.arrayContaining([
+        { label: "博客文章", value: "blog" },
+        { label: "项目", value: "project" },
+      ]),
+    );
   });
 });

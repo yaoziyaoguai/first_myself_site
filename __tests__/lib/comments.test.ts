@@ -86,10 +86,10 @@ describe("comments utilities", () => {
           }),
       });
 
-      const result = await getReplies("1");
+      const result = await getReplies("1", "blog-123", "blog");
 
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/comments?targetId=dummy&targetType=blog&parentId=1"
+        "/api/comments?targetId=blog-123&targetType=blog&parentId=1"
       );
       expect(result).toHaveLength(2);
     });
@@ -166,7 +166,6 @@ describe("comments utilities", () => {
         targetId: "blog-123",
         targetType: "blog",
         content: "Test comment",
-        ipHash: "hash123",
       });
 
       expect(global.fetch).toHaveBeenCalledWith("/api/comments", {
@@ -176,7 +175,6 @@ describe("comments utilities", () => {
           targetId: "blog-123",
           targetType: "blog",
           content: "Test comment",
-          ipHash: "hash123",
         }),
       });
       expect(result.authorName).toBe("匿名用户");
@@ -193,7 +191,6 @@ describe("comments utilities", () => {
         targetType: "blog",
         content: "Test",
         authorName: "John",
-        ipHash: "hash123",
       });
 
       expect(global.fetch).toHaveBeenCalledWith(
@@ -215,7 +212,6 @@ describe("comments utilities", () => {
           targetId: "blog-123",
           targetType: "blog",
           content: "Test",
-          ipHash: "hash123",
         })
       ).rejects.toThrow();
     });
@@ -225,12 +221,7 @@ describe("comments utilities", () => {
     it("should call API to mark comment as deleted", async () => {
       (global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
-        json: () =>
-          Promise.resolve({
-            id: "1",
-            isDeleted: true,
-            deletedBy: "admin",
-          }),
+        json: () => Promise.resolve({ id: "1" }),
       });
 
       const result = await softDeleteComment("1");
@@ -238,7 +229,7 @@ describe("comments utilities", () => {
       expect(global.fetch).toHaveBeenCalledWith("/api/comments?id=1", {
         method: "PATCH",
       });
-      expect(result.isDeleted).toBe(true);
+      expect(result).toEqual({ id: "1" });
     });
   });
 

@@ -3,9 +3,6 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { LikeButton } from "@/components/LikeButton";
 import * as likesLib from "@/lib/likes";
 
-// Mock fetch for IP API
-global.fetch = vi.fn();
-
 describe("LikeButton", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -18,19 +15,8 @@ describe("LikeButton", () => {
 
     // Mock createLike
     vi.spyOn(likesLib, "createLike").mockResolvedValue({
-      id: "like-1",
-      targetId: "blog-1",
-      targetType: "blog",
-      ipHash: "hash1",
-      fingerprint: "fp1",
-      createdAt: "2026-04-17T10:00:00.000Z",
-      updatedAt: "2026-04-17T10:00:00.000Z",
-    });
-
-    // Mock fetch for IP
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ ip: "127.0.0.1" }),
+      count: 6,
+      hasLiked: true,
     });
   });
 

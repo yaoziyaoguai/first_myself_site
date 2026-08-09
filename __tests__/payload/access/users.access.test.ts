@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest'
-import type { AccessArgs } from 'payload'
 import Users from '@/payload/collections/Users'
 
 describe('Users Collection - Access Control', () => {
@@ -9,6 +8,46 @@ describe('Users Collection - Access Control', () => {
 
   const mockRequest = (user?: { id: string; role: string }) => ({
     user,
+  })
+
+  describe('admin access', () => {
+    const adminAccess = Users.access?.admin
+
+    it('allows admin and editor but denies viewer and anonymous users', () => {
+      expect(adminAccess?.({ req: mockRequest() } as never)).toBe(false)
+      expect(
+        adminAccess?.({ req: mockRequest({ id: 'viewer', role: 'viewer' }) } as never),
+      ).toBe(false)
+      expect(
+        adminAccess?.({ req: mockRequest({ id: 'editor', role: 'editor' }) } as never),
+      ).toBe(true)
+      expect(
+        adminAccess?.({ req: mockRequest({ id: 'admin', role: 'admin' }) } as never),
+      ).toBe(true)
+    })
+  })
+
+  describe('role field access', () => {
+    const roleField = Users.fields.find(
+      (field) => 'name' in field && field.name === 'role',
+    )
+
+    it('allows only admins to create or update roles', () => {
+      expect(roleField && 'access' in roleField).toBe(true)
+      if (!roleField || !('access' in roleField)) return
+
+      expect(roleField.access?.create?.({ req: mockRequest() } as never)).toBe(false)
+      expect(
+        roleField.access?.update?.({
+          req: mockRequest({ id: 'editor', role: 'editor' }),
+        } as never),
+      ).toBe(false)
+      expect(
+        roleField.access?.update?.({
+          req: mockRequest({ id: 'admin', role: 'admin' }),
+        } as never),
+      ).toBe(true)
+    })
   })
 
   describe('read access', () => {

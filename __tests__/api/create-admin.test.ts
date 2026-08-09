@@ -55,6 +55,16 @@ describe('GET /api/create-admin', () => {
       expect(data.error).toContain('Unauthorized')
     })
 
+    it('should fail closed when ADMIN_SECRET_TOKEN is missing', async () => {
+      vi.stubEnv('ADMIN_SECRET_TOKEN', '')
+      const request = new Request('http://localhost:3000/api/create-admin', {
+        headers: { Authorization: 'Bearer undefined' },
+      })
+
+      const response = await GET(request)
+      expect(response.status).toBe(500)
+    })
+
     it('should return 401 when token is invalid', async () => {
       const request = new Request('http://localhost:3000/api/create-admin', {
         headers: {
@@ -206,7 +216,7 @@ describe('GET /api/create-admin', () => {
       const data = await response.json()
       expect(data.message).toContain('管理员已创建')
       expect(data.email).toBe('admin@example.com')
-      expect(data.password).toBe('password123')
+      expect(data).not.toHaveProperty('password')
     })
 
     it('should use overrideAccess when creating user', async () => {
@@ -289,7 +299,7 @@ describe('GET /api/create-admin', () => {
       const data = await response.json()
       expect(data.message).toContain('管理员密码已重置')
       expect(data.email).toBe('admin@example.com')
-      expect(data.password).toBe('new-password123')
+      expect(data).not.toHaveProperty('password')
     })
 
     it('should use overrideAccess when updating user', async () => {

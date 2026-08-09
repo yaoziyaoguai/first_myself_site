@@ -46,7 +46,7 @@ export function CommentSection({
       // 为每个顶层评论加载回复（第一批）
       const commentsWithReplies = await Promise.all(
         result.docs.map(async (comment) => {
-          const replies = await getReplies(comment.id);
+          const replies = await getReplies(comment.id, targetId, targetType);
           return { ...comment, replies };
         })
       );
@@ -76,7 +76,7 @@ export function CommentSection({
           const data = await response.json();
           setCurrentUserIsAdmin(data.isAdmin);
         }
-      } catch (_e) {
+      } catch {
         // 忽略错误，默认为非管理员
         setCurrentUserIsAdmin(false);
       }
@@ -97,18 +97,12 @@ export function CommentSection({
   ) => {
     setSubmitting(true);
     try {
-      // 获取 IP 哈希和指纹（简化实现）
-      const ipHash = await getClientIpHash();
-      const fingerprint = getBrowserFingerprint();
-
       const newComment = await createComment({
         targetId,
         targetType,
         content,
         authorName,
         authorEmail,
-        ipHash,
-        fingerprint,
       });
 
       // 添加到列表顶部
@@ -126,20 +120,12 @@ export function CommentSection({
   const handleReply = async (parentId: string, content: string) => {
     setSubmitting(true);
     try {
-      const ipHash = await getClientIpHash();
-      const fingerprint = getBrowserFingerprint();
-
-      // 获取父评论信息以填充作者名
-      const parentComment = findCommentById(comments, parentId);
-
       const newReply = await createComment({
         targetId,
         targetType,
         parentId,
         content,
         authorName: "匿名用户", // 回复时简化，使用默认名
-        ipHash,
-        fingerprint,
       });
 
       // 更新父评论的 replies
@@ -162,13 +148,13 @@ export function CommentSection({
       await softDeleteComment(commentId);
 
       // 更新本地状态
-      setComments((prev) =>
-        prev.map((comment) =>
-          comment.id === commentId
-            ? { ...comment, isDeleted: true, deletedBy: "admin" }
-            : comment
-        )
+      const removedTopLevelComment = comments.some(
+        (comment) => comment.id === commentId,
       );
+      setComments((prev) => removeComment(prev, commentId));
+      if (removedTopLevelComment) {
+        setTotalCount((prev) => Math.max(0, prev - 1));
+      }
     } catch (err) {
       console.error("Failed to delete comment:", err);
       alert("删除评论失败，请稍后重试");
@@ -178,21 +164,6 @@ export function CommentSection({
   // 加载更多评论
   const handleLoadMore = () => {
     setPage((prev) => prev + 1);
-  };
-
-  // 辅助函数：在嵌套结构中查找评论
-  const findCommentById = (
-    comments: Comment[],
-    id: string
-  ): Comment | null => {
-    for (const comment of comments) {
-      if (comment.id === id) return comment;
-      if (comment.replies) {
-        const found = findCommentById(comment.replies, id);
-        if (found) return found;
-      }
-    }
-    return null;
   };
 
   // 辅助函数：更新嵌套回复
@@ -218,51 +189,15 @@ export function CommentSection({
     });
   };
 
-  // 获取客户端 IP 哈希（简化实现）
-  const getClientIpHash = async () => {
-    try {
-      // 尝试从 API 获取 IP
-      const response = await fetch("/api/ip");
-      if (response.ok) {
-        const data = await response.json();
-        return hashString(data.ip || "unknown");
-      }
-    } catch (_e) {
-      // 降级：使用随机字符串
-    }
-    return hashString("unknown-" + Date.now());
-  };
-
-  // 简单的浏览器指纹
-  const getBrowserFingerprint = (): string => {
-    const components = [
-      navigator.userAgent,
-      navigator.language,
-      screen.colorDepth,
-      screen.width + "x" + screen.height,
-      new Date().getTimezoneOffset(),
-    ];
-    return hashString(components.join("|"));
-  };
-
-  // 简单的字符串哈希
-  const hashString = (str: string): string => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(16);
-  };
-
-  // 检查当前用户是否是某条评论的作者（简化：检查 IP 哈希匹配）
-  // 实际应该检查用户登录状态
-  const checkIsAuthor = (comment: Comment): boolean => {
-    // 这里简化处理，实际应该通过用户身份判断
-    // 如果评论的 fingerprint 匹配当前浏览器，认为是作者
-    return false; // 简化：匿名用户不显示自己是作者
-  };
+  const removeComment = (items: Comment[], commentId: string): Comment[] =>
+    items
+      .filter((comment) => comment.id !== commentId)
+      .map((comment) => ({
+        ...comment,
+        replies: comment.replies
+          ? removeComment(comment.replies, commentId)
+          : undefined,
+      }));
 
   return (
     <div className={cn("space-y-6", className)}>
@@ -315,7 +250,7 @@ export function CommentSection({
             <CommentItem
               key={comment.id}
               comment={comment}
-              isAuthor={checkIsAuthor(comment)}
+              isAuthor={false}
               currentUserIsAdmin={currentUserIsAdmin}
               onDelete={currentUserIsAdmin ? handleDelete : undefined}
               onReply={handleReply}

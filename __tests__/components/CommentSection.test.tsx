@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { CommentSection } from "@/components/CommentSection";
 import * as commentsLib from "@/lib/comments";
@@ -36,6 +36,7 @@ vi.mock("@/components/CommentForm", () => ({
     <form data-testid="comment-form">
       <textarea data-testid="comment-textarea" />
       <button
+        type="button"
         data-testid="submit-comment"
         onClick={() => onSubmit("Test comment", "Test User", "test@example.com")}
         disabled={isSubmitting}
@@ -46,7 +47,6 @@ vi.mock("@/components/CommentForm", () => ({
   ),
 }));
 
-// Mock fetch for IP API
 global.fetch = vi.fn();
 
 describe("CommentSection", () => {
@@ -56,9 +56,6 @@ describe("CommentSection", () => {
       content: "First comment",
       authorName: "User 1",
       createdAt: "2026-04-17T10:00:00.000Z",
-      updatedAt: "2026-04-17T10:00:00.000Z",
-      isDeleted: false,
-      ipHash: "hash1",
       targetId: "blog-1",
       targetType: "blog" as const,
       replies: [],
@@ -68,9 +65,6 @@ describe("CommentSection", () => {
       content: "Second comment",
       authorName: "User 2",
       createdAt: "2026-04-17T11:00:00.000Z",
-      updatedAt: "2026-04-17T11:00:00.000Z",
-      isDeleted: false,
-      ipHash: "hash2",
       targetId: "blog-1",
       targetType: "blog" as const,
       replies: [],
@@ -96,10 +90,9 @@ describe("CommentSection", () => {
     // Mock getReplies
     vi.spyOn(commentsLib, "getReplies").mockResolvedValue([]);
 
-    // Mock fetch for IP
-    (global.fetch as jest.Mock).mockResolvedValue({
+    (global.fetch as Mock).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({ ip: "127.0.0.1" }),
+      json: () => Promise.resolve({ isAdmin: false }),
     });
   });
 
@@ -144,17 +137,16 @@ describe("CommentSection", () => {
 
   it("should check admin status on mount", async () => {
     // Mock fetch for auth check
-    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+    (global.fetch as Mock).mockImplementation((url: string) => {
       if (url === "/api/auth/check") {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ isAdmin: true }),
         });
       }
-      // 默认返回 IP API mock
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ ip: "127.0.0.1" }),
+        json: () => Promise.resolve({ isAdmin: false }),
       });
     });
 
@@ -198,9 +190,6 @@ describe("CommentSection", () => {
       content: "Test comment",
       authorName: "Test User",
       createdAt: "2026-04-17T12:00:00.000Z",
-      updatedAt: "2026-04-17T12:00:00.000Z",
-      isDeleted: false,
-      ipHash: "hash3",
       targetId: "blog-1",
       targetType: "blog",
     });
@@ -232,9 +221,6 @@ describe("CommentSection", () => {
       content: "Test reply",
       authorName: "匿名用户",
       createdAt: "2026-04-17T12:00:00.000Z",
-      updatedAt: "2026-04-17T12:00:00.000Z",
-      isDeleted: false,
-      ipHash: "hash3",
       targetId: "blog-1",
       targetType: "blog",
       parentId: "1",
@@ -255,7 +241,7 @@ describe("CommentSection", () => {
 
   it("should handle comment deletion for admin", async () => {
     // Mock auth check to return admin
-    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+    (global.fetch as Mock).mockImplementation((url: string) => {
       if (url === "/api/auth/check") {
         return Promise.resolve({
           ok: true,
@@ -264,22 +250,13 @@ describe("CommentSection", () => {
       }
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ ip: "127.0.0.1" }),
+        json: () => Promise.resolve({ isAdmin: false }),
       });
     });
 
-    const softDeleteSpy = vi.spyOn(commentsLib, "softDeleteComment").mockResolvedValue({
-      id: "1",
-      content: "First comment",
-      authorName: "User 1",
-      createdAt: "2026-04-17T10:00:00.000Z",
-      updatedAt: "2026-04-17T10:00:00.000Z",
-      isDeleted: true,
-      deletedBy: "admin",
-      ipHash: "hash1",
-      targetId: "blog-1",
-      targetType: "blog",
-    });
+    const softDeleteSpy = vi
+      .spyOn(commentsLib, "softDeleteComment")
+      .mockResolvedValue({ id: "1" });
 
     // Mock confirm
     window.confirm = vi.fn(() => true);
@@ -294,6 +271,7 @@ describe("CommentSection", () => {
 
     await waitFor(() => {
       expect(softDeleteSpy).toHaveBeenCalledWith("1");
+      expect(screen.queryByTestId("comment-1")).not.toBeInTheDocument();
     });
   });
 

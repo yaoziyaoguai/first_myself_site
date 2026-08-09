@@ -1,101 +1,66 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { CollectionConfig, AccessArgs, TextareaField, SelectField } from "payload";
+import { describe, expect, it, vi } from "vitest";
 
-// Mock payload config
-vi.mock("payload", () => ({
-  buildConfig: vi.fn((config) => config),
-}));
+vi.mock("payload", () => ({ buildConfig: vi.fn((config) => config) }));
 
-// Import the collection to test
 import Comments from "@/payload/collections/Comments";
 
+type NamedField = {
+  name?: string;
+  type: string;
+  maxLength?: number;
+  options?: unknown[];
+};
+
 describe("Comments Collection", () => {
-  it("should have correct slug", () => {
+  const fields = Comments.fields as unknown as NamedField[];
+
+  it("defines the moderation and public-content fields", () => {
     expect(Comments.slug).toBe("comments");
+    expect(fields.map((field) => field.name)).toEqual(
+      expect.arrayContaining([
+        "targetId",
+        "targetType",
+        "content",
+        "ipHash",
+        "authorName",
+        "isDeleted",
+      ]),
+    );
   });
 
-  it("should have required fields defined", () => {
-    const fields = Comments.fields || [];
-    const fieldNames = fields.map((f: { name?: string }) => f.name);
-
-    expect(fieldNames).toContain("targetId");
-    expect(fieldNames).toContain("targetType");
-    expect(fieldNames).toContain("content");
-    expect(fieldNames).toContain("ipHash");
-    expect(fieldNames).toContain("authorName");
-    expect(fieldNames).toContain("isDeleted");
+  it("denies anonymous collection reads and creates", () => {
+    expect(Comments.access?.read?.({ req: { user: null } } as never)).toBe(false);
+    expect(Comments.access?.create?.({ req: { user: null } } as never)).toBe(false);
   });
 
-  it("should allow anonymous create access", () => {
-    const createAccess = Comments.access?.create;
-    expect(createAccess).toBeDefined();
-
-    if (typeof createAccess === "function") {
-      const result = createAccess({ req: { user: null } } as AccessArgs);
-      expect(result).toBe(true);
+  it("allows admin and editor moderation reads", () => {
+    for (const role of ["admin", "editor"]) {
+      expect(
+        Comments.access?.read?.({ req: { user: { role } } } as never),
+      ).toBe(true);
     }
   });
 
-  it("should allow public read access", () => {
-    const readAccess = Comments.access?.read;
-    expect(readAccess).toBeDefined();
-
-    if (typeof readAccess === "function") {
-      const result = readAccess({ req: { user: null } } as AccessArgs);
-      expect(result).toBe(true);
-    }
+  it("restricts update and hard delete to admin", () => {
+    expect(
+      Comments.access?.update?.({ req: { user: { role: "editor" } } } as never),
+    ).toBe(false);
+    expect(
+      Comments.access?.update?.({ req: { user: { role: "admin" } } } as never),
+    ).toBe(true);
+    expect(
+      Comments.access?.delete?.({ req: { user: { role: "admin" } } } as never),
+    ).toBe(true);
   });
 
-  it("should restrict update to admin only", () => {
-    const updateAccess = Comments.access?.update;
-    expect(updateAccess).toBeDefined();
-
-    if (typeof updateAccess === "function") {
-      // Anonymous user cannot update
-      const anonResult = updateAccess({
-        req: { user: null },
-        data: {},
-        doc: {},
-        id: "test-id",
-      } as AccessArgs);
-      expect(anonResult).toBe(false);
-
-      // Admin can update
-      const adminResult = updateAccess({
-        req: { user: { role: "admin" } },
-        data: {},
-        doc: {},
-        id: "test-id",
-      } as AccessArgs);
-      expect(adminResult).toBe(true);
-    }
-  });
-
-  it("should have beforeValidate hook", () => {
-    expect(Comments.hooks?.beforeValidate).toBeDefined();
+  it("keeps content and target validation configuration", () => {
     expect(Comments.hooks?.beforeValidate?.length).toBeGreaterThan(0);
-  });
-
-  describe("Field validations", () => {
-    it("should have content maxLength of 1000", () => {
-      const contentField = Comments.fields?.find(
-        (f: { name?: string }) => f.name === "content"
-      );
-      expect(contentField).toBeDefined();
-      expect(contentField?.type).toBe("textarea");
-      expect((contentField as TextareaField).maxLength).toBe(1000);
-    });
-
-    it("should have targetType with correct options", () => {
-      const targetTypeField = Comments.fields?.find(
-        (f: { name?: string }) => f.name === "targetType"
-      );
-      expect(targetTypeField).toBeDefined();
-      expect(targetTypeField?.type).toBe("select");
-
-      const options = (targetTypeField as SelectField).options;
-      expect(options).toContainEqual({ label: "博客文章", value: "blog" });
-      expect(options).toContainEqual({ label: "项目", value: "project" });
-    });
+    expect(fields.find((field) => field.name === "content")?.maxLength).toBe(1000);
+    expect(fields.find((field) => field.name === "targetType")?.options).toEqual(
+      expect.arrayContaining([
+        { label: "博客文章", value: "blog" },
+        { label: "项目", value: "project" },
+      ]),
+    );
   });
 });

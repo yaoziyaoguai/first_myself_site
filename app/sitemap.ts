@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { buildSitemapEntries } from "@/lib/discovery";
+import { buildSitemapEntries, type DiscoveryPost } from "@/lib/discovery";
 import { getPayloadAPI } from "@/lib/payload";
 
 export const dynamic = "force-dynamic";
@@ -18,5 +18,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     limit: 1000,
   });
 
-  return buildSitemapEntries(result.docs);
+  return buildSitemapEntries(result.docs as unknown as DiscoveryPost[]);
 }

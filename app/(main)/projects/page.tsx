@@ -66,7 +66,7 @@ export default async function ProjectsPage() {
                   {project.description}
                 </span>
                 <span className="mt-6 flex flex-wrap gap-2">
-                  {project.tags?.map((tag) => (
+                  {project.tags?.map((tag: { tag?: string | null }) => (
                     <span className="topic-pill" key={tag.tag ?? "tag"}>
                       {tag.tag}
                     </span>
@@ -74,7 +74,7 @@ export default async function ProjectsPage() {
                 </span>
                 {project.highlights?.length ? (
                   <span className="mt-7 block border-l border-primary pl-5">
-                    {project.highlights.map((highlight) => (
+                    {project.highlights.map((highlight: { text?: string | null }) => (
                       <span className="block text-sm leading-7 text-foreground/80" key={highlight.text ?? "highlight"}>
                         {highlight.text}
                       </span>

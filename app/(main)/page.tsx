@@ -128,7 +128,7 @@ export default async function Home() {
               <h3 className="mt-8 text-2xl font-semibold tracking-tight">{project.title}</h3>
               <p className="mt-3 text-sm leading-7 text-muted-foreground">{project.description}</p>
               <div className="mt-auto flex flex-wrap gap-2 pt-8">
-                {project.tags?.slice(0, 3).map((tag) => (
+                {project.tags?.slice(0, 3).map((tag: { tag?: string | null }) => (
                   <span className="text-xs text-muted-foreground" key={tag.tag ?? "tag"}>
                     #{tag.tag}
                   </span>
