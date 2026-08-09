@@ -4,11 +4,13 @@ import {
   createComment,
   getComments,
   getReplies,
-  parentMatchesTarget,
   softDeleteComment,
-  targetExists,
 } from "@/lib/comments.server";
-import { isInteractionTargetType } from "@/lib/interactionTarget.server";
+import { isInteractionTargetType } from "@/lib/interactionTarget";
+import {
+  parentMatchesTarget,
+  targetExists,
+} from "@/lib/interactionTarget.server";
 import { isRateLimited } from "@/lib/rateLimit";
 import { deriveRequestIdentity } from "@/lib/requestIdentity";
 

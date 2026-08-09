@@ -10,7 +10,10 @@ export async function Footer() {
   const bioShort = resolveText(settings?.bioShort, siteDefaults.identity.role);
   const socialLinks = resolveArray<{ href: string; label: string }>(
     settings?.socialLinks,
-    [{ href: "https://github.com/yaoziyaoguai", label: "GitHub" }],
+    siteDefaults.contact.methods.map((method) => ({
+      href: method.href,
+      label: method.title,
+    })),
   );
 
   return (

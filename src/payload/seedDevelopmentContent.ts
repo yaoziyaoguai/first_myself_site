@@ -23,9 +23,10 @@ export async function seedDevelopmentContent(payload: BasePayload): Promise<stri
       name: siteDefaults.identity.name,
       nameShort: siteDefaults.identity.nameShort,
       bioShort: siteDefaults.identity.role,
-      socialLinks: [
-        { href: "https://github.com/yaoziyaoguai", label: "GitHub" },
-      ],
+      socialLinks: siteDefaults.contact.methods.map((method) => ({
+        href: method.href,
+        label: method.title,
+      })),
     },
     overrideAccess: true,
   });
@@ -54,13 +55,12 @@ export async function seedDevelopmentContent(payload: BasePayload): Promise<stri
   });
   results.push("✓ Contact global seeded");
 
-  const existingProjects = await payload.find({
+  const existingProjects = await payload.count({
     collection: "projects",
-    limit: 1,
     overrideAccess: true,
   });
   if (existingProjects.totalDocs === 0) {
-    for (const defaultProject of siteDefaults.projects) {
+    for (const [index, defaultProject] of siteDefaults.projects.entries()) {
       await payload.create({
         collection: "projects",
         data: {
@@ -71,7 +71,7 @@ export async function seedDevelopmentContent(payload: BasePayload): Promise<stri
           description: defaultProject.description,
           tags: defaultProject.tags.map((item) => ({ ...item })),
           highlights: defaultProject.highlights.map((item) => ({ ...item })),
-          sortOrder: defaultProject === siteDefaults.projects[0] ? 1 : 2,
+          sortOrder: index + 1,
         },
         overrideAccess: true,
       });

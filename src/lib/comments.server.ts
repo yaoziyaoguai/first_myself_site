@@ -1,12 +1,6 @@
 import type { Comment } from "./comments";
-import type { InteractionTargetType } from "./interactionTarget.server";
-import {
-  parentMatchesTarget,
-  targetExists,
-} from "./interactionTarget.server";
+import type { InteractionTargetType } from "./interactionTarget";
 import { getPayloadAPI } from "./payload";
-
-export { parentMatchesTarget, targetExists };
 
 type StoredComment = Record<string, unknown> & { id: number | string };
 
@@ -21,6 +15,15 @@ export function toPublicComment(doc: StoredComment): Comment {
     createdAt: String(doc.createdAt ?? ""),
   };
 }
+
+const publicCommentSelect = {
+  targetId: true,
+  targetType: true,
+  parentId: true,
+  content: true,
+  authorName: true,
+  createdAt: true,
+} as const;
 
 export async function getComments(
   targetId: string,
@@ -42,11 +45,46 @@ export async function getComments(
     sort: "-createdAt",
     limit,
     page,
+    depth: 0,
+    select: publicCommentSelect,
     overrideAccess: true,
   });
 
+  const comments = result.docs.map((doc) =>
+    toPublicComment(doc as StoredComment),
+  );
+  const parentIds = comments.map((comment) => comment.id);
+  const replies = parentIds.length
+    ? await payload.find({
+        collection: "comments",
+        where: {
+          and: [
+            { parentId: { in: parentIds } },
+            { isDeleted: { equals: false } },
+          ],
+        },
+        sort: "createdAt",
+        limit: 1000,
+        depth: 0,
+        select: publicCommentSelect,
+        overrideAccess: true,
+      })
+    : null;
+  const repliesByParent = new Map<string, Comment[]>();
+
+  for (const doc of replies?.docs ?? []) {
+    const reply = toPublicComment(doc as StoredComment);
+    if (!reply.parentId) continue;
+    const group = repliesByParent.get(reply.parentId) ?? [];
+    group.push(reply);
+    repliesByParent.set(reply.parentId, group);
+  }
+
   return {
-    docs: result.docs.map((doc) => toPublicComment(doc as StoredComment)),
+    docs: comments.map((comment) => ({
+      ...comment,
+      replies: repliesByParent.get(comment.id) ?? [],
+    })),
     totalDocs: result.totalDocs,
     totalPages: result.totalPages,
   };
@@ -64,6 +102,8 @@ export async function getReplies(parentId: string): Promise<Comment[]> {
     },
     sort: "createdAt",
     limit: 100,
+    depth: 0,
+    select: publicCommentSelect,
     overrideAccess: true,
   });
   return result.docs.map((doc) => toPublicComment(doc as StoredComment));
@@ -117,5 +157,18 @@ export async function getCommentCount(
   targetId: string,
   targetType: InteractionTargetType,
 ): Promise<number> {
-  return (await getComments(targetId, targetType, 1, 1)).totalDocs;
+  const payload = await getPayloadAPI();
+  const result = await payload.count({
+    collection: "comments",
+    where: {
+      and: [
+        { targetId: { equals: targetId } },
+        { targetType: { equals: targetType } },
+        { isDeleted: { equals: false } },
+        { parentId: { exists: false } },
+      ],
+    },
+    overrideAccess: true,
+  });
+  return result.totalDocs;
 }

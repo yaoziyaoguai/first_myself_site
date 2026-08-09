@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { siteDefaults, type ContentCard, type Direction } from "@/content/siteDefaults";
+import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
 import { resolveArray, resolveText } from "@/lib/contentFallback";
 import { summarizeExcerpt } from "@/lib/discovery";
 import { getPayloadAPI } from "@/lib/payload";
@@ -13,14 +14,10 @@ export default async function Home() {
     payload.findGlobal({ slug: "home" }),
     payload.find({
       collection: "blog",
-      where: {
-        and: [
-          { status: { equals: "published" } },
-          { visibility: { equals: "public" } },
-        ],
-      },
+      where: buildBlogFrontendWhere(null),
       sort: "-publishedDate",
       limit: 3,
+      depth: 0,
     }),
     payload.find({ collection: "projects", sort: "sortOrder", limit: 2 }),
   ]);

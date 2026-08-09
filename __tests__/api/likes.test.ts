@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/likes.server", () => ({
   createLike: vi.fn(),
+  getLikeCount: vi.fn(),
   getLikeStatus: vi.fn(),
+}));
+vi.mock("@/lib/interactionTarget.server", () => ({
   targetExists: vi.fn(),
 }));
 vi.mock("@/lib/requestIdentity", () => ({
@@ -15,7 +18,8 @@ vi.mock("@/lib/requestIdentity", () => ({
 vi.mock("@/lib/rateLimit", () => ({ isRateLimited: vi.fn(() => false) }));
 
 import { POST } from "@/app/api/likes/route";
-import { createLike, getLikeStatus, targetExists } from "@/lib/likes.server";
+import { targetExists } from "@/lib/interactionTarget.server";
+import { createLike, getLikeCount } from "@/lib/likes.server";
 import { isRateLimited } from "@/lib/rateLimit";
 
 describe("POST /api/likes", () => {
@@ -23,7 +27,7 @@ describe("POST /api/likes", () => {
     vi.clearAllMocks();
     vi.mocked(targetExists).mockResolvedValue(true);
     vi.mocked(createLike).mockResolvedValue(undefined);
-    vi.mocked(getLikeStatus).mockResolvedValue({ count: 3, hasLiked: true });
+    vi.mocked(getLikeCount).mockResolvedValue(3);
   });
 
   it("ignores forged identity and returns status rather than a stored record", async () => {

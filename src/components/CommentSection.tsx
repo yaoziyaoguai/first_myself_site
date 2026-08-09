@@ -9,7 +9,6 @@ import { MessageSquare, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   getComments,
-  getReplies,
   createComment,
   softDeleteComment,
   type Comment,
@@ -59,19 +58,12 @@ export function CommentSection({
     async function loadComments() {
       try {
         const result = await getComments(targetId, targetType, 10, page);
-        const commentsWithReplies = await Promise.all(
-          result.docs.map(async (comment) => {
-            const replies = await getReplies(comment.id, targetId, targetType);
-            return { ...comment, replies };
-          })
-        );
-
         if (cancelled) return;
 
         setComments((previous) =>
           page === 1
-            ? commentsWithReplies
-            : [...previous, ...commentsWithReplies]
+            ? result.docs
+            : [...previous, ...result.docs]
         );
         setTotalCount(result.totalDocs);
         setHasMore(result.totalPages > page);

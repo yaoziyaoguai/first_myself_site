@@ -1,31 +1,23 @@
+import { buildBlogFrontendWhere } from "./blogVisibility";
+import type { InteractionTargetType } from "./interactionTarget";
 import { getPayloadAPI } from "./payload";
-
-export type InteractionTargetType = "blog" | "project";
-
-export function isInteractionTargetType(
-  value: unknown,
-): value is InteractionTargetType {
-  return value === "blog" || value === "project";
-}
 
 export async function targetExists(
   targetId: string,
   targetType: InteractionTargetType,
 ): Promise<boolean> {
   const payload = await getPayloadAPI();
-  const result = await payload.find({
+  const result = await payload.count({
     collection: targetType === "blog" ? "blog" : "projects",
     where:
       targetType === "blog"
         ? {
             and: [
               { id: { equals: targetId } },
-              { status: { equals: "published" } },
-              { visibility: { equals: "public" } },
+              buildBlogFrontendWhere(null),
             ],
           }
         : { id: { equals: targetId } },
-    limit: 1,
     overrideAccess: true,
   });
 
@@ -38,7 +30,7 @@ export async function parentMatchesTarget(
   targetType: InteractionTargetType,
 ): Promise<boolean> {
   const payload = await getPayloadAPI();
-  const result = await payload.find({
+  const result = await payload.count({
     collection: "comments",
     where: {
       and: [
@@ -48,7 +40,6 @@ export async function parentMatchesTarget(
         { isDeleted: { equals: false } },
       ],
     },
-    limit: 1,
     overrideAccess: true,
   });
 

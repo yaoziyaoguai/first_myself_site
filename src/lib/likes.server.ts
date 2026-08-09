@@ -1,9 +1,6 @@
-import type { InteractionTargetType } from "./interactionTarget.server";
-import { targetExists } from "./interactionTarget.server";
+import type { InteractionTargetType } from "./interactionTarget";
 import type { LikeStatus } from "./likes";
 import { getPayloadAPI } from "./payload";
-
-export { targetExists };
 
 type LikeIdentity = { ipHash: string; fingerprint: string };
 
@@ -14,7 +11,7 @@ export async function getLikeStatus(
 ): Promise<LikeStatus> {
   const payload = await getPayloadAPI();
   const [countResult, userLikeResult] = await Promise.all([
-    payload.find({
+    payload.count({
       collection: "likes",
       where: {
         and: [
@@ -22,10 +19,9 @@ export async function getLikeStatus(
           { targetType: { equals: targetType } },
         ],
       },
-      limit: 0,
       overrideAccess: true,
     }),
-    payload.find({
+    payload.count({
       collection: "likes",
       where: {
         and: [
@@ -35,7 +31,6 @@ export async function getLikeStatus(
           { fingerprint: { equals: identity.fingerprint } },
         ],
       },
-      limit: 1,
       overrideAccess: true,
     }),
   ]);
@@ -53,21 +48,6 @@ export async function createLike(
   } & LikeIdentity,
 ): Promise<void> {
   const payload = await getPayloadAPI();
-  const existing = await payload.find({
-    collection: "likes",
-    where: {
-      and: [
-        { targetId: { equals: data.targetId } },
-        { targetType: { equals: data.targetType } },
-        { ipHash: { equals: data.ipHash } },
-        { fingerprint: { equals: data.fingerprint } },
-      ],
-    },
-    limit: 1,
-    overrideAccess: true,
-  });
-  if (existing.totalDocs > 0) throw new Error("LIKE_ALREADY_EXISTS");
-
   try {
     await payload.create({
       collection: "likes",
@@ -95,7 +75,7 @@ export async function getLikeCount(
   targetType: InteractionTargetType,
 ): Promise<number> {
   const payload = await getPayloadAPI();
-  const result = await payload.find({
+  const result = await payload.count({
     collection: "likes",
     where: {
       and: [
@@ -103,7 +83,6 @@ export async function getLikeCount(
         { targetType: { equals: targetType } },
       ],
     },
-    limit: 0,
     overrideAccess: true,
   });
   return result.totalDocs;

@@ -1,3 +1,5 @@
+import { SITE_URL } from "@/content/siteDefaults";
+
 export interface Comment {
   id: string;
   targetId: string;
@@ -29,7 +31,7 @@ export interface CommentPage {
 
 function getApiBaseUrl(): string {
   return typeof window === "undefined"
-    ? process.env.NEXT_PUBLIC_SERVER_URL || "https://wangjinkun333.me"
+    ? process.env.NEXT_PUBLIC_SERVER_URL || SITE_URL
     : "";
 }
 

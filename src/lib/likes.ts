@@ -1,3 +1,5 @@
+import { SITE_URL } from "@/content/siteDefaults";
+
 export interface LikeStatus {
   count: number;
   hasLiked: boolean;
@@ -10,7 +12,7 @@ export interface CreateLikeData {
 
 function getApiBaseUrl(): string {
   return typeof window === "undefined"
-    ? process.env.NEXT_PUBLIC_SERVER_URL || "https://wangjinkun333.me"
+    ? process.env.NEXT_PUBLIC_SERVER_URL || SITE_URL
     : "";
 }
 

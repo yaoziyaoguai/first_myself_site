@@ -5,6 +5,8 @@ vi.mock("@/lib/comments.server", () => ({
   getComments: vi.fn(),
   getReplies: vi.fn(),
   softDeleteComment: vi.fn(),
+}));
+vi.mock("@/lib/interactionTarget.server", () => ({
   targetExists: vi.fn(),
   parentMatchesTarget: vi.fn(),
 }));
@@ -19,7 +21,8 @@ vi.mock("@/lib/rateLimit", () => ({ isRateLimited: vi.fn(() => false) }));
 vi.mock("@/lib/auth", () => ({ isAdmin: vi.fn(() => false) }));
 
 import { POST } from "@/app/api/comments/route";
-import { createComment, targetExists } from "@/lib/comments.server";
+import { createComment } from "@/lib/comments.server";
+import { targetExists } from "@/lib/interactionTarget.server";
 import { isRateLimited } from "@/lib/rateLimit";
 
 const privateStoredComment = {

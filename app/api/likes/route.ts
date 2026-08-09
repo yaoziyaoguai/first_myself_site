@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isInteractionTargetType } from "@/lib/interactionTarget.server";
-import { createLike, getLikeStatus, targetExists } from "@/lib/likes.server";
+import { isInteractionTargetType } from "@/lib/interactionTarget";
+import { targetExists } from "@/lib/interactionTarget.server";
+import { createLike, getLikeCount, getLikeStatus } from "@/lib/likes.server";
 import { isRateLimited } from "@/lib/rateLimit";
 import { deriveRequestIdentity } from "@/lib/requestIdentity";
 
@@ -63,8 +64,8 @@ export async function POST(request: NextRequest) {
       ipHash: identity.ipHash,
       fingerprint: identity.fingerprint,
     });
-    const status = await getLikeStatus(target.targetId, target.targetType, identity);
-    return NextResponse.json(status, { status: 201 });
+    const count = await getLikeCount(target.targetId, target.targetType);
+    return NextResponse.json({ count, hasLiked: true }, { status: 201 });
   } catch (error) {
     if (error instanceof Error && error.message === "LIKE_ALREADY_EXISTS") {
       return errorResponse("您已经点赞过了", 409);

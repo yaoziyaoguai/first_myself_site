@@ -39,16 +39,10 @@ export default async function ProjectsPage() {
       <div className="divide-y divide-border border-y border-border">
         {projects.map((project, index) => {
           const href = "href" in project ? project.href : null;
-          const Wrapper = href ? Link : "article";
-
-          return (
-            <Wrapper
-              className="group grid gap-7 py-10 md:grid-cols-[5rem_minmax(0,0.8fr)_minmax(0,1.2fr)] md:py-14"
-              href={href ?? "/projects"}
-              key={String(project.id)}
-              target={href?.startsWith("http") ? "_blank" : undefined}
-              rel={href?.startsWith("http") ? "noreferrer" : undefined}
-            >
+          const className =
+            "group grid gap-7 py-10 md:grid-cols-[5rem_minmax(0,0.8fr)_minmax(0,1.2fr)] md:py-14";
+          const content = (
+            <>
               <span className="font-mono text-xs text-muted-foreground">
                 {String(index + 1).padStart(2, "0")}
               </span>
@@ -82,7 +76,23 @@ export default async function ProjectsPage() {
                   </span>
                 ) : null}
               </span>
-            </Wrapper>
+            </>
+          );
+
+          return href ? (
+            <Link
+              className={className}
+              href={href}
+              key={String(project.id)}
+              target={href.startsWith("http") ? "_blank" : undefined}
+              rel={href.startsWith("http") ? "noreferrer" : undefined}
+            >
+              {content}
+            </Link>
+          ) : (
+            <article className={className} key={String(project.id)}>
+              {content}
+            </article>
           );
         })}
       </div>

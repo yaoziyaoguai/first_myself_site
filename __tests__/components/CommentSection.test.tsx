@@ -87,9 +87,6 @@ describe("CommentSection", () => {
       hasPrevPage: false,
     });
 
-    // Mock getReplies
-    vi.spyOn(commentsLib, "getReplies").mockResolvedValue([]);
-
     (global.fetch as Mock).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ isAdmin: false }),

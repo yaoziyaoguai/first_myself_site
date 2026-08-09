@@ -1,4 +1,5 @@
 import { createHmac } from "node:crypto";
+import { getClientIp } from "./rateLimit";
 
 export type RequestIdentity = {
   ipHash: string;
@@ -12,12 +13,6 @@ function hmac(secret: string, purpose: string, value: string): string {
     .digest("hex");
 }
 
-function readClientAddress(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const realIp = request.headers.get("x-real-ip")?.trim();
-  return (forwarded || realIp || "unknown").slice(0, 128);
-}
-
 export function deriveRequestIdentity(
   request: Request,
   secret = process.env.PAYLOAD_SECRET ?? "",
@@ -26,7 +21,7 @@ export function deriveRequestIdentity(
     throw new Error("PAYLOAD_SECRET is required to derive request identity");
   }
 
-  const address = readClientAddress(request);
+  const address = getClientIp(request);
   const userAgent = (request.headers.get("user-agent") || "unknown").slice(0, 512);
 
   return {
