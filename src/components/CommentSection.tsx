@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { CommentItem } from "./CommentItem";
 import { CommentForm } from "./CommentForm";
 import { Button } from "./ui/button";
@@ -35,38 +35,6 @@ export function CommentSection({
   const [hasMore, setHasMore] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
 
-  // 加载评论
-  const loadComments = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const result = await getComments(targetId, targetType, 10, page);
-
-      // 为每个顶层评论加载回复（第一批）
-      const commentsWithReplies = await Promise.all(
-        result.docs.map(async (comment) => {
-          const replies = await getReplies(comment.id, targetId, targetType);
-          return { ...comment, replies };
-        })
-      );
-
-      if (page === 1) {
-        setComments(commentsWithReplies);
-      } else {
-        setComments((prev) => [...prev, ...commentsWithReplies]);
-      }
-
-      setTotalCount(result.totalDocs);
-      setHasMore(result.totalPages > page);
-    } catch (err) {
-      setError("加载评论失败，请稍后重试");
-      console.error("Failed to load comments:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [targetId, targetType, page]);
-
   // 检查当前用户是否是管理员
   useEffect(() => {
     const checkAdmin = async () => {
@@ -84,10 +52,45 @@ export function CommentSection({
     checkAdmin();
   }, []);
 
-  // 初始加载
+  // 加载评论，并在目标切换或组件卸载时忽略过期响应。
   useEffect(() => {
-    loadComments();
-  }, [loadComments]);
+    let cancelled = false;
+
+    async function loadComments() {
+      try {
+        const result = await getComments(targetId, targetType, 10, page);
+        const commentsWithReplies = await Promise.all(
+          result.docs.map(async (comment) => {
+            const replies = await getReplies(comment.id, targetId, targetType);
+            return { ...comment, replies };
+          })
+        );
+
+        if (cancelled) return;
+
+        setComments((previous) =>
+          page === 1
+            ? commentsWithReplies
+            : [...previous, ...commentsWithReplies]
+        );
+        setTotalCount(result.totalDocs);
+        setHasMore(result.totalPages > page);
+        setError(null);
+      } catch (err) {
+        if (cancelled) return;
+        setError("加载评论失败，请稍后重试");
+        console.error("Failed to load comments:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void loadComments();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [targetId, targetType, page]);
 
   // 处理新评论提交
   const handleSubmitComment = async (
@@ -163,6 +166,8 @@ export function CommentSection({
 
   // 加载更多评论
   const handleLoadMore = () => {
+    setLoading(true);
+    setError(null);
     setPage((prev) => prev + 1);
   };
 

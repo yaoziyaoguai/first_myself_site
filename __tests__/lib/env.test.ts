@@ -3,6 +3,7 @@ import { validateRequiredEnvVars, validateDevEnvVars, getEnv, getOptionalEnv } f
 
 describe('validateRequiredEnvVars', () => {
   beforeEach(() => {
+    vi.stubEnv('DATABASE_URL', 'postgresql://localhost/test')
     vi.stubEnv('PAYLOAD_SECRET', '')
   })
 
@@ -18,6 +19,12 @@ describe('validateRequiredEnvVars', () => {
   it('should throw when PAYLOAD_SECRET is missing', () => {
     vi.stubEnv('PAYLOAD_SECRET', '')
     expect(() => validateRequiredEnvVars()).toThrow('Missing required environment variables: PAYLOAD_SECRET')
+  })
+
+  it('should throw when DATABASE_URL is missing', () => {
+    vi.stubEnv('PAYLOAD_SECRET', 'test-secret')
+    vi.stubEnv('DATABASE_URL', '')
+    expect(() => validateRequiredEnvVars()).toThrow('DATABASE_URL')
   })
 
   it('should throw with correct error message format', () => {

@@ -29,7 +29,13 @@ export default buildConfig({
   collections: [Users, Media, Blog, Projects, Comments, Likes],
   db: postgresAdapter({
     pool: {
-      connectionString: process.env.DATABASE_URL || "postgresql://payload:payload_secret_2026@localhost:5432/first_myself_site",
+      connectionString: (() => {
+        const databaseUrl = process.env.DATABASE_URL;
+        if (!databaseUrl) {
+          throw new Error("DATABASE_URL environment variable is required");
+        }
+        return databaseUrl;
+      })(),
     },
   }),
   secret: (() => {

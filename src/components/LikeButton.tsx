@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { Heart, Loader2 } from "lucide-react";
@@ -33,26 +33,31 @@ export function LikeButton({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 加载点赞状态
-  const loadLikeStatus = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const likeStatus = await getLikeStatus(targetId, targetType);
-      setStatus(likeStatus);
-    } catch (err) {
-      console.error("Failed to load like status:", err);
-      setError("加载点赞状态失败");
-    } finally {
-      setLoading(false);
-    }
-  }, [targetId, targetType]);
-
-  // 初始加载
+  // 加载点赞状态，并在目标切换或组件卸载时忽略过期响应。
   useEffect(() => {
-    loadLikeStatus();
-  }, [loadLikeStatus]);
+    let cancelled = false;
+
+    async function loadLikeStatus() {
+      try {
+        const likeStatus = await getLikeStatus(targetId, targetType);
+        if (cancelled) return;
+        setStatus(likeStatus);
+        setError(null);
+      } catch (err) {
+        if (cancelled) return;
+        console.error("Failed to load like status:", err);
+        setError("加载点赞状态失败");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void loadLikeStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [targetId, targetType]);
 
   // 处理点赞
   const handleLike = async () => {

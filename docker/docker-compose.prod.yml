@@ -1,5 +1,3 @@
-version: "3.8"
-
 # ============================================
 # Payload CMS 生产环境 Docker Compose
 # 用途: 正式生产部署
@@ -44,26 +42,18 @@ services:
         NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
         DATABASE_URL: postgresql://${POSTGRES_USER:-payload_prod}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-first_myself_site_prod}
         PAYLOAD_SECRET: ${PAYLOAD_SECRET}
-        NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-        NEXTAUTH_URL: ${NEXTAUTH_URL}
     container_name: first_myself_site_prod
     restart: always
     environment:
       # Runtime 变量
       DATABASE_URL: postgresql://${POSTGRES_USER:-payload_prod}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-first_myself_site_prod}
       PAYLOAD_SECRET: ${PAYLOAD_SECRET}
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-      NEXTAUTH_URL: ${NEXTAUTH_URL}
       NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
       NODE_ENV: production
       PORT: 3001
-      # 可选: 首次管理员创建（如使用 /api/create-admin）
-      # ADMIN_SECRET_TOKEN: ${ADMIN_SECRET_TOKEN}
-      # PAYLOAD_INITIAL_ADMIN_EMAIL: ${PAYLOAD_INITIAL_ADMIN_EMAIL}
-      # PAYLOAD_INITIAL_ADMIN_PASSWORD: ${PAYLOAD_INITIAL_ADMIN_PASSWORD}
     ports:
       # 宿主机 3000 映射到容器 3001
-      - "3000:3001"
+      - "127.0.0.1:3000:3001"
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,6 +62,18 @@ services:
     volumes:
       # 上传文件持久化
       - payload_uploads:/app/media
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
     # 生产环境资源限制（可选）
     # deploy:
     #   resources:
