@@ -20,10 +20,19 @@ vi.mock("@/lib/requestIdentity", () => ({
 vi.mock("@/lib/rateLimit", () => ({ isRateLimited: vi.fn(() => false) }));
 vi.mock("@/lib/auth", () => ({ isAdmin: vi.fn(() => false) }));
 
-import { POST } from "@/app/api/comments/route";
-import { createComment } from "@/lib/comments.server";
-import { targetExists } from "@/lib/interactionTarget.server";
+import { GET, PATCH, POST } from "@/app/api/comments/route";
+import {
+  createComment,
+  getComments,
+  getReplies,
+  softDeleteComment,
+} from "@/lib/comments.server";
+import {
+  parentMatchesTarget,
+  targetExists,
+} from "@/lib/interactionTarget.server";
 import { isRateLimited } from "@/lib/rateLimit";
+import { isAdmin } from "@/lib/auth";
 
 const privateStoredComment = {
   id: "comment-1",
@@ -44,7 +53,10 @@ const privateStoredComment = {
 describe("POST /api/comments", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(isRateLimited).mockReturnValue(false);
     vi.mocked(targetExists).mockResolvedValue(true);
+    vi.mocked(parentMatchesTarget).mockResolvedValue(true);
+    vi.mocked(isAdmin).mockResolvedValue(false);
     vi.mocked(createComment).mockResolvedValue({
       id: "comment-1",
       targetId: "post-1",
@@ -54,6 +66,9 @@ describe("POST /api/comments", () => {
       authorName: "访客",
       createdAt: "2026-08-10T00:00:00.000Z",
     });
+    vi.mocked(getComments).mockResolvedValue({ docs: [], totalDocs: 0, totalPages: 0 });
+    vi.mocked(getReplies).mockResolvedValue([]);
+    vi.mocked(softDeleteComment).mockResolvedValue({ id: "comment-1" });
   });
 
   it("ignores forged client identity and returns a public DTO", async () => {
@@ -120,6 +135,21 @@ describe("POST /api/comments", () => {
     expect(createComment).not.toHaveBeenCalled();
   });
 
+  it.each([null, 7, [], "comment"])(
+    "rejects a non-object JSON body %#",
+    async (body) => {
+      const response = await POST(
+        new Request("https://example.com/api/comments", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        }) as never,
+      );
+      expect(response.status).toBe(400);
+      expect(createComment).not.toHaveBeenCalled();
+    },
+  );
+
   it("returns 404 when the public target does not exist", async () => {
     vi.mocked(targetExists).mockResolvedValue(false);
     const response = await POST(
@@ -140,5 +170,116 @@ describe("POST /api/comments", () => {
       }) as never,
     );
     expect(response.status).toBe(429);
+  });
+
+  it("rejects a reply whose parent is not a top-level comment on the target", async () => {
+    vi.mocked(parentMatchesTarget).mockResolvedValue(false);
+    const response = await POST(
+      new Request("https://example.com/api/comments", {
+        method: "POST",
+        body: JSON.stringify({
+          targetId: "post-1",
+          targetType: "blog",
+          parentId: "nested-reply",
+          content: "hi",
+        }),
+      }) as never,
+    );
+    expect(response.status).toBe(404);
+    expect(createComment).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /api/comments", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(targetExists).mockResolvedValue(true);
+    vi.mocked(parentMatchesTarget).mockResolvedValue(true);
+    vi.mocked(getComments).mockResolvedValue({ docs: [], totalDocs: 0, totalPages: 0 });
+    vi.mocked(getReplies).mockResolvedValue([]);
+  });
+
+  it("rejects an invalid target", async () => {
+    const response = await GET(
+      new Request("https://example.com/api/comments?targetId=post-1&targetType=user") as never,
+    );
+    expect(response.status).toBe(400);
+  });
+
+  it("returns 404 for a non-public target", async () => {
+    vi.mocked(targetExists).mockResolvedValue(false);
+    const response = await GET(
+      new Request("https://example.com/api/comments?targetId=private&targetType=blog") as never,
+    );
+    expect(response.status).toBe(404);
+  });
+
+  it.each([
+    ["0", 1],
+    ["999999", 1000],
+  ])("normalizes page %s to %i", async (input, expected) => {
+    const response = await GET(
+      new Request(
+        `https://example.com/api/comments?targetId=post-1&targetType=blog&page=${input}`,
+      ) as never,
+    );
+    expect(response.status).toBe(200);
+    expect(getComments).toHaveBeenCalledWith("post-1", "blog", 10, expected);
+    expect(await response.json()).toEqual({ docs: [], totalDocs: 0, totalPages: 0 });
+  });
+
+  it("returns replies only for a matching top-level parent", async () => {
+    vi.mocked(getReplies).mockResolvedValue([
+      {
+        id: "reply-1",
+        targetId: "post-1",
+        targetType: "blog",
+        parentId: "comment-1",
+        content: "回复",
+        authorName: "访客",
+        createdAt: "2026-08-10T00:00:00.000Z",
+      },
+    ]);
+    const response = await GET(
+      new Request(
+        "https://example.com/api/comments?targetId=post-1&targetType=blog&parentId=comment-1",
+      ) as never,
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ docs: [expect.objectContaining({ id: "reply-1" })] });
+
+    vi.mocked(parentMatchesTarget).mockResolvedValue(false);
+    const missing = await GET(
+      new Request(
+        "https://example.com/api/comments?targetId=post-1&targetType=blog&parentId=nested-reply",
+      ) as never,
+    );
+    expect(missing.status).toBe(404);
+  });
+});
+
+describe("PATCH /api/comments", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(isAdmin).mockResolvedValue(false);
+    vi.mocked(softDeleteComment).mockResolvedValue({ id: "comment-1" });
+  });
+
+  it("rejects unauthenticated moderation", async () => {
+    const response = await PATCH(
+      new Request("https://example.com/api/comments?id=comment-1", { method: "PATCH" }) as never,
+    );
+    expect(response.status).toBe(403);
+    expect(softDeleteComment).not.toHaveBeenCalled();
+  });
+
+  it("soft-deletes a comment for an admin", async () => {
+    vi.mocked(isAdmin).mockResolvedValue(true);
+    const response = await PATCH(
+      new Request("https://example.com/api/comments?id=comment-1", { method: "PATCH" }) as never,
+    );
+    expect(response.status).toBe(200);
+    expect(softDeleteComment).toHaveBeenCalledWith("comment-1");
+    expect(await response.json()).toEqual({ id: "comment-1" });
   });
 });

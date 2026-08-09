@@ -43,8 +43,13 @@ domain="${domain#http://}"
 domain="${domain%%/*}"
 
 echo "TLS certificate"
-certificate_end="$({ echo | openssl s_client -servername "$domain" -connect "$domain:443" 2>/dev/null; } | openssl x509 -noout -enddate)"
+certificate="$({ echo | openssl s_client -servername "$domain" -connect "$domain:443" 2>/dev/null; })"
+certificate_end="$(printf '%s\n' "$certificate" | openssl x509 -noout -enddate)"
 echo "$certificate_end"
+if ! printf '%s\n' "$certificate" | openssl x509 -checkend 604800 -noout >/dev/null; then
+  echo "TLS certificate is unavailable or expires within 7 days" >&2
+  exit 1
+fi
 
 echo "Disk usage"
 df -h "$PROJECT_DIR"

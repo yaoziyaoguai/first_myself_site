@@ -98,13 +98,46 @@ jobs:
           script: |
             set -euo pipefail
             cd "${{ secrets.PROJECT_PATH }}"
+
+            compose=(docker compose --env-file .env.docker.prod -f docker/docker-compose.prod.yml)
+            previous_image="$(docker inspect --format='{{.Image}}' first_myself_site_prod 2>/dev/null || true)"
+            if [ -n "$previous_image" ]; then
+              docker tag "$previous_image" first_myself_site:rollback
+            fi
+
+            rollback() {
+              if [ -z "$previous_image" ]; then
+                echo "No previous application image is available for rollback" >&2
+                return 1
+              fi
+
+              echo "Restoring previous application image"
+              docker tag first_myself_site:rollback first_myself_site:candidate
+              "${compose[@]}" up -d --no-deps --force-recreate app
+
+              for attempt in $(seq 1 24); do
+                if curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3000/api/health >/dev/null; then
+                  echo "Rollback health check passed"
+                  return 0
+                fi
+                sleep 5
+              done
+
+              echo "Rollback health check failed" >&2
+              "${compose[@]}" logs --tail=100 app >&2
+              return 1
+            }
+
             git fetch origin main
             git checkout main
             git pull --ff-only origin main
             # 先 build（旧容器仍在运行，用户无感知）
-            docker compose --env-file .env.docker.prod -f docker/docker-compose.prod.yml build app
+            "${compose[@]}" build app
             # build 完成后再切换（停机时间 < 10秒）
-            docker compose --env-file .env.docker.prod -f docker/docker-compose.prod.yml up -d
+            if ! "${compose[@]}" up -d; then
+              rollback || true
+              exit 1
+            fi
 
             ready=0
             for attempt in $(seq 1 24); do
@@ -116,16 +149,20 @@ jobs:
             done
 
             if [ "$ready" -ne 1 ]; then
-              docker compose --env-file .env.docker.prod -f docker/docker-compose.prod.yml ps
-              docker compose --env-file .env.docker.prod -f docker/docker-compose.prod.yml logs --tail=100 app
+              "${compose[@]}" ps
+              "${compose[@]}" logs --tail=100 app
+              rollback || true
               exit 1
             fi
 
             # 同时验证 Nginx、域名和 TLS，避免只检查到容器内部正常。
-            curl --fail --silent --show-error --max-time 10 \
-              https://wangjinkun333.me/api/health >/dev/null
+            if ! curl --fail --silent --show-error --max-time 10 \
+              https://wangjinkun333.me/api/health >/dev/null; then
+              rollback || true
+              exit 1
+            fi
 
-            docker compose --env-file .env.docker.prod -f docker/docker-compose.prod.yml ps
+            "${compose[@]}" ps
             # 清理悬空镜像，释放磁盘空间
             docker image prune -f
             echo "✅ 部署完成"

@@ -34,14 +34,13 @@ services:
   # Payload + Next.js 应用
   # -------------------------------------------------
   app:
+    image: first_myself_site:candidate
     build:
       context: ..
       dockerfile: docker/Dockerfile
       args:
         # Build-time 变量（会被打包到客户端）
         NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL}
-        DATABASE_URL: postgresql://${POSTGRES_USER:-payload_prod}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-first_myself_site_prod}
-        PAYLOAD_SECRET: ${PAYLOAD_SECRET}
     container_name: first_myself_site_prod
     restart: always
     environment:

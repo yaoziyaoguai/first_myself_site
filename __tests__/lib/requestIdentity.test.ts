@@ -6,6 +6,7 @@ describe("deriveRequestIdentity", () => {
     const request = new Request("https://example.com/api/likes", {
       headers: {
         "x-forwarded-for": "203.0.113.10, 10.0.0.2",
+        "x-real-ip": "203.0.113.10",
         "user-agent": "Test Browser",
       },
     });
@@ -18,6 +19,27 @@ describe("deriveRequestIdentity", () => {
     expect(first.fingerprint).toMatch(/^[a-f0-9]{64}$/);
     expect(JSON.stringify(first)).not.toContain("203.0.113.10");
     expect(JSON.stringify(first)).not.toContain("Test Browser");
+  });
+
+  it("does not let a forged forwarded chain override the proxy address", () => {
+    const first = new Request("https://example.com", {
+      headers: {
+        "x-forwarded-for": "198.51.100.1, 203.0.113.10",
+        "x-real-ip": "203.0.113.10",
+        "user-agent": "Browser",
+      },
+    });
+    const second = new Request("https://example.com", {
+      headers: {
+        "x-forwarded-for": "198.51.100.2, 203.0.113.10",
+        "x-real-ip": "203.0.113.10",
+        "user-agent": "Browser",
+      },
+    });
+
+    expect(deriveRequestIdentity(first, "test-secret")).toEqual(
+      deriveRequestIdentity(second, "test-secret"),
+    );
   });
 
   it("changes identifiers when the secret changes", () => {

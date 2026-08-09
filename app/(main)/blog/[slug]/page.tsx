@@ -3,7 +3,10 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getPayloadAPI } from "@/lib/payload";
 import { isAdmin, getCurrentUser } from "@/lib/auth";
-import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
+import {
+  buildBlogFrontendWhere,
+  canUsePublicInteractions,
+} from "@/lib/blogVisibility";
 import { RichText } from "@payloadcms/richtext-lexical/react";
 import { defaultJSXConverters } from "@payloadcms/richtext-lexical/react";
 import Markdown from "react-markdown";
@@ -108,6 +111,7 @@ export default async function BlogPostPage({ params }: PageProps) {
   const dateStr = post.publishedDate
     ? new Date(post.publishedDate).toISOString().split("T")[0]
     : "";
+  const showPublicInteractions = canUsePublicInteractions(post.visibility);
 
   return (
     <div className="site-shell page-space">
@@ -140,8 +144,12 @@ export default async function BlogPostPage({ params }: PageProps) {
                 <span>{post.readingTime}</span>
               </>
             )}
-            <span>·</span>
-            <LikeButton targetId={String(post.id)} targetType="blog" size="sm" />
+            {showPublicInteractions && (
+              <>
+                <span>·</span>
+                <LikeButton targetId={String(post.id)} targetType="blog" size="sm" />
+              </>
+            )}
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
             {tags.map((t) => (
@@ -187,9 +195,11 @@ export default async function BlogPostPage({ params }: PageProps) {
         />
 
         {/* 评论区 */}
-        <div className="mt-8">
-          <CommentSection targetId={String(post.id)} targetType="blog" />
-        </div>
+        {showPublicInteractions && (
+          <div className="mt-8">
+            <CommentSection targetId={String(post.id)} targetType="blog" />
+          </div>
+        )}
 
         {/* 关于作者 */}
         <div className="mt-12 pt-8 border-t border-border">

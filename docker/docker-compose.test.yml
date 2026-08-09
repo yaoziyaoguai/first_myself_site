@@ -30,8 +30,6 @@ services:
       dockerfile: docker/Dockerfile
       args:
         NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL:-http://localhost:3001}
-        PAYLOAD_SECRET: ${PAYLOAD_SECRET}
-        DATABASE_URL: postgresql://${POSTGRES_USER:-payload_test_user}:${POSTGRES_PASSWORD:-changeme_test}@postgres:5432/${POSTGRES_DB:-payload_test}
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-payload_test_user}:${POSTGRES_PASSWORD:-changeme_test}@postgres:5432/${POSTGRES_DB:-payload_test}

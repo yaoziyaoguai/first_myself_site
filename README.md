@@ -78,6 +78,15 @@ npm run build
   → postgres_prod 容器 :5432
 ```
 
+Nginx 必须覆盖客户端传入的代理身份头：
+
+```nginx
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+```
+
+应用优先信任由 Nginx 覆盖的 `X-Real-IP`。不要把应用端口直接暴露到公网。
+
 应用和 PostgreSQL 由 `docker/docker-compose.prod.yml` 管理。数据库和媒体分别存放在 `postgres_prod_data` 与 `payload_uploads` 命名卷中。
 
 生产环境文件位于服务器仓库根目录的 `.env.docker.prod`，从 `.env.docker.prod.example` 复制。它不应提交到 Git：
@@ -97,8 +106,8 @@ NEXT_PUBLIC_SERVER_URL=https://wangjinkun333.me
 1. Pull Request 运行 clean install、ESLint、TypeScript、Vitest、high audit 和 production build。
 2. PR 审阅通过并合并到 `main`。
 3. `main` push 通过 SSH 进入阿里云服务器。
-4. 服务器对 `main` 做 fast-forward 更新，构建新镜像并执行 Compose replacement。
-5. 工作流在 120 秒内轮询 `http://127.0.0.1:3000/api/health`，随后验证公网 HTTPS；数据库、Nginx、域名或 TLS 未就绪时部署失败。
+4. 服务器对 `main` 做 fast-forward 更新，保留当前镜像作为 rollback，再构建新镜像并执行 Compose replacement。
+5. 工作流在 120 秒内轮询 `http://127.0.0.1:3000/api/health`，随后验证公网 HTTPS；任一步失败时自动恢复上一镜像并再次检查健康状态。
 
 GitHub 仓库需要配置以下 Actions secrets：
 

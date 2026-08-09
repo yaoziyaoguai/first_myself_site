@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-
 # ============================================
 # Payload CMS + Next.js 应用镜像
 #
@@ -41,12 +39,11 @@ COPY . .
 
 # Build-time 环境变量
 ARG NEXT_PUBLIC_SERVER_URL
-ARG DATABASE_URL
-ARG PAYLOAD_SECRET
 
 ENV NEXT_PUBLIC_SERVER_URL=${NEXT_PUBLIC_SERVER_URL}
-ENV DATABASE_URL=${DATABASE_URL}
-ENV PAYLOAD_SECRET=${PAYLOAD_SECRET}
+# 构建阶段只需通过配置校验，不能接收或保留生产密钥。
+ENV DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build
+ENV PAYLOAD_SECRET=build-only-placeholder-not-used-at-runtime
 ENV NODE_ENV=production
 
 # 构建应用

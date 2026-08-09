@@ -101,5 +101,6 @@ export const RATE_LIMITS = {
 export function getClientIp(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   const realIp = request.headers.get("x-real-ip")?.trim();
-  return (forwarded || realIp || "unknown").slice(0, 128);
+  // 生产 Nginx 会覆盖 X-Real-IP；优先使用它，避免信任客户端可追加的 XFF 首项。
+  return (realIp || forwarded || "unknown").slice(0, 128);
 }

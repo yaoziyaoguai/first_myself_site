@@ -38,6 +38,7 @@ export async function parentMatchesTarget(
         { targetId: { equals: targetId } },
         { targetType: { equals: targetType } },
         { isDeleted: { equals: false } },
+        { parentId: { exists: false } },
       ],
     },
     overrideAccess: true,

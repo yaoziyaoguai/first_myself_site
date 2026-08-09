@@ -61,6 +61,11 @@ export function canViewPrivateBlog(viewer: FrontendViewer): boolean {
   return role === "admin" || role === "editor";
 }
 
+/** 公开互动接口只接受所有访客都能访问的文章。 */
+export function canUsePublicInteractions(visibility: unknown): boolean {
+  return visibility === "public";
+}
+
 /**
  * 构造前台 Blog 列表 / 详情页查询使用的 where 过滤片段。
  *

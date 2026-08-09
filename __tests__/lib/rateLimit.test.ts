@@ -255,14 +255,14 @@ describe('getClientIp', () => {
     expect(getClientIp(request)).toBe('172.16.0.1')
   })
 
-  it('should prioritize x-forwarded-for over x-real-ip', () => {
+  it('should prioritize proxy-overwritten x-real-ip over x-forwarded-for', () => {
     const request = new Request('http://example.com', {
       headers: {
         'x-forwarded-for': '192.168.1.1',
         'x-real-ip': '172.16.0.1',
       },
     })
-    expect(getClientIp(request)).toBe('192.168.1.1')
+    expect(getClientIp(request)).toBe('172.16.0.1')
   })
 
   it('should return unknown when no headers present', () => {

@@ -25,7 +25,7 @@ export function CommentItem({
   onDelete,
   onReply,
   depth = 0,
-  maxDepth = 5,
+  maxDepth = 2,
 }: CommentItemProps) {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [showReplies, setShowReplies] = useState(true);

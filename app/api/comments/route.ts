@@ -12,6 +12,7 @@ import {
   targetExists,
 } from "@/lib/interactionTarget.server";
 import { isRateLimited } from "@/lib/rateLimit";
+import { readJsonObject } from "@/lib/requestBody";
 import { deriveRequestIdentity } from "@/lib/requestIdentity";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +30,9 @@ export async function GET(request: NextRequest) {
     const targetType = searchParams.get("targetType");
     const parentId = searchParams.get("parentId")?.trim() ?? "";
     const requestedPage = Number.parseInt(searchParams.get("page") || "1", 10);
-    const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+    const page = Number.isFinite(requestedPage) && requestedPage > 0
+      ? Math.min(requestedPage, 1000)
+      : 1;
 
     if (!targetId || !isInteractionTargetType(targetType)) {
       return errorResponse("Invalid target", 400);
@@ -53,12 +56,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  let data: Record<string, unknown>;
-  try {
-    data = await request.json();
-  } catch {
-    return errorResponse("Invalid JSON body", 400);
-  }
+  const data = await readJsonObject(request);
+  if (!data) return errorResponse("Invalid JSON body", 400);
 
   const targetId = typeof data.targetId === "string" ? data.targetId.trim() : "";
   const targetType = data.targetType;
