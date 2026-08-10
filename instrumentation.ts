@@ -4,9 +4,13 @@ export async function register() {
     const { default: config } = await import("./payload.config");
     const payload = await getPayload({ config });
 
-    // Directly push schema to database (bypasses NODE_ENV=production check)
-    const { pushDevSchema } = await import("@payloadcms/drizzle");
-    await pushDevSchema(payload.db as unknown as Parameters<typeof pushDevSchema>[0]);
-    payload.logger.info("Database schema pushed successfully");
+    if (process.env.NODE_ENV !== "production") {
+      // production 由 bundled migrations 管理；dev push 会写入不兼容 production migration 的标记。
+      const { pushDevSchema } = await import("@payloadcms/drizzle");
+      await pushDevSchema(
+        payload.db as unknown as Parameters<typeof pushDevSchema>[0],
+      );
+      payload.logger.info("Database schema pushed successfully");
+    }
   }
 }

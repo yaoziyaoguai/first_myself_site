@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { siteDefaults, type ContentCard, type Direction } from "@/content/siteDefaults";
+import { isAdmin } from "@/lib/auth";
 import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
 import { resolveArray, resolveText } from "@/lib/contentFallback";
 import { summarizeExcerpt } from "@/lib/discovery";
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const payload = await getPayloadAPI();
-  const [home, postsResult, projectsResult] = await Promise.all([
+  const [home, postsResult, projectsResult, admin] = await Promise.all([
     payload.findGlobal({ slug: "home" }),
     payload.find({
       collection: "blog",
@@ -20,6 +21,7 @@ export default async function Home() {
       depth: 0,
     }),
     payload.find({ collection: "projects", sort: "sortOrder", limit: 2 }),
+    isAdmin(),
   ]);
 
   const title = resolveText(home?.title, siteDefaults.identity.name);
@@ -40,7 +42,7 @@ export default async function Home() {
           title: project.title,
           role: project.role,
           description: project.description,
-          href: "/projects",
+          href: resolveText(project.href, "/projects"),
           tags: project.tags ?? [],
         }))
       : siteDefaults.projects;
@@ -87,6 +89,11 @@ export default async function Home() {
         <div>
           <p className="section-number">01</p>
           <h2 className="section-title">最近在学习</h2>
+          {admin ? (
+            <Link className="text-link mt-4" href="/admin/globals/home">
+              管理最近学习 →
+            </Link>
+          ) : null}
         </div>
         <div className="divide-y divide-border border-y border-border">
           {learningAreas.map((area) => (

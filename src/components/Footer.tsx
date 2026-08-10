@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { siteDefaults } from "@/content/siteDefaults";
 import { resolveArray, resolveText } from "@/lib/contentFallback";
+import { buildFooterLinks } from "@/lib/contact";
 import { getPayloadAPI } from "@/lib/payload";
 
 export async function Footer() {
@@ -8,12 +9,16 @@ export async function Footer() {
   const settings = await payload.findGlobal({ slug: "site-settings" });
   const name = resolveText(settings?.name, siteDefaults.identity.name);
   const bioShort = resolveText(settings?.bioShort, siteDefaults.identity.role);
-  const socialLinks = resolveArray<{ href: string; label: string }>(
-    settings?.socialLinks,
-    siteDefaults.contact.methods.map((method) => ({
-      href: method.href,
-      label: method.title,
-    })),
+  const email = resolveText(settings?.email, siteDefaults.identity.email);
+  const socialLinks = buildFooterLinks(
+    email,
+    resolveArray<{ href: string; label: string }>(
+      settings?.socialLinks,
+      siteDefaults.contact.methods.map((method) => ({
+        href: method.href,
+        label: method.title,
+      })),
+    ),
   );
 
   return (
@@ -31,8 +36,8 @@ export async function Footer() {
               className="inline-flex min-h-11 items-center rounded-full border border-background/25 px-4 text-sm transition-colors hover:bg-background hover:text-foreground"
               href={link.href}
               key={link.href}
-              rel="noopener noreferrer"
-              target="_blank"
+              rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
+              target={link.href.startsWith("http") ? "_blank" : undefined}
             >
               {link.label} ↗
             </Link>

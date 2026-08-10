@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { siteDefaults, type ContactMethod, type Direction } from "@/content/siteDefaults";
+import { buildContactMethods } from "@/lib/contact";
 import { resolveArray, resolveText } from "@/lib/contentFallback";
 import { getPayloadAPI } from "@/lib/payload";
 
@@ -9,18 +10,22 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "联系",
-  description: "通过公开 GitHub 主页联系 Jinkun Wang。",
+  description: `通过公开邮箱或 GitHub 联系 ${siteDefaults.identity.name}。`,
   alternates: { canonical: "/contact" },
 };
 
 export default async function ContactPage() {
   const payload = await getPayloadAPI();
-  const contact = await payload.findGlobal({ slug: "contact" });
+  const [contact, settings] = await Promise.all([
+    payload.findGlobal({ slug: "contact" }),
+    payload.findGlobal({ slug: "site-settings" }),
+  ]);
 
   const introText = resolveText(contact?.introText, siteDefaults.contact.introText);
-  const contactMethods = resolveArray<ContactMethod>(
-    contact?.contactMethods,
-    siteDefaults.contact.methods,
+  const email = resolveText(settings?.email, siteDefaults.identity.email);
+  const contactMethods = buildContactMethods(
+    email,
+    resolveArray<ContactMethod>(contact?.contactMethods, siteDefaults.contact.methods),
   );
   const discussionTopics = resolveArray<Direction>(
     contact?.discussionTopics,
@@ -42,8 +47,8 @@ export default async function ContactPage() {
               className="group flex min-h-44 items-end justify-between gap-6 rounded-2xl border border-border bg-card p-7 transition-colors hover:bg-muted"
               href={method.href}
               key={`${method.title}-${method.href}`}
-              rel="noopener noreferrer"
-              target="_blank"
+              rel={method.href.startsWith("http") ? "noopener noreferrer" : undefined}
+              target={method.href.startsWith("http") ? "_blank" : undefined}
             >
               <span>
                 <span className="block text-xs uppercase tracking-[0.18em] text-muted-foreground">

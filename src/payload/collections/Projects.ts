@@ -2,9 +2,15 @@ import type { CollectionConfig } from "payload";
 
 const Projects: CollectionConfig = {
   slug: "projects",
+  labels: {
+    singular: "项目或实验",
+    plural: "项目与实验",
+  },
   admin: {
     useAsTitle: "title",
-    defaultColumns: ["title", "role", "period"],
+    defaultColumns: ["title", "role", "period", "href"],
+    description: "管理首页和项目页展示的项目、实验及其外部链接。",
+    group: "内容管理",
   },
   hooks: {
     beforeValidate: [
@@ -48,6 +54,15 @@ const Projects: CollectionConfig = {
       type: "text",
       label: "时间段",
       required: true,
+    },
+    {
+      name: "href",
+      type: "text",
+      label: "项目链接",
+      admin: {
+        description: "可填写 GitHub 仓库或项目网站；留空时项目页只展示内容。",
+        placeholder: "https://github.com/owner/repository",
+      },
     },
     {
       name: "tags",

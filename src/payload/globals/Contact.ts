@@ -2,8 +2,10 @@ import type { GlobalConfig } from "payload";
 
 const Contact: GlobalConfig = {
   slug: "contact",
+  label: "联系页面",
   admin: {
     description: "联系页面内容配置",
+    group: "页面内容",
   },
   fields: [
     {

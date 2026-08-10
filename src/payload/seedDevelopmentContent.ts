@@ -1,5 +1,6 @@
 import type { BasePayload } from "payload";
 import { siteDefaults } from "@/content/siteDefaults";
+import { CONFIGURABLE_CONTENT_VERSION } from "@/payload/migrations/backfillConfigurableContent";
 
 export async function seedDevelopmentContent(payload: BasePayload): Promise<string[]> {
   const results: string[] = [];
@@ -23,10 +24,12 @@ export async function seedDevelopmentContent(payload: BasePayload): Promise<stri
       name: siteDefaults.identity.name,
       nameShort: siteDefaults.identity.nameShort,
       bioShort: siteDefaults.identity.role,
+      email: siteDefaults.identity.email,
       socialLinks: siteDefaults.contact.methods.map((method) => ({
         href: method.href,
         label: method.title,
       })),
+      contentVersion: CONFIGURABLE_CONTENT_VERSION,
     },
     overrideAccess: true,
   });
@@ -69,6 +72,7 @@ export async function seedDevelopmentContent(payload: BasePayload): Promise<stri
           role: defaultProject.role,
           period: defaultProject.period,
           description: defaultProject.description,
+          href: defaultProject.href,
           tags: defaultProject.tags.map((item) => ({ ...item })),
           highlights: defaultProject.highlights.map((item) => ({ ...item })),
           sortOrder: index + 1,

@@ -133,6 +133,26 @@ jobs:
             git pull --ff-only origin main
             # 先 build（旧容器仍在运行，用户无感知）
             "${compose[@]}" build app
+            # 切换前备份当前数据库与媒体；备份失败时 set -e 会终止部署。
+            PROJECT_DIR="$PWD" \
+              BACKUP_DIR="$(dirname "$PWD")/backups/first_myself_site" \
+              ./scripts/backup.sh
+            # 清理旧 production pushDevSchema 留下的标记，否则 Payload 会等待交互确认。
+            "${compose[@]}" exec -T postgres sh -c \
+              'psql --set ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB"' <<'SQL'
+            DO $migration_marker_cleanup$
+            DECLARE
+              removed_count integer := 0;
+            BEGIN
+              IF to_regclass('payload_migrations') IS NOT NULL THEN
+                DELETE FROM "payload_migrations"
+                  WHERE "batch" = -1 AND "name" = 'dev';
+                GET DIAGNOSTICS removed_count = ROW_COUNT;
+              END IF;
+              RAISE NOTICE 'Removed % legacy dev migration marker(s)', removed_count;
+            END
+            $migration_marker_cleanup$;
+            SQL
             # build 完成后再切换（停机时间 < 10秒）
             if ! "${compose[@]}" up -d; then
               rollback || true

@@ -2,8 +2,10 @@ import type { GlobalConfig } from "payload";
 
 const Home: GlobalConfig = {
   slug: "home",
+  label: "首页与最近学习",
   admin: {
-    description: "首页内容配置",
+    description: "管理首页介绍、方向标签和“最近在学习”模块。",
+    group: "页面内容",
   },
   fields: [
     {
@@ -39,7 +41,10 @@ const Home: GlobalConfig = {
     {
       name: "capabilities",
       type: "array",
-      label: "能力卡片",
+      label: "最近在学习",
+      admin: {
+        description: "这些条目会显示在首页“最近在学习”区域。",
+      },
       fields: [
         {
           name: "title",
