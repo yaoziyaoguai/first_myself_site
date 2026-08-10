@@ -21,6 +21,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 // ---------- Hoisted mocks (must appear before imports they affect) ----------
 
@@ -134,6 +136,21 @@ function mockScrollGeometry(
 // ---------- Tests ----------
 
 describe("MarkdownPreviewField", () => {
+  it("keeps both panes shrinkable when preview content is wider than its track", () => {
+    const styles = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/payload/fields/MarkdownPreviewField/styles.css",
+      ),
+      "utf8",
+    );
+
+    expect(styles).toContain(
+      "grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);",
+    );
+    expect(styles).toMatch(/\.mpf-pane\s*{[\s\S]*?min-width: 0;/);
+  });
+
   beforeEach(() => {
     mockUseField.mockReset();
     mockUseField.mockReturnValue(defaultField());
