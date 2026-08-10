@@ -13,6 +13,7 @@ import Home from "@/payload/globals/Home";
 import SiteSettings from "@/payload/globals/SiteSettings";
 import { migrations } from "@/payload/migrations";
 import * as configurableContentSchemaMigration from "@/payload/migrations/20260810_000000_add_configurable_content_columns";
+import * as pageViewsSchemaMigration from "@/payload/migrations/20260810_110000_add_page_views";
 import {
   CONFIGURABLE_CONTENT_VERSION,
   backfillConfigurableContent,
@@ -34,6 +35,11 @@ describe("configurable portfolio content", () => {
         name: "20260810_000000_add_configurable_content_columns",
         up: configurableContentSchemaMigration.up,
         down: configurableContentSchemaMigration.down,
+      },
+      {
+        name: "20260810_110000_add_page_views",
+        up: pageViewsSchemaMigration.up,
+        down: pageViewsSchemaMigration.down,
       },
     ]);
   });
