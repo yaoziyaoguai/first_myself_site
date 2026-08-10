@@ -24,6 +24,16 @@
 
 评论和点赞的匿名标识由服务端使用 HMAC 生成。浏览器不能提交可信身份字段，公开响应也不包含邮箱、原始 IP、fingerprint 或内部删除字段。接口会校验目标资源、父评论关系与输入长度，并执行进程内限流。当前限流不跨多个应用实例；如果以后水平扩容，需要改为共享存储限流。
 
+## 访问统计与隐私
+
+- 统计客户端不使用 Cookie、localStorage 或跨站跟踪脚本。
+- 浏览器启用 Do Not Track 或 Global Privacy Control 时不发送事件。
+- 只接收与正式站点同源的 JSON 请求，并校验字段长度、数值范围和 session UUID。
+- 原始 IP 只在服务端短暂用于 HMAC 派生和限流，不写入数据库。
+- 数据库保存匿名 visitor hash、页面路径、标题、来源域名、有效停留和最大阅读深度。
+- `admin` 和 `editor` 可以查看统计；公开用户不能读取 PageViews collection，只有 `admin` 可以删除记录。
+- 当前速率限制是单进程内存实现；水平扩容前必须迁移到共享限流存储。
+
 ## 生产边界
 
 - 应用端口只绑定 `127.0.0.1:3000`，公网只开放 Nginx 的 80/443。
@@ -44,6 +54,6 @@ npm audit --audit-level=high
 npm run build
 ```
 
-当前直接依赖已升级到相互兼容的安全版本。`npm audit` 仍会报告 Payload 后台编辑器和数据库开发工具链中的 low/moderate 上游问题；没有可用的无破坏性完整修复时，不应使用 `npm audit fix --force` 越过框架兼容范围。
+`npm audit --audit-level=high` 是 CI 门禁。若审计仍报告 low/moderate 上游问题，应核对 Payload 与 Next.js 的兼容版本；没有无破坏性升级路径时，不应使用 `npm audit fix --force` 越过框架兼容范围。
 
 如果任何密钥或管理员凭证可能泄露，应先在阿里云/服务器轮换，再重新部署；不要把真实值粘贴到 Issue、PR、日志或聊天中。

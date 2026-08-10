@@ -64,6 +64,7 @@ media/*
 # Misc
 *.pem
 .cache
+/graphify-out/
 nginx.conf
 .env.docker.prod
 resume

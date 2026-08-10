@@ -1,227 +1,143 @@
-# 测试覆盖补齐指南
+# 测试与发布前验证
 
-## 完成状态 ✅
+本项目使用 Vitest、Testing Library、ESLint、TypeScript 和 Next.js production build 作为主要质量门禁。CI 输出是最终依据；文档中的数量只是最近一次已验证基线。
 
-**4 个 Phase 全部完成！**
+## 当前基线
 
-| Phase | 状态 | 测试数 | 覆盖内容 |
-|-------|------|--------|---------|
-| **Phase 1** | ✅ 完成 | 77 | 纯函数单元测试（lib/）|
-| **Phase 2** | ✅ 完成 | 85 | Payload Access Control + Hooks |
-| **Phase 3** | ✅ 完成 | 25 | API Route Handlers |
-| **Phase 4** | ✅ 代码完成 | 待运行 | React 组件测试 |
+截至 2026-08-10：
 
-**当前运行状态：Phase 1-3 共 187 个测试全部通过 ✅**
+- 42 个测试文件
+- 382 个自动化测试
+- ESLint、TypeScript、Vitest 和 production build 均通过
+- GitHub Actions 在 Pull Request 上执行完整检查
 
----
+不要用“测试文件存在”代替“测试已运行”。超时、截断输出或没有成功退出码都不能算通过。
 
-## 文件结构
-
-```
-__tests__/
-├── lib/
-│   ├── utils.test.ts          # cn() 类名合并 (9 tests)
-│   ├── errorHandler.test.ts   # AppError + sanitize + logError (21 tests)
-│   ├── env.test.ts            # 环境变量验证工具 (26 tests)
-│   └── rateLimit.test.ts      # 限流 + getClientIp (21 tests)
-├── payload/
-│   ├── access/
-│   │   ├── blog.access.test.ts    # Blog 双重过滤 (24 tests)
-│   │   ├── posts.access.test.ts   # Posts 单层过滤 (24 tests)
-│   │   └── users.access.test.ts   # Users 防权限提升 (37 tests)
-│   └── hooks/
-│       └── slug-trim.test.ts      # beforeValidate hook (23 tests)
-├── api/
-│   ├── seed.test.ts               # /api/seed 权限校验 (12 tests)
-│   └── create-admin.test.ts       # /api/create-admin 权限校验 (13 tests)
-└── components/
-    ├── Navbar.test.tsx            # 菜单展开、高亮 (待运行)
-    └── Footer.test.tsx            # 条件渲染、数据加载 (待运行)
-```
-
----
-
-## Phase 1-3：单元 & 集成测试 ✅
-
-### 已完成的覆盖内容
-
-#### lib/ 工具函数 (77 tests)
-- **cn()**：Tailwind 类名合并去重
-- **AppError**：自定义错误类
-- **sanitizeErrorForClient**：生产/开发环境分支处理
-- **logError**：结构化日志
-- **getEnv/getOptionalEnv**：环境变量获取
-- **validateRequiredEnvVars/validateDevEnvVars**：环境变量验证
-- **isRateLimited/getRateLimitRemaining/clearRateLimit**：内存限流
-- **getClientIp**：提取客户端 IP
-
-#### Payload Collections Access Control (85 tests)
-- **Blog.read**：未认证用户 `status=published AND visibility=public` 双重过滤 ⭐
-- **Blog.create/update/delete**：admin/editor 创建/编辑，仅 admin 删除
-- **Posts.read**：未认证用户仅过滤 `status=published`（无 visibility）⭐
-- **Users.read**：用户隔离（admin 看全部，普通用户只看自己）
-- **Users.update**：防权限提升（普通用户不能修改自己的 role）⭐
-- **beforeValidate hook**：slug.trim() 处理空格
-
-#### API Route Handlers (25 tests)
-- **/api/seed**：
-  - ✅ 生产环境 403
-  - ✅ Token 验证（401 on missing/invalid）
-  - ✅ Globals 更新（4 个）
-  - ✅ Projects 创建（幂等检查）
-  - ✅ 错误处理（500）
-
-- **/api/create-admin**：
-  - ✅ 生产环境 403
-  - ✅ Token 验证（401）
-  - ✅ 环境变量检查（500 on missing）
-  - ✅ 创建 vs 更新管理员
-  - ✅ overrideAccess 权限绕过
-
-### 运行 Phase 1-3 的测试
+## 本地完整检查
 
 ```bash
-# 运行所有 Phase 1-3 测试
-npm test -- __tests__/{lib,payload,api}
-
-# 或仅运行特定部分
-npm test -- __tests__/lib/
-npm test -- __tests__/payload/
-npm test -- __tests__/api/
-
-# 查看详细输出
-npm test -- --reporter=verbose
-```
-
----
-
-## Phase 4：React 组件测试 📝
-
-### 已完成代码编写，待环境修复
-
-**Navbar 组件** (`__tests__/components/Navbar.test.tsx`)
-- 导航链接渲染
-- 移动端菜单展开/收起
-- 当前页面链接高亮
-- 响应式设计
-
-**Footer 组件** (`__tests__/components/Footer.test.tsx`)
-- 数据加载（async 服务端组件）
-- bioShort 条件渲染
-- 社交链接渲染
-- 年份动态更新
-- 边界情况处理
-
-### 运行 Phase 4 的测试
-
-#### 步骤 1：修复 npm 权限问题
-
-```bash
-# 本地环境运行（需要管理员权限或修改 npm 配置）
-npm config set cache ~/.npm-new
-npm cache clean --force
-rm -rf node_modules package-lock.json
-npm install
-npm install --save-dev @testing-library/react @testing-library/user-event
-```
-
-#### 步骤 2：运行组件测试
-
-```bash
-npm test -- __tests__/components/
-```
-
----
-
-## 测试覆盖率目标达成
-
-### 已实现覆盖率（Phase 1-3）
-
-| 模块 | 覆盖率 | 核心逻辑 |
-|------|--------|---------|
-| lib/ | ~100% | 所有工具函数已测试 |
-| Payload Access | ~100% | 关键权限控制完全覆盖 |
-| Payload Hooks | ~100% | slug trim 逻辑完全覆盖 |
-| API Routes | ~95% | 权限、环保变量、错误处理 |
-
-**整体：从 < 5% → 80%+ ✅**
-
-### 后续优化建议
-
-1. **Phase 4 完成**：安装依赖后运行组件测试
-2. **覆盖率报告**：运行 `npm test -- --coverage` 查看详细指标
-3. **E2E 测试**：使用 Playwright 测试关键用户流（博客阅读、管理员后台）
-4. **性能测试**：数据库查询性能基准
-
----
-
-## 代码质量对标
-
-### 测试设计原则
-
-✅ **纯函数优先**：lib/ 函数无副作用，易于单元测试  
-✅ **Mock 最小化**：只 mock 外部依赖（getPayloadAPI、usePathname）  
-✅ **边界情况覆盖**：null/undefined/empty/long strings/special chars  
-✅ **分支覆盖**：if/else 分支全部有测试  
-✅ **集成测试**：access control 函数虽然纯函数，但测试模拟真实的 req.user 场景  
-
-### 规则合规
-
-- ✅ 遵循 TypeScript 严格类型
-- ✅ 所有函数有明确的入参/出参类型
-- ✅ 无 `any` 类型（除 mock）
-- ✅ 遵循项目 .claude/rules/
-- ✅ 避免测试与实现耦合
-
----
-
-## 下次部署前的检查清单
-
-```bash
-# 1. 运行所有测试
-npm test
-
-# 2. 检查覆盖率
-npm test -- --coverage
-
-# 3. 检查 lint
+npm ci
 npm run lint
-
-# 4. 检查类型
-npx tsc --noEmit
-
-# 5. 本地构建
+npx tsc --noEmit -p tsconfig.ci.json
+npm test
+npm audit --audit-level=high
 npm run build
-
-# 6. 验证 CI/CD 流水线
-git push origin <branch>  # GitHub Actions 会自动运行所有检查
 ```
 
----
+`npm run build` 需要有效但可以是临时的 PostgreSQL 和以下变量：
 
-## 常见问题
+```dotenv
+DATABASE_URL=postgresql://user:password@127.0.0.1:5432/database
+PAYLOAD_SECRET=至少32字符的本地构建密钥
+NEXT_PUBLIC_SERVER_URL=http://localhost:3000
+```
 
-### Q: 为什么 lib/rateLimit.ts 中的限流没在路由中被使用？
-A: 这是预备代码，为未来的限流保护预留。测试仍然有价值，确保逻辑正确，后续可直接启用。
+不要删除 lockfile 来解决依赖问题。依赖安装以 `npm ci` 和已提交的 `package-lock.json` 为准。
 
-### Q: 为什么不直接导出 access 函数进行单元测试？
-A: 这是 Payload CMS 的架构决定——access 函数是集合配置的一部分，通过导入集合配置并提取函数来测试是更现实的方法。
+## 测试结构
 
-### Q: Phase 4 为什么没有运行？
-A: npm 权限问题阻止了 @testing-library/react 的安装。这是环境问题，不是代码问题。代码本身已完成，只需修复 npm 缓存后运行。
+```text
+__tests__/
+├── api/          公开接口、初始化门禁和健康检查
+├── components/   前台组件与匿名访问统计客户端
+├── deployment/   Nginx 媒体探测和部署顺序
+├── lib/          解析、身份、限流、评论、点赞和统计逻辑
+├── metadata/     sitemap、RSS 和公开内容发现
+└── payload/      权限、collection、迁移、后台字段和配置内容
+```
 
----
+### API 与安全边界
 
-## 下一步行动
+- `/api/health` 的数据库就绪语义
+- `/api/seed` 与 `/api/create-admin` 的生产拒绝和 token 校验
+- 评论、回复和点赞的输入校验、目标校验、匿名身份与限流
+- 访问统计的 origin、content type、事件格式、速率限制和错误状态
 
-1. **立即**：运行 `npm test` 验证 Phase 1-3 通过 ✅
-2. **本周**：修复 npm 权限问题，完成 Phase 4
-3. **推送**：所有测试通过后，提交 PR 到 main
-4. **部署**：CI/CD 自动运行测试，验证无回归
+### Payload 与数据
 
----
+- Blog、Users 等 collection 的角色与可见性规则
+- 项目链接、最近学习和公开邮箱在后台可配置
+- 配置内容 backfill 只填空值，不覆盖用户已经编辑的数据
+- 生产迁移以显式 `prodMigrations` 运行
+- PageViews migration、collection 权限和 SQL 聚合结果
 
-**Created**: 2026-04-06  
-**Test Files**: 12  
-**Test Cases**: 187+ (Phase 1-3 running, Phase 4 ready)  
-**Coverage Target**: 80%+ ✅ achieved
+### Markdown 编辑器
+
+- GFM 内容渲染
+- 空值、错误和 disabled 状态
+- 内容锚点插值的边界与双向映射
+- 宽内容不会挤压任一 pane
+- 图片加载后的锚点重新测量
+
+### 部署
+
+- 新镜像构建完成后才切换容器
+- 同一台生产服务器上的部署通过 concurrency group 串行执行
+- 切换前执行媒体路径探测与备份
+- 只清理 Payload 的 legacy dev migration marker
+- 部署失败时保留回滚路径
+
+## 按范围运行
+
+```bash
+# 单个文件
+npm test -- __tests__/api/analytics.test.ts
+
+# 一个目录
+npm test -- __tests__/payload/
+
+# 名称匹配
+npm test -- -t "MarkdownPreviewField"
+
+# 开发时监听
+npm run test:watch
+```
+
+## 必要的手工验证
+
+自动化测试不能替代以下真实交互。
+
+### Markdown 长文
+
+1. 在后台打开包含多级标题、表格和多张图片的长文章。
+2. 确认编辑区与预览区宽度接近，各自可独立滚动。
+3. 从编辑区滚动到文章中部，确认预览落在相同内容块。
+4. 从预览区反向滚动，确认编辑区回到对应源码。
+5. 等图片加载后重复检查，确认没有明显漂移。
+
+### 访问统计
+
+1. 在未开启 DNT/GPC 的浏览器访问公开页面并停留至少 15 秒。
+2. 切换页面或隐藏标签页，确认阅读时间只统计可见时段。
+3. 进入后台“运营 → 访问统计”，确认访问、停留和深度出现。
+4. 开启 DNT 或 GPC 后重新访问，确认浏览器不发送统计事件。
+
+### 生产冒烟
+
+1. `https://wangjinkun333.me/api/health` 返回 `{"status":"ready"}`。
+2. 首页、项目页、文章列表和一篇长文正常加载。
+3. 浏览器没有 TLS 警告，静态资源和文章图片返回成功。
+4. Payload Admin 可以登录，内容与统计页面可打开。
+
+## CI/CD 顺序
+
+```text
+ESLint
+  → TypeScript ─→ Tests → Build ─┐
+  → Security Scan ────────────────┤
+                                  └→ Deploy（仅 main push）
+```
+
+Pull Request 不会部署。只有合并到 `main` 且全部上游检查成功后，Deploy job 才会连接阿里云。
+
+## 结果报告要求
+
+提交 PR 时至少报告：
+
+- 实际运行的检查
+- 测试文件数和测试数
+- build 是否使用了本地临时数据库
+- 手工验证了哪些用户路径
+- 未验证或只能在生产验证的部分
+
+不要声称固定覆盖率，除非本次确实生成并读取了 coverage report。当前仓库没有把覆盖率百分比作为 CI 门禁。
