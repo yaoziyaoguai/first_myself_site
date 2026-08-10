@@ -30,7 +30,7 @@
   --mpf-pane-height: 500px;
 
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   border: 1px solid var(--theme-border-color);
   border-radius: var(--style-radius-s);
   background: var(--theme-input-bg);
@@ -59,6 +59,7 @@
 .mpf-pane {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .mpf-pane--preview {
@@ -160,6 +161,7 @@
 .mpf-preview {
   position: relative;
   flex: 1;
+  min-width: 0;
   min-height: var(--mpf-pane-height);
   /*
    * max-height cap: without this, a very long Markdown document stretches
@@ -169,7 +171,7 @@
    * viewport. Scroll handles content beyond.
    */
   max-height: 80vh;
-  overflow-y: auto;
+  overflow: auto;
   padding: 8px 15px;
   color: var(--theme-text);
   line-height: 1.6; /* preview is a read surface; slightly taller leading aids scanning */
