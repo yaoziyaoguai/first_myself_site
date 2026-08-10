@@ -158,7 +158,8 @@ MAX_BACKUPS=7 \
 
 - Nginx 和证书续期由服务器层维护，当前仓库只验证 HTTPS 和证书结果。
 - 如果阿里云对 HTTP 流量显示备案拦截，需要在云平台完成 ICP/网络配置；这不是应用代码或 TLS 证书能够修复的问题。
-- 第三方 uptime monitoring、analytics 和异地备份需要另外选择供应商与账号。
+- 站内访问统计在 Payload 后台的“运营 → 访问统计”中查看；只保存匿名哈希、页面、有效停留和阅读深度，不使用 Cookie，并尊重浏览器的 Do Not Track 设置。
+- 第三方 uptime monitoring 和异地备份仍需要另外选择供应商与账号。
 
 ## License
 

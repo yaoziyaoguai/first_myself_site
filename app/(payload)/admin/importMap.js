@@ -22,9 +22,11 @@ import { UnderlineFeatureClient as UnderlineFeatureClient_e70f5e05f09f93e00b997e
 import { BoldFeatureClient as BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { ItalicFeatureClient as ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { MarkdownPreviewField as MarkdownPreviewField_281adb51e7359164636afa32f31ac90b } from '@/payload/fields/MarkdownPreviewField'
+import { AnalyticsSummary as AnalyticsSummary_eb913db95e7837c3682aafcba9393a10 } from '@/payload/components/AnalyticsSummary'
 import { BackToSite as BackToSite_24b724594fe1af84dd896aa927f818c8 } from '@/payload/components/BackToSite'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
+/** @type import('payload').ImportMap */
 export const importMap = {
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalField": RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e,
@@ -50,6 +52,7 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#BoldFeatureClient": BoldFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#ItalicFeatureClient": ItalicFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@/payload/fields/MarkdownPreviewField#MarkdownPreviewField": MarkdownPreviewField_281adb51e7359164636afa32f31ac90b,
+  "@/payload/components/AnalyticsSummary#AnalyticsSummary": AnalyticsSummary_eb913db95e7837c3682aafcba9393a10,
   "@/payload/components/BackToSite#BackToSite": BackToSite_24b724594fe1af84dd896aa927f818c8,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

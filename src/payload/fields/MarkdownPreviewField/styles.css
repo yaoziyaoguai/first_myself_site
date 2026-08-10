@@ -95,21 +95,54 @@
  * font-size is NOT set — inherits admin default so the textarea tracks any
  * future admin-wide type-scale change.
  */
-.mpf-textarea {
+.mpf-editor-surface {
+  position: relative;
   flex: 1;
   min-height: var(--mpf-pane-height);
+}
+
+.mpf-textarea,
+.mpf-source-map {
+  box-sizing: border-box;
   width: 100%;
   padding: 8px 15px;
+  font-family: var(--font-mono);
+  line-height: 1.5;
+  tab-size: 4;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.mpf-textarea {
+  position: absolute;
+  inset: 0;
+  height: 100%;
   border: 0;
   border-radius: 0;
   box-shadow: none;
   background: transparent;
   color: var(--theme-elevation-800);
-  font-family: var(--font-mono);
   resize: none;
   outline: 0; /* focus indicator lives on .mpf-panes:focus-within */
-  /* font-size and line-height NOT set — inherit admin defaults so the
-     textarea tracks any future admin-wide type-scale change. */
+  /* font-size inherits the admin type scale. */
+}
+
+/*
+ * Invisible layout twin for the textarea. Its line-start markers expose the
+ * real wrapped source positions without changing the editing experience.
+ */
+.mpf-source-map {
+  position: absolute;
+  inset: 0 auto auto 0;
+  min-height: 100%;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.mpf-source-map [data-source-offset] {
+  display: inline-block;
+  width: 0;
+  height: 0;
 }
 
 .mpf-textarea::placeholder {
@@ -125,6 +158,7 @@
 /* ---------- Preview (right pane) ---------- */
 
 .mpf-preview {
+  position: relative;
   flex: 1;
   min-height: var(--mpf-pane-height);
   /*
@@ -163,10 +197,18 @@
   line-height: 1.3;
 }
 
-.mpf-preview h1 { font-size: 1.6em; }
-.mpf-preview h2 { font-size: 1.35em; }
-.mpf-preview h3 { font-size: 1.15em; }
-.mpf-preview h4 { font-size: 1em; }
+.mpf-preview h1 {
+  font-size: 1.6em;
+}
+.mpf-preview h2 {
+  font-size: 1.35em;
+}
+.mpf-preview h3 {
+  font-size: 1.15em;
+}
+.mpf-preview h4 {
+  font-size: 1em;
+}
 
 .mpf-preview p,
 .mpf-preview ul,

@@ -3,6 +3,7 @@ import "../globals.css";
 import { AdminLink } from "@/components/AdminLink";
 import { Footer } from "@/components/Footer";
 import { Navbar } from "@/components/Navbar";
+import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 import { SITE_URL, siteDefaults } from "@/content/siteDefaults";
 
 export const metadata: Metadata = {
@@ -46,6 +47,7 @@ export default function MainRootLayout({
   return (
     <html lang="zh-CN">
       <body className="flex min-h-screen flex-col antialiased">
+        <AnalyticsTracker />
         <a className="skip-link" href="#main-content">
           跳到主要内容
         </a>

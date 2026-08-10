@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef } from "react";
-import Markdown from "react-markdown";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   useField,
@@ -9,10 +9,7 @@ import {
   FieldDescription,
   FieldError,
 } from "@payloadcms/ui";
-import type {
-  TextareaFieldClientComponent,
-  StaticDescription,
-} from "payload";
+import type { TextareaFieldClientComponent, StaticDescription } from "payload";
 
 import "./styles.css";
 
@@ -26,26 +23,153 @@ import "./styles.css";
  *   Field: '@/payload/fields/MarkdownPreviewField#MarkdownPreviewField'
  *
  * Alignment strategy:
- *   - Scroll-driven sync: left textarea onScroll → preview scrollTop by
- *     proportional ratio. Single direction — the left pane is authoritative.
- *   - `isSyncing` prevents programmatic scrolls from re-entering the loop.
- *   - rAF + 80ms ease-out (scrollPreviewTo) for smooth transitions.
+ *   - The hidden source mirror measures actual wrapped Markdown line positions.
+ *   - React Markdown exposes source offsets on rendered block nodes.
+ *   - Matching source/preview anchors are interpolated in both directions.
  *
- * Cursor-driven sync was tried and removed (see commit history): the precision
- * benefit was too small to justify the interaction complexity. Typing still
- * updates the preview content (Markdown re-renders from `value`), but the
- * preview scroll position is only driven by the user scrolling the editor.
+ * This avoids the drift caused by global scroll ratios when rendered images,
+ * tables, headings, and paragraph spacing have very different local heights.
  */
 
-const SMOOTH_SCROLL_MS = 80;
+type ScrollAnchor = {
+  source: number;
+  target: number;
+};
+
+type ScrollMapInput = {
+  sourceScrollTop: number;
+  sourceMax: number;
+  targetMax: number;
+  anchors: ScrollAnchor[];
+};
+
+type SourceMarker = {
+  offset: number;
+  top: number;
+};
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function findSourceMarker(markers: SourceMarker[], offset: number) {
+  let match: SourceMarker | undefined;
+  for (const marker of markers) {
+    if (marker.offset > offset) break;
+    match = marker;
+  }
+  return match;
+}
+
+/** Map a scroll position between panes while preserving local content anchors. */
+export function mapScrollTopByAnchors({
+  sourceScrollTop,
+  sourceMax,
+  targetMax,
+  anchors,
+}: ScrollMapInput) {
+  if (sourceMax <= 0 || targetMax <= 0) return 0;
+
+  const points = [
+    { source: 0, target: 0 },
+    ...anchors.filter(
+      ({ source, target }) =>
+        source > 0 && source < sourceMax && target > 0 && target < targetMax,
+    ),
+    { source: sourceMax, target: targetMax },
+  ]
+    .sort((a, b) => a.source - b.source)
+    .reduce<ScrollAnchor[]>((result, point) => {
+      const previous = result.at(-1);
+      if (previous?.source === point.source) return result;
+
+      result.push({
+        source: point.source,
+        target: Math.max(previous?.target ?? 0, point.target),
+      });
+      return result;
+    }, []);
+
+  const position = clamp(sourceScrollTop, 0, sourceMax);
+  for (let index = 1; index < points.length; index += 1) {
+    const end = points[index];
+    if (position > end.source) continue;
+
+    const start = points[index - 1];
+    const span = end.source - start.source;
+    if (span <= 0) return clamp(end.target, 0, targetMax);
+
+    const progress = (position - start.source) / span;
+    return clamp(
+      start.target + (end.target - start.target) * progress,
+      0,
+      targetMax,
+    );
+  }
+
+  return targetMax;
+}
+
+function sourceOffset(node?: { position?: { start?: { offset?: number } } }) {
+  return node?.position?.start?.offset;
+}
+
+const markdownComponents: Components = {
+  h1: ({ node, ...props }) => (
+    <h1 data-source-offset={sourceOffset(node)} {...props} />
+  ),
+  h2: ({ node, ...props }) => (
+    <h2 data-source-offset={sourceOffset(node)} {...props} />
+  ),
+  h3: ({ node, ...props }) => (
+    <h3 data-source-offset={sourceOffset(node)} {...props} />
+  ),
+  h4: ({ node, ...props }) => (
+    <h4 data-source-offset={sourceOffset(node)} {...props} />
+  ),
+  h5: ({ node, ...props }) => (
+    <h5 data-source-offset={sourceOffset(node)} {...props} />
+  ),
+  h6: ({ node, ...props }) => (
+    <h6 data-source-offset={sourceOffset(node)} {...props} />
+  ),
+  p: ({ node, ...props }) => (
+    <p data-source-offset={sourceOffset(node)} {...props} />
+  ),
+  blockquote: ({ node, ...props }) => (
+    <blockquote data-source-offset={sourceOffset(node)} {...props} />
+  ),
+  ul: ({ node, ...props }) => (
+    <ul data-source-offset={sourceOffset(node)} {...props} />
+  ),
+  ol: ({ node, ...props }) => (
+    <ol data-source-offset={sourceOffset(node)} {...props} />
+  ),
+  pre: ({ node, ...props }) => (
+    <pre data-source-offset={sourceOffset(node)} {...props} />
+  ),
+  table: ({ node, ...props }) => (
+    <table data-source-offset={sourceOffset(node)} {...props} />
+  ),
+  hr: ({ node, ...props }) => (
+    <hr data-source-offset={sourceOffset(node)} {...props} />
+  ),
+};
+
+function getSourceLines(content: string) {
+  let offset = 0;
+  return content.split("\n").map((line, index, lines) => {
+    const lineStart = offset;
+    offset += line.length + (index < lines.length - 1 ? 1 : 0);
+    return { line, lineStart, hasNewline: index < lines.length - 1 };
+  });
+}
 
 /**
  * Narrow a Payload field description (which may be a function on the server
  * config) down to the StaticDescription that survives client sanitization.
  */
-function asStaticDescription(
-  value: unknown
-): StaticDescription | undefined {
+function asStaticDescription(value: unknown): StaticDescription | undefined {
   if (typeof value === "string") return value;
   if (value && typeof value === "object" && !Array.isArray(value)) {
     return value as StaticDescription;
@@ -65,70 +189,94 @@ export const MarkdownPreviewField: TextareaFieldClientComponent = ({
     useField<string>({ path });
 
   const readOnly = Boolean(readOnlyFromProps || disabled);
+  // `useField<string>` is a type assertion; empty input is persisted as null.
+  const content = value || "";
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const sourceMapRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const isSyncing = useRef(false);
   const rafId = useRef<number | null>(null);
+  const layoutRafId = useRef<number | null>(null);
+  const lastUserPane = useRef<"editor" | "preview">("editor");
 
-  /**
-   * rAF-driven smooth scroll of the preview pane. Always flips `isSyncing` so
-   * the preview's own onScroll handler can ignore programmatic movement.
-   */
-  const scrollPreviewTo = useCallback((target: number) => {
-    const preview = previewRef.current;
-    if (!preview) return;
+  const sourceLines = useMemo(() => getSourceLines(content), [content]);
 
-    const start = preview.scrollTop;
-    const diff = target - start;
-
-    if (Math.abs(diff) < 2) {
-      isSyncing.current = true;
-      preview.scrollTop = target;
-      // Release on next frame so a stray onScroll can't mis-read the flag.
-      requestAnimationFrame(() => {
-        isSyncing.current = false;
-      });
-      return;
-    }
-
-    const startTime = performance.now();
-    const step = (now: number) => {
-      const elapsed = now - startTime;
-      const p = Math.min(elapsed / SMOOTH_SCROLL_MS, 1);
-      const ease = 1 - Math.pow(1 - p, 2);
-      isSyncing.current = true;
-      preview.scrollTop = start + diff * ease;
-      if (p < 1) {
-        rafId.current = requestAnimationFrame(step);
-      } else {
-        rafId.current = null;
-        // Release on next frame: preview's onScroll can fire one more tick.
-        requestAnimationFrame(() => {
-          isSyncing.current = false;
-        });
-      }
-    };
-
-    if (rafId.current) cancelAnimationFrame(rafId.current);
-    rafId.current = requestAnimationFrame(step);
-  }, []);
-
-  /**
-   * Scroll-driven: preserve left scroll ratio on the right.
-   */
-  const syncPreviewToScrollRatio = useCallback(() => {
+  const collectAnchors = useCallback(() => {
     const textarea = textareaRef.current;
+    const sourceMap = sourceMapRef.current;
     const preview = previewRef.current;
-    if (!textarea || !preview) return;
+    if (!textarea || !sourceMap || !preview) return [];
+
+    sourceMap.style.width = `${textarea.clientWidth}px`;
+
+    const sourceMarkers = Array.from(
+      sourceMap.querySelectorAll<HTMLElement>("[data-source-offset]"),
+    ).map((element) => ({
+      offset: Number(element.dataset.sourceOffset),
+      top: element.offsetTop,
+    }));
 
     const editorMax = textarea.scrollHeight - textarea.clientHeight;
-    if (editorMax <= 0) return;
-
-    const ratio = textarea.scrollTop / editorMax;
     const previewMax = preview.scrollHeight - preview.clientHeight;
-    scrollPreviewTo(ratio * previewMax);
-  }, [scrollPreviewTo]);
+    const anchors: ScrollAnchor[] = [];
+
+    for (const element of preview.querySelectorAll<HTMLElement>(
+      "[data-source-offset]",
+    )) {
+      const offset = Number(element.dataset.sourceOffset);
+      if (!Number.isFinite(offset)) continue;
+
+      const sourceMarker = findSourceMarker(sourceMarkers, offset);
+      if (!sourceMarker) continue;
+
+      anchors.push({
+        source: clamp(sourceMarker.top, 0, editorMax),
+        target: clamp(element.offsetTop, 0, previewMax),
+      });
+    }
+
+    return anchors;
+  }, []);
+
+  const syncScroll = useCallback(
+    (direction: "editor-to-preview" | "preview-to-editor") => {
+      if (isSyncing.current) return;
+
+      const textarea = textareaRef.current;
+      const preview = previewRef.current;
+      if (!textarea || !preview) return;
+
+      const editorMax = textarea.scrollHeight - textarea.clientHeight;
+      const previewMax = preview.scrollHeight - preview.clientHeight;
+      const anchors = collectAnchors();
+
+      const source = direction === "editor-to-preview" ? textarea : preview;
+      const target = direction === "editor-to-preview" ? preview : textarea;
+      const mappedAnchors =
+        direction === "editor-to-preview"
+          ? anchors
+          : anchors.map((anchor) => ({
+              source: anchor.target,
+              target: anchor.source,
+            }));
+
+      isSyncing.current = true;
+      target.scrollTop = mapScrollTopByAnchors({
+        sourceScrollTop: source.scrollTop,
+        sourceMax: direction === "editor-to-preview" ? editorMax : previewMax,
+        targetMax: direction === "editor-to-preview" ? previewMax : editorMax,
+        anchors: mappedAnchors,
+      });
+
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+      rafId.current = requestAnimationFrame(() => {
+        isSyncing.current = false;
+        rafId.current = null;
+      });
+    },
+    [collectAnchors],
+  );
 
   // --- Event handlers -----------------------------------------------------
 
@@ -139,28 +287,51 @@ export const MarkdownPreviewField: TextareaFieldClientComponent = ({
       // not an empty string. Matches the existing field's expectations.
       setValue(next || null);
     },
-    [setValue]
+    [setValue],
   );
 
   const handleTextareaScroll = useCallback(() => {
-    syncPreviewToScrollRatio();
-  }, [syncPreviewToScrollRatio]);
+    if (!isSyncing.current) lastUserPane.current = "editor";
+    syncScroll("editor-to-preview");
+  }, [syncScroll]);
+
+  const handlePreviewScroll = useCallback(() => {
+    if (!isSyncing.current) lastUserPane.current = "preview";
+    syncScroll("preview-to-editor");
+  }, [syncScroll]);
+
+  const handlePreviewLayoutChange = useCallback(() => {
+    if (layoutRafId.current) cancelAnimationFrame(layoutRafId.current);
+
+    const syncLatestLayout = () => {
+      if (isSyncing.current) {
+        layoutRafId.current = requestAnimationFrame(syncLatestLayout);
+        return;
+      }
+
+      layoutRafId.current = null;
+      syncScroll(
+        lastUserPane.current === "preview"
+          ? "preview-to-editor"
+          : "editor-to-preview",
+      );
+    };
+
+    layoutRafId.current = requestAnimationFrame(syncLatestLayout);
+  }, [syncScroll]);
 
   // --- Cleanup ------------------------------------------------------------
 
   useEffect(() => {
     return () => {
       if (rafId.current) cancelAnimationFrame(rafId.current);
+      if (layoutRafId.current) cancelAnimationFrame(layoutRafId.current);
     };
   }, []);
 
   // --- Render -------------------------------------------------------------
 
   const description = asStaticDescription(field?.admin?.description);
-  // `useField<string>` is a type assertion — at runtime `value` can be null
-  // (we call `setValue(null)` on empty input to match beforeValidate semantics).
-  // `|| ""` is the runtime fallback, not dead code.
-  const content = value || "";
 
   return (
     <div className="mpf-wrapper field-type">
@@ -177,23 +348,44 @@ export const MarkdownPreviewField: TextareaFieldClientComponent = ({
       <div className={`mpf-panes${showError ? " mpf-panes--error" : ""}`}>
         <div className="mpf-pane mpf-pane--edit">
           <div className="mpf-pane-header">编辑</div>
-          <textarea
-            ref={textareaRef}
-            id={`field-${path.replace(/\./g, "__")}`}
-            className="mpf-textarea"
-            value={content}
-            disabled={readOnly}
-            onChange={handleChange}
-            onScroll={handleTextareaScroll}
-            placeholder="在此输入 Markdown…"
-            spellCheck={false}
-          />
+          <div className="mpf-editor-surface">
+            <textarea
+              ref={textareaRef}
+              id={`field-${path.replace(/\./g, "__")}`}
+              className="mpf-textarea"
+              value={content}
+              disabled={readOnly}
+              onChange={handleChange}
+              onScroll={handleTextareaScroll}
+              placeholder="在此输入 Markdown…"
+              spellCheck={false}
+            />
+            <div ref={sourceMapRef} className="mpf-source-map" aria-hidden>
+              {sourceLines.map(({ line, lineStart, hasNewline }) => (
+                <React.Fragment key={lineStart}>
+                  <span data-source-offset={lineStart} />
+                  {line}
+                  {hasNewline ? "\n" : null}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
         </div>
         <div className="mpf-pane mpf-pane--preview">
           <div className="mpf-pane-header">预览</div>
-          <div ref={previewRef} className="mpf-preview">
+          <div
+            ref={previewRef}
+            className="mpf-preview"
+            onScroll={handlePreviewScroll}
+            onLoadCapture={handlePreviewLayoutChange}
+          >
             {content.trim() ? (
-              <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
+              <Markdown
+                remarkPlugins={[remarkGfm]}
+                components={markdownComponents}
+              >
+                {content}
+              </Markdown>
             ) : (
               <div className="mpf-preview-empty">（无内容预览）</div>
             )}
@@ -201,11 +393,7 @@ export const MarkdownPreviewField: TextareaFieldClientComponent = ({
         </div>
       </div>
 
-      <FieldError
-        path={path}
-        message={errorMessage}
-        showError={showError}
-      />
+      <FieldError path={path} message={errorMessage} showError={showError} />
     </div>
   );
 };
