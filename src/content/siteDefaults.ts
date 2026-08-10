@@ -26,6 +26,7 @@ export const siteDefaults = {
   identity: {
     name: "Jinkun Wang",
     nameShort: "Jinkun",
+    email: "wangjinkun333@gmail.com",
     role: "数据工程师，正在学习 AI 评测与 Agent 系统。",
     bio: "记录从数据工程出发，学习 AI 评测、Agent 工程与可靠系统构建的过程。",
   },
@@ -92,7 +93,7 @@ export const siteDefaults = {
       period: "持续迭代",
       description:
         "围绕 Agent 的上下文、记忆、工具与评测搭建实验场，用小步迭代理解可靠 AI 系统的工程边界。",
-      href: "/blog",
+      href: "https://github.com/yaoziyaoguai/mindforge",
       tags: [{ tag: "Agent" }, { tag: "Evaluation" }, { tag: "Harness" }],
       highlights: [
         { text: "用真实实验记录设计取舍和失败原因" },
@@ -116,7 +117,7 @@ export const siteDefaults = {
     },
   ] satisfies ProjectSummary[],
   contact: {
-    introText: "如果你也在学习数据、AI 评测或 Agent 工程，欢迎从 GitHub 找到我。",
+    introText: "如果你也在学习数据、AI 评测或 Agent 工程，欢迎通过邮箱或 GitHub 联系我。",
     methods: [
       {
         title: "GitHub",

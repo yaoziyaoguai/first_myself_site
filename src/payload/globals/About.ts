@@ -2,8 +2,10 @@ import type { GlobalConfig } from "payload";
 
 const About: GlobalConfig = {
   slug: "about",
+  label: "关于页面",
   admin: {
     description: "关于页面内容配置",
+    group: "页面内容",
   },
   fields: [
     {

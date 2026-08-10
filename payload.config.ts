@@ -8,6 +8,8 @@ import Home from "./src/payload/globals/Home";
 import SiteSettings from "./src/payload/globals/SiteSettings";
 import About from "./src/payload/globals/About";
 import Contact from "./src/payload/globals/Contact";
+import { backfillConfigurableContent } from "./src/payload/migrations/backfillConfigurableContent";
+import { migrations as prodMigrations } from "./src/payload/migrations";
 
 // Collections
 import Users from "./src/payload/collections/Users";
@@ -34,6 +36,13 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URL!,
     },
+    prodMigrations,
   }),
   secret: process.env.PAYLOAD_SECRET!,
+  onInit: async (payload) => {
+    const changed = await backfillConfigurableContent(payload);
+    if (changed) {
+      payload.logger.info("Configurable site content initialized");
+    }
+  },
 });
