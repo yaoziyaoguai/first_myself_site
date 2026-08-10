@@ -106,7 +106,7 @@ NEXT_PUBLIC_SERVER_URL=https://wangjinkun333.me
 1. Pull Request 运行 clean install、ESLint、TypeScript、Vitest、high audit 和 production build。
 2. PR 审阅通过并合并到 `main`。
 3. `main` push 通过 SSH 进入阿里云服务器。
-4. 服务器对 `main` 做 fast-forward 更新，保留当前镜像作为 rollback，再构建新镜像并执行 Compose replacement。
+4. 服务器对 `main` 做 fast-forward 更新，保留当前镜像作为 rollback，再构建新镜像；部署脚本会确保 Nginx 接受 21 MiB 请求并为 Payload 的 20 MiB 媒体上限预留 multipart 开销。
 5. 工作流在 120 秒内轮询 `http://127.0.0.1:3000/api/health`，随后验证公网 HTTPS；任一步失败时自动恢复上一镜像并再次检查健康状态。
 
 GitHub 仓库需要配置以下 Actions secrets：
@@ -115,6 +115,8 @@ GitHub 仓库需要配置以下 Actions secrets：
 - `SERVER_USER`
 - `SSH_PRIVATE_KEY`
 - `PROJECT_PATH`：服务器上的仓库绝对路径
+
+`SERVER_USER` 需要能通过非交互 `sudo` 执行 Nginx 配置校验与 reload；如果现有 HTTPS 链路已经通过 21 MiB 探测，后续部署不会执行这些特权操作。
 
 不要在服务器上直接修改应用文件。生产代码变更应始终经过 PR、CI、`main` 和部署工作流。
 
