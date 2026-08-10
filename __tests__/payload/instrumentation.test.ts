@@ -1,17 +1,20 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { getPayload, pushDevSchema } = vi.hoisted(() => ({
+const { getPayload, payloadConfig, pushDevSchema } = vi.hoisted(() => ({
   getPayload: vi.fn(),
+  payloadConfig: {},
   pushDevSchema: vi.fn(),
 }));
 
-vi.mock("payload", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("payload")>()),
+vi.mock("../../payload.config", () => ({
+  default: payloadConfig,
+}));
+
+vi.mock("payload", () => ({
   getPayload,
 }));
 
-vi.mock("@payloadcms/drizzle", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@payloadcms/drizzle")>()),
+vi.mock("@payloadcms/drizzle", () => ({
   pushDevSchema,
 }));
 
@@ -34,6 +37,7 @@ describe("Payload instrumentation schema initialization", () => {
     await register();
 
     expect(getPayload).toHaveBeenCalledOnce();
+    expect(getPayload).toHaveBeenCalledWith({ config: payloadConfig });
     expect(pushDevSchema).not.toHaveBeenCalled();
   });
 
