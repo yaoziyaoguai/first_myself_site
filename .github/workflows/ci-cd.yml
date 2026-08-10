@@ -133,8 +133,8 @@ jobs:
             git pull --ff-only origin main
             # 先 build（旧容器仍在运行，用户无感知）
             "${compose[@]}" build app
-            # Payload 媒体允许 20 MiB；配置后用 21 MiB 本机 HTTPS 请求确认实际链路不再返回 413。
-            bash scripts/configure-nginx-upload-limit.sh
+            # 发布工具会把大图优化到 400 KiB 以下；切换前确认线上实际媒体路径可接收该请求。
+            bash scripts/verify-nginx-media-upload.sh
             # 切换前备份当前数据库与媒体；备份失败时 set -e 会终止部署。
             PROJECT_DIR="$PWD" \
               BACKUP_DIR="$(dirname "$PWD")/backups/first_myself_site" \
