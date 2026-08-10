@@ -8,6 +8,11 @@ const workflow = readFileSync(
 );
 
 describe("production migration deployment", () => {
+  it("serializes production deployments on the shared server", () => {
+    expect(workflow).toContain("group: production-deploy");
+    expect(workflow).toContain("cancel-in-progress: false");
+  });
+
   it("backs up, removes only the legacy dev marker, then replaces the app", () => {
     const buildIndex = workflow.indexOf('"${compose[@]}" build app');
     const backupIndex = workflow.indexOf("./scripts/backup.sh", buildIndex);
