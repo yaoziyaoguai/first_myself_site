@@ -12,8 +12,10 @@ import { defaultJSXConverters } from "@payloadcms/richtext-lexical/react";
 import { CommentSection } from "@/components/CommentSection";
 import { LikeButton } from "@/components/LikeButton";
 import { MarkdownArticle } from "@/components/MarkdownArticle";
+import { BlogAgent } from "@/components/blog-agent/BlogAgent";
 import { ShareActions } from "@/components/ShareActions";
 import { SITE_URL, siteDefaults } from "@/content/siteDefaults";
+import { readBlogAgentConfig } from "@/lib/blog-agent/config";
 
 export const dynamic = "force-dynamic";
 
@@ -111,6 +113,18 @@ export default async function BlogPostPage({ params }: PageProps) {
     ? new Date(post.publishedDate).toISOString().split("T")[0]
     : "";
   const showPublicInteractions = canUsePublicInteractions(post.visibility);
+  const markdownContent =
+    typeof post.contentMarkdown === "string"
+      ? post.contentMarkdown.trim()
+      : "";
+  const agentConfig = readBlogAgentConfig();
+  const showBlogAgent = Boolean(
+    showPublicInteractions &&
+    markdownContent &&
+    agentConfig.enabled &&
+    agentConfig.generationEnabled &&
+    agentConfig.generationConfigured,
+  );
 
   return (
     <div className="site-shell page-space">
@@ -163,21 +177,12 @@ export default async function BlogPostPage({ params }: PageProps) {
 
         {/* 文章内容渲染 - 优先使用 Markdown，回退到 RichText */}
         <div className="prose prose-neutral max-w-none">
-          {(() => {
-            const markdownContent =
-              typeof post.contentMarkdown === "string"
-                ? post.contentMarkdown.trim()
-                : "";
-
-            if (markdownContent) {
-              return <MarkdownArticle markdown={markdownContent} />;
-            }
-
-            return (
-              /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-              <RichText data={post.content as any} converters={defaultJSXConverters} />
-            );
-          })()}
+          {markdownContent ? (
+            <MarkdownArticle markdown={markdownContent} />
+          ) : (
+            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+            <RichText data={post.content as any} converters={defaultJSXConverters} />
+          )}
         </div>
 
         <div className="h-px bg-border my-12" />
@@ -206,6 +211,12 @@ export default async function BlogPostPage({ params }: PageProps) {
           </div>
         </div>
       </article>
+      {showBlogAgent && (
+        <BlogAgent
+          articleSlug={String(post.slug)}
+          articleTitle={String(post.title)}
+        />
+      )}
     </div>
   );
 }
