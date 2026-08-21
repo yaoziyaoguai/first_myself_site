@@ -1,3 +1,6 @@
+import { fromMarkdown } from "mdast-util-from-markdown";
+import { toString } from "mdast-util-to-string";
+
 export type ArticleSection = {
   id: string;
   heading: string;
@@ -28,6 +31,7 @@ const DEFAULT_MAX_SECTIONS = 5;
 
 function normalizeHeading(heading: string): string {
   return heading
+    .normalize("NFKC")
     .trim()
     .toLocaleLowerCase()
     .replace(/[`*_~[\](){}<>]/g, "")
@@ -49,27 +53,21 @@ function sectionId(ordinal: number, anchor: string): string {
   return `section:${ordinal}:${anchor}`;
 }
 
-function hasContent(lines: string[]): boolean {
-  return lines.some((line) => line.trim().length > 0);
-}
-
 export function parseArticleMarkdown(markdown: string): ParsedArticleMarkdown {
-  const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
+  const source = markdown.replace(/\r\n?/g, "\n");
+  const tree = fromMarkdown(source);
   const sections: ArticleSection[] = [];
   const headingPath: string[] = [];
   const anchorCounts = new Map<string, number>();
   let currentHeading = "文章开头";
   let currentPath: string[] = [];
   let currentAnchor = "top";
-  let currentLines: string[] = [];
+  let contentStart = 0;
   let hasRealHeading = false;
-  let fence: { character: "`" | "~"; length: number } | null = null;
 
-  const flush = () => {
-    if (!hasContent(currentLines)) {
-      currentLines = [];
-      return;
-    }
+  const flush = (contentEnd: number) => {
+    const content = source.slice(contentStart, contentEnd).trim();
+    if (!content) return;
     const ordinal = sections.length;
     sections.push({
       id: sectionId(ordinal, currentAnchor),
@@ -77,37 +75,23 @@ export function parseArticleMarkdown(markdown: string): ParsedArticleMarkdown {
       headingPath: [...currentPath],
       anchor: currentAnchor,
       ordinal,
-      content: currentLines.join("\n").trim(),
+      content,
     });
-    currentLines = [];
   };
 
-  for (const line of lines) {
-    const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})/);
-    if (fenceMatch) {
-      const marker = fenceMatch[1];
-      const character = marker[0] as "`" | "~";
-      if (!fence) {
-        fence = { character, length: marker.length };
-      } else if (fence.character === character && marker.length >= fence.length) {
-        fence = null;
-      }
-      currentLines.push(line);
-      continue;
-    }
+  for (const node of tree.children) {
+    if (node.type !== "heading") continue;
+    const headingStart = node.position?.start.offset;
+    const headingEnd = node.position?.end.offset;
+    if (headingStart === undefined || headingEnd === undefined) continue;
 
-    const headingMatch = !fence
-      ? line.match(/^ {0,3}(#{1,6})[\t ]+(.+?)[\t ]*#*[\t ]*$/)
-      : null;
-    if (!headingMatch) {
-      currentLines.push(line);
-      continue;
-    }
-
-    flush();
+    flush(headingStart);
     hasRealHeading = true;
-    const level = headingMatch[1].length;
-    const heading = headingMatch[2].trim();
+    const level = node.depth;
+    const heading = toString(node, {
+      includeHtml: false,
+      includeImageAlt: false,
+    }).trim();
     headingPath.length = level - 1;
     headingPath[level - 1] = heading;
     currentHeading = heading;
@@ -116,9 +100,10 @@ export function parseArticleMarkdown(markdown: string): ParsedArticleMarkdown {
     const occurrence = (anchorCounts.get(baseAnchor) ?? 0) + 1;
     anchorCounts.set(baseAnchor, occurrence);
     currentAnchor = slugifyArticleHeading(heading, occurrence);
+    contentStart = headingEnd;
   }
 
-  flush();
+  flush(source.length);
 
   if (!hasRealHeading && sections.length === 1) {
     sections[0] = {
@@ -134,7 +119,7 @@ export function parseArticleMarkdown(markdown: string): ParsedArticleMarkdown {
 }
 
 function queryTerms(value: string): string[] {
-  const normalized = value.toLocaleLowerCase();
+  const normalized = value.normalize("NFKC").toLocaleLowerCase();
   const terms = new Set(
     normalized.match(/[a-z0-9][a-z0-9_.:+/-]*/g) ?? [],
   );
@@ -148,8 +133,8 @@ function queryTerms(value: string): string[] {
 }
 
 function relevance(section: ArticleSection, terms: string[]): number {
-  const heading = section.heading.toLocaleLowerCase();
-  const content = section.content.toLocaleLowerCase();
+  const heading = section.heading.normalize("NFKC").toLocaleLowerCase();
+  const content = section.content.normalize("NFKC").toLocaleLowerCase();
   return terms.reduce((score, term) => {
     const headingScore = heading.includes(term) ? 4 : 0;
     const contentScore = content.includes(term) ? 1 : 0;
@@ -172,18 +157,81 @@ function withinBudget(
   sections: ArticleSection[],
   maximumCharacters: number,
 ): ArticleSection[] {
-  const selected: ArticleSection[] = [];
+  const total = sections.reduce(
+    (sum, section) => sum + section.content.length,
+    0,
+  );
+  if (total <= maximumCharacters) return sections;
+
+  const allocations = sections.map(() => 0);
+  let active = sections.map((_, index) => index);
   let remaining = maximumCharacters;
-  for (const [index, section] of sections.entries()) {
-    if (remaining <= 0) break;
-    const remainingSections = sections.length - index;
-    const fairShare = Math.max(1, Math.floor(remaining / remainingSections));
-    const content = truncateAtParagraph(section.content, fairShare);
-    if (!content) continue;
-    selected.push({ ...section, content });
-    remaining -= content.length;
+  while (remaining > 0 && active.length > 0) {
+    const fairShare = Math.floor(remaining / active.length);
+    const fitting = active.filter(
+      (index) => sections[index].content.length <= fairShare,
+    );
+    if (fitting.length > 0) {
+      const fittingSet = new Set(fitting);
+      for (const index of fitting) {
+        allocations[index] = sections[index].content.length;
+        remaining -= allocations[index];
+      }
+      active = active.filter((index) => !fittingSet.has(index));
+      continue;
+    }
+
+    const remainder = remaining % active.length;
+    for (const [offset, index] of active.entries()) {
+      allocations[index] = fairShare + (offset < remainder ? 1 : 0);
+    }
+    remaining = 0;
   }
-  return selected;
+
+  return sections.flatMap((section, index) => {
+    const content = truncateAtParagraph(section.content, allocations[index]);
+    return content ? [{ ...section, content }] : [];
+  });
+}
+
+function selectRelevantSections(
+  sections: ArticleSection[],
+  terms: string[],
+  maximumSections: number,
+): ArticleSection[] {
+  const ranked = sections
+    .map((section) => ({ section, score: relevance(section, terms) }))
+    .sort(
+      (left, right) =>
+        right.score - left.score || left.section.ordinal - right.section.ordinal,
+    );
+  const matching = ranked.filter(({ score }) => score > 0);
+  if (matching.length === 0) return sections.slice(0, maximumSections);
+
+  const selected = new Set<number>();
+  for (const { section } of matching) {
+    if (selected.size >= maximumSections) break;
+    selected.add(section.ordinal);
+  }
+  for (let distance = 1; selected.size < maximumSections; distance += 1) {
+    let added = false;
+    for (const { section } of matching) {
+      for (const ordinal of [section.ordinal - distance, section.ordinal + distance]) {
+        if (ordinal < 0 || ordinal >= sections.length || selected.has(ordinal)) {
+          continue;
+        }
+        selected.add(ordinal);
+        added = true;
+        if (selected.size >= maximumSections) break;
+      }
+      if (selected.size >= maximumSections) break;
+    }
+    if (!added && distance >= sections.length) break;
+  }
+
+  return [...selected]
+    .sort((left, right) => left - right)
+    .map((ordinal) => sections[ordinal]);
 }
 
 export function buildArticleEvidence(input: {
@@ -231,14 +279,11 @@ export function buildArticleEvidence(input: {
     candidates = parsed.sections;
   } else {
     const terms = queryTerms(input.question);
-    candidates = [...parsed.sections]
-      .sort(
-        (left, right) =>
-          relevance(right, terms) - relevance(left, terms) ||
-          left.ordinal - right.ordinal,
-      )
-      .slice(0, maximumSections)
-      .sort((left, right) => left.ordinal - right.ordinal);
+    candidates = selectRelevantSections(
+      parsed.sections,
+      terms,
+      maximumSections,
+    );
   }
 
   const sections = withinBudget(candidates, maximumCharacters);

@@ -128,7 +128,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   return (
     <div className="site-shell page-space">
-      <article className="mx-auto max-w-[46rem]">
+      <article id="blog-article-top" className="mx-auto max-w-[46rem]">
         <Link
           href="/blog"
           className="text-link mb-10"

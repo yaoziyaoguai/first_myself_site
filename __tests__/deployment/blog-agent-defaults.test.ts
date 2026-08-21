@@ -39,4 +39,19 @@ describe("Blog Agent production defaults", () => {
     );
     expect(dockerfile).not.toMatch(/COPY .*blog-agent-canary.*public/);
   });
+
+  it("runs real PostgreSQL 15 Blog Agent integration gates in CI", () => {
+    const workflow = source(".github/workflows/ci-cd.yml");
+    expect(workflow).toContain("image: postgres:15-alpine");
+    expect(workflow).toContain("BLOG_AGENT_TEST_DATABASE_URL:");
+    expect(workflow).toContain(
+      "__tests__/payload/blog-agent-migration.postgres.test.ts",
+    );
+    expect(workflow).toContain(
+      "__tests__/lib/blog-agent/runtime.postgres.test.ts",
+    );
+    expect(workflow).toContain(
+      "__tests__/scripts/blog-agent-canary.postgres.test.ts",
+    );
+  });
 });

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { BLOG_AGENT_SYSTEM_PROMPT } from "./answer";
 import { readBlogAgentConfig, type BlogAgentConfig } from "./config";
 import { getBlogAgentDatabasePool } from "./database";
 import { OpenAICompatibleBlogAgentClient } from "./modelClient";
@@ -20,9 +21,12 @@ function runtimeSignature(config: BlogAgentConfig): string {
   })).digest("hex");
 }
 
-function modelCacheKey(config: BlogAgentConfig): string {
+export function createModelCacheKey(
+  config: Pick<BlogAgentConfig, "baseUrl" | "model">,
+  systemPrompt = BLOG_AGENT_SYSTEM_PROMPT,
+): string {
   return createHash("sha256")
-    .update(`${config.baseUrl}\0${config.model}\0blog-agent-prompt-v1`)
+    .update(`${config.baseUrl}\0${config.model}\0${systemPrompt}`)
     .digest("hex");
 }
 
@@ -58,7 +62,7 @@ export function getBlogAgentRuntime(): BlogAgentRuntime {
       repository,
       usagePolicy,
       client,
-      modelCacheKey: modelCacheKey(config),
+      modelCacheKey: createModelCacheKey(config),
       cacheTtlMs: config.cacheTtlMs,
     }),
   };

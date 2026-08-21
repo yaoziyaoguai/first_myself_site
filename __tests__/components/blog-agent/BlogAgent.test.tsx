@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BlogAgent } from "@/components/blog-agent/BlogAgent";
@@ -116,6 +116,43 @@ describe("BlogAgent", () => {
     expect(screen.queryByText("过期回答")).not.toBeInTheDocument();
   });
 
+  it("ignores a response body that finishes parsing after close", async () => {
+    let resolveBody: ((body: unknown) => void) | undefined;
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => new Promise((resolve) => {
+        resolveBody = resolve;
+      }),
+    } as Response);
+    renderAgent();
+    const user = await openAgent();
+    await user.click(screen.getByRole("button", { name: "核心实现是什么？" }));
+    await waitFor(() => expect(resolveBody).toBeDefined());
+    await user.click(screen.getByRole("button", { name: "关闭文章 Agent" }));
+
+    await act(async () => resolveBody?.(answerBody));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.queryByText("批量写入可以减少小批次开销。")).not.toBeInTheDocument();
+  });
+
+  it("aborts a pending request when the Agent unmounts", async () => {
+    let signal: AbortSignal | undefined;
+    vi.mocked(fetch).mockImplementation((_url, options) => {
+      signal = options?.signal ?? undefined;
+      return new Promise(() => undefined);
+    });
+    const view = renderAgent();
+    const user = await openAgent();
+    await user.click(screen.getByRole("button", { name: "核心实现是什么？" }));
+    await waitFor(() => expect(signal).toBeDefined());
+
+    view.unmount();
+
+    expect(signal?.aborted).toBe(true);
+  });
+
   it("closes on Escape and restores focus to the robot", async () => {
     renderAgent();
     await openAgent();
@@ -140,6 +177,30 @@ describe("BlogAgent", () => {
     expect(heading.scrollIntoView).toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     heading.remove();
+  });
+
+  it("closes and scrolls to the article top for a top-section citation", async () => {
+    const articleTop = document.createElement("article");
+    articleTop.id = "blog-article-top";
+    articleTop.scrollIntoView = vi.fn();
+    document.body.appendChild(articleTop);
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({
+      ...answerBody,
+      citationIds: ["section:0:top"],
+      citations: [{
+        id: "section:0:top",
+        heading: "文章开头",
+        url: "/blog/doris-write-path",
+      }],
+    }));
+    renderAgent();
+    const user = await openAgent();
+    await user.click(screen.getByRole("button", { name: "核心实现是什么？" }));
+    await user.click(await screen.findByRole("button", { name: "查看引用：文章开头" }));
+
+    expect(articleTop.scrollIntoView).toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    articleTop.remove();
   });
 
   it.each([

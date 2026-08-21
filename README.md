@@ -9,6 +9,7 @@
 - CMS 优先的首页、关于、项目、文章和联系页面；CMS 内容为空时使用仓库内经过审阅的默认内容
 - Payload Admin 内容管理、Markdown 预览和 admin/editor/viewer 权限
 - 文章可见性、评论、回复和点赞
+- 默认关闭的单文章 Blog Agent：访客可在文章页提问并跳转到原文引用
 - robots、sitemap、RSS、canonical metadata 和数据库就绪检查
 - GitHub Actions 检查、Docker Compose 部署和阿里云生产健康验证
 
@@ -67,6 +68,14 @@ npm run build
 - `viewer`：不能进入 Payload Admin
 
 评论和点赞的匿名标识由服务端生成。浏览器不会获取原始 IP，也不能提交可信身份字段。Payload collection 的匿名直读直写被关闭，公开接口只返回页面需要的字段。
+
+## 单文章 Blog Agent
+
+Blog Agent 第一阶段以一篇 Blog 为唯一数据与安全边界。机器人只出现在 `published + public` 且包含 Markdown 的文章页；服务端根据 URL slug 重新读取当前文章，请求体只能包含一个 1～500 字符的问题。模型只能获得当前文章中按问题选出的片段，不读取其他 Blog、草稿、私密文章、附件、本地 Codex 或外部工具。
+
+运行时使用 PostgreSQL 保存匿名 hash 用量、生成事件和答案缓存，不保存原始 IP、原始问题或 Markdown。模型 API Key 仅存在于服务端环境变量，入口与生成使用两个默认关闭的开关，并有持久化配额、并发限制、超时、缓存和紧急关闭能力。
+
+本地与 CI 测试见 [TESTING_GUIDE.md](TESTING_GUIDE.md)，DeepSeek-compatible Key、Nginx 限流、只读 canary、开放顺序和应急关闭见 [docs/blog-agent-operations.md](docs/blog-agent-operations.md)。
 
 ## 生产架构
 

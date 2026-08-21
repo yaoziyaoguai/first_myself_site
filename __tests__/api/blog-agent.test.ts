@@ -13,10 +13,14 @@ import { getBlogAgentRuntime } from "@/lib/blog-agent/runtime";
 const execute = vi.fn();
 const find = vi.fn();
 
-function request(body: unknown, raw = false): Request {
+function request(
+  body: unknown,
+  raw = false,
+  headers: Record<string, string> = {},
+): Request {
   return new Request("https://example.com/api/blog/doris-write-path/agent", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...headers },
     body: raw ? String(body) : JSON.stringify(body),
   });
 }
@@ -134,7 +138,21 @@ describe("POST /api/blog/[slug]/agent", () => {
     expect(find).not.toHaveBeenCalled();
   });
 
-  it.each(["", "x".repeat(129), "%E0%A4%A"])(
+  it.each([
+    [{ "content-type": "text/plain" }, 415],
+    [{ "sec-fetch-site": "cross-site" }, 403],
+  ])("rejects a cross-site simple POST before content lookup %#", async (headers, status) => {
+    const response = await POST(
+      request({ question: "问题" }, false, headers) as never,
+      context(),
+    );
+
+    expect(response.status).toBe(status);
+    expect(find).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it.each(["", "x".repeat(129), "%E0%A4%A", "other%2Fpost", "other%5Cpost"])(
     "rejects an invalid path slug %#",
     async (slug) => {
       const response = await POST(request({ question: "问题" }) as never, context(slug));

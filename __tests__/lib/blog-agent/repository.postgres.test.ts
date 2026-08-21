@@ -51,6 +51,10 @@ describe("PostgresBlogAgentRepository", () => {
     const statements = database.query.mock.calls.map(([text]) => text).join("\n");
     expect(statements).toContain("BEGIN");
     expect(statements).toContain("pg_advisory_xact_lock");
+    expect(database.query).toHaveBeenCalledWith(
+      "SELECT pg_advisory_xact_lock(hashtext($1))",
+      ["blog-agent-generation"],
+    );
     expect(statements).toContain("window_count");
     expect(statements).toContain("identity_daily_count");
     expect(statements).toContain("global_daily_count");
@@ -162,7 +166,9 @@ describe("PostgresBlogAgentRepository", () => {
       expiresAt: new Date("2026-08-22T12:00:00.000Z"),
     });
 
-    const [, params] = database.query.mock.calls[0];
+    const [statement, params] = database.query.mock.calls[0];
+    expect(statement).toContain('DELETE FROM "blog_agent"."answer_cache"');
+    expect(statement).toContain("LIMIT 100");
     expect(params).toEqual([
       "article-hash",
       "model-hash",

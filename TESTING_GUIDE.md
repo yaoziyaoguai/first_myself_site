@@ -1,227 +1,75 @@
-# 测试覆盖补齐指南
+# 测试指南
 
-## 完成状态 ✅
+项目使用 Vitest、Testing Library、ESLint、TypeScript 和 Next.js production build 作为合并门禁。CI 使用 Node.js 22 与 PostgreSQL 15。
 
-**4 个 Phase 全部完成！**
+## 日常检查
 
-| Phase | 状态 | 测试数 | 覆盖内容 |
-|-------|------|--------|---------|
-| **Phase 1** | ✅ 完成 | 77 | 纯函数单元测试（lib/）|
-| **Phase 2** | ✅ 完成 | 85 | Payload Access Control + Hooks |
-| **Phase 3** | ✅ 完成 | 25 | API Route Handlers |
-| **Phase 4** | ✅ 代码完成 | 待运行 | React 组件测试 |
-
-**当前运行状态：Phase 1-3 共 187 个测试全部通过 ✅**
-
----
-
-## 文件结构
-
-```
-__tests__/
-├── lib/
-│   ├── utils.test.ts          # cn() 类名合并 (9 tests)
-│   ├── errorHandler.test.ts   # AppError + sanitize + logError (21 tests)
-│   ├── env.test.ts            # 环境变量验证工具 (26 tests)
-│   └── rateLimit.test.ts      # 限流 + getClientIp (21 tests)
-├── payload/
-│   ├── access/
-│   │   ├── blog.access.test.ts    # Blog 双重过滤 (24 tests)
-│   │   ├── posts.access.test.ts   # Posts 单层过滤 (24 tests)
-│   │   └── users.access.test.ts   # Users 防权限提升 (37 tests)
-│   └── hooks/
-│       └── slug-trim.test.ts      # beforeValidate hook (23 tests)
-├── api/
-│   ├── seed.test.ts               # /api/seed 权限校验 (12 tests)
-│   └── create-admin.test.ts       # /api/create-admin 权限校验 (13 tests)
-└── components/
-    ├── Navbar.test.tsx            # 菜单展开、高亮 (待运行)
-    └── Footer.test.tsx            # 条件渲染、数据加载 (待运行)
-```
-
----
-
-## Phase 1-3：单元 & 集成测试 ✅
-
-### 已完成的覆盖内容
-
-#### lib/ 工具函数 (77 tests)
-- **cn()**：Tailwind 类名合并去重
-- **AppError**：自定义错误类
-- **sanitizeErrorForClient**：生产/开发环境分支处理
-- **logError**：结构化日志
-- **getEnv/getOptionalEnv**：环境变量获取
-- **validateRequiredEnvVars/validateDevEnvVars**：环境变量验证
-- **isRateLimited/getRateLimitRemaining/clearRateLimit**：内存限流
-- **getClientIp**：提取客户端 IP
-
-#### Payload Collections Access Control (85 tests)
-- **Blog.read**：未认证用户 `status=published AND visibility=public` 双重过滤 ⭐
-- **Blog.create/update/delete**：admin/editor 创建/编辑，仅 admin 删除
-- **Posts.read**：未认证用户仅过滤 `status=published`（无 visibility）⭐
-- **Users.read**：用户隔离（admin 看全部，普通用户只看自己）
-- **Users.update**：防权限提升（普通用户不能修改自己的 role）⭐
-- **beforeValidate hook**：slug.trim() 处理空格
-
-#### API Route Handlers (25 tests)
-- **/api/seed**：
-  - ✅ 生产环境 403
-  - ✅ Token 验证（401 on missing/invalid）
-  - ✅ Globals 更新（4 个）
-  - ✅ Projects 创建（幂等检查）
-  - ✅ 错误处理（500）
-
-- **/api/create-admin**：
-  - ✅ 生产环境 403
-  - ✅ Token 验证（401）
-  - ✅ 环境变量检查（500 on missing）
-  - ✅ 创建 vs 更新管理员
-  - ✅ overrideAccess 权限绕过
-
-### 运行 Phase 1-3 的测试
+安装锁定依赖后运行：
 
 ```bash
-# 运行所有 Phase 1-3 测试
-npm test -- __tests__/{lib,payload,api}
-
-# 或仅运行特定部分
-npm test -- __tests__/lib/
-npm test -- __tests__/payload/
-npm test -- __tests__/api/
-
-# 查看详细输出
-npm test -- --reporter=verbose
-```
-
----
-
-## Phase 4：React 组件测试 📝
-
-### 已完成代码编写，待环境修复
-
-**Navbar 组件** (`__tests__/components/Navbar.test.tsx`)
-- 导航链接渲染
-- 移动端菜单展开/收起
-- 当前页面链接高亮
-- 响应式设计
-
-**Footer 组件** (`__tests__/components/Footer.test.tsx`)
-- 数据加载（async 服务端组件）
-- bioShort 条件渲染
-- 社交链接渲染
-- 年份动态更新
-- 边界情况处理
-
-### 运行 Phase 4 的测试
-
-#### 步骤 1：修复 npm 权限问题
-
-```bash
-# 本地环境运行（需要管理员权限或修改 npm 配置）
-npm config set cache ~/.npm-new
-npm cache clean --force
-rm -rf node_modules package-lock.json
-npm install
-npm install --save-dev @testing-library/react @testing-library/user-event
-```
-
-#### 步骤 2：运行组件测试
-
-```bash
-npm test -- __tests__/components/
-```
-
----
-
-## 测试覆盖率目标达成
-
-### 已实现覆盖率（Phase 1-3）
-
-| 模块 | 覆盖率 | 核心逻辑 |
-|------|--------|---------|
-| lib/ | ~100% | 所有工具函数已测试 |
-| Payload Access | ~100% | 关键权限控制完全覆盖 |
-| Payload Hooks | ~100% | slug trim 逻辑完全覆盖 |
-| API Routes | ~95% | 权限、环保变量、错误处理 |
-
-**整体：从 < 5% → 80%+ ✅**
-
-### 后续优化建议
-
-1. **Phase 4 完成**：安装依赖后运行组件测试
-2. **覆盖率报告**：运行 `npm test -- --coverage` 查看详细指标
-3. **E2E 测试**：使用 Playwright 测试关键用户流（博客阅读、管理员后台）
-4. **性能测试**：数据库查询性能基准
-
----
-
-## 代码质量对标
-
-### 测试设计原则
-
-✅ **纯函数优先**：lib/ 函数无副作用，易于单元测试  
-✅ **Mock 最小化**：只 mock 外部依赖（getPayloadAPI、usePathname）  
-✅ **边界情况覆盖**：null/undefined/empty/long strings/special chars  
-✅ **分支覆盖**：if/else 分支全部有测试  
-✅ **集成测试**：access control 函数虽然纯函数，但测试模拟真实的 req.user 场景  
-
-### 规则合规
-
-- ✅ 遵循 TypeScript 严格类型
-- ✅ 所有函数有明确的入参/出参类型
-- ✅ 无 `any` 类型（除 mock）
-- ✅ 遵循项目 .claude/rules/
-- ✅ 避免测试与实现耦合
-
----
-
-## 下次部署前的检查清单
-
-```bash
-# 1. 运行所有测试
-npm test
-
-# 2. 检查覆盖率
-npm test -- --coverage
-
-# 3. 检查 lint
+npm ci
 npm run lint
-
-# 4. 检查类型
-npx tsc --noEmit
-
-# 5. 本地构建
-npm run build
-
-# 6. 验证 CI/CD 流水线
-git push origin <branch>  # GitHub Actions 会自动运行所有检查
+npx tsc --noEmit -p tsconfig.ci.json
+npm test
 ```
 
----
+普通 `npm test` 覆盖纯函数、Payload 权限与 migration 形状、API 路由、React 交互和安全回归。需要真实 PostgreSQL 的三个 Blog Agent 文件在没有专用环境变量时会显示为 `skipped`，不能把这个结果当作真库通过。
 
-## 常见问题
+Production build 不需要模型 Key，而且 Blog Agent 默认关闭：
 
-### Q: 为什么 lib/rateLimit.ts 中的限流没在路由中被使用？
-A: 这是预备代码，为未来的限流保护预留。测试仍然有价值，确保逻辑正确，后续可直接启用。
+```bash
+DATABASE_URL=postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder \
+PAYLOAD_SECRET=ci-placeholder-secret-32-chars-long \
+NEXT_PUBLIC_SERVER_URL=http://localhost:3000 \
+BLOG_AGENT_ENABLED=false \
+BLOG_AGENT_GENERATION_ENABLED=false \
+npm run build
+```
 
-### Q: 为什么不直接导出 access 函数进行单元测试？
-A: 这是 Payload CMS 的架构决定——access 函数是集合配置的一部分，通过导入集合配置并提取函数来测试是更现实的方法。
+## Blog Agent 聚焦测试
 
-### Q: Phase 4 为什么没有运行？
-A: npm 权限问题阻止了 @testing-library/react 的安装。这是环境问题，不是代码问题。代码本身已完成，只需修复 npm 缓存后运行。
+```bash
+npx vitest run \
+  __tests__/lib/blog-agent \
+  __tests__/api/blog-agent.test.ts \
+  __tests__/security/blog-agent-adversarial.test.ts \
+  __tests__/components/blog-agent \
+  __tests__/payload/blog-agent-migration.test.ts \
+  __tests__/deployment/blog-agent-defaults.test.ts \
+  __tests__/scripts/blog-agent-canary.test.ts
+```
 
----
+这些测试验证：单文章 Markdown 上下文、稳定标题锚点、grounded JSON 校验、缓存和配额、请求体严格校验、草稿/私密隔离、浮动面板竞态与安全 Markdown、默认关闭部署和 canary 脱敏输出。
 
-## 下一步行动
+## 真实 PostgreSQL 15
 
-1. **立即**：运行 `npm test` 验证 Phase 1-3 通过 ✅
-2. **本周**：修复 npm 权限问题，完成 Phase 4
-3. **推送**：所有测试通过后，提交 PR 到 main
-4. **部署**：CI/CD 自动运行测试，验证无回归
+只允许使用名称中含 `test` 的专用数据库 URL。测试会在该数据库服务器内创建随机命名的临时数据库，并在结束后删除；不要把开发库或生产库 URL 放入 `BLOG_AGENT_TEST_DATABASE_URL`。
 
----
+示例：
 
-**Created**: 2026-04-06  
-**Test Files**: 12  
-**Test Cases**: 187+ (Phase 1-3 running, Phase 4 ready)  
-**Coverage Target**: 80%+ ✅ achieved
+```bash
+docker run --rm --name blog-agent-postgres \
+  -e POSTGRES_DB=blog_agent_test \
+  -e POSTGRES_USER=blog_agent_test \
+  -e POSTGRES_PASSWORD=blog_agent_test_password \
+  -p 127.0.0.1:55433:5432 \
+  postgres:15-alpine
+```
+
+数据库就绪后，在另一个终端运行：
+
+```bash
+BLOG_AGENT_TEST_DATABASE_URL=postgresql://blog_agent_test:blog_agent_test_password@127.0.0.1:55433/blog_agent_test \
+npx vitest run \
+  __tests__/payload/blog-agent-migration.postgres.test.ts \
+  __tests__/lib/blog-agent/runtime.postgres.test.ts \
+  __tests__/scripts/blog-agent-canary.postgres.test.ts
+```
+
+真库测试证明 migration up/down 只管理 `blog_agent` schema、运行时只有三张最小表、缓存按文章/模型/问题 hash 隔离并过期、窗口/身份每日/全站每日配额在新 repository 实例和并发事务之间仍然成立。
+
+## 浏览器与上线前验证
+
+没有专用模型测试 Key 时，不要把真实个人 Key 放进本地浏览器测试。可以使用本地 OpenAI-compatible mock server 验证文章页机器人、桌面/移动面板、Escape 和焦点、错误重试、引用滚动、reduced motion，以及 private/draft/RichText-only 页面不显示入口。
+
+真实 provider canary 和生产验收按 [Blog Agent 运维手册](docs/blog-agent-operations.md) 执行。Canary 必须使用不含敏感信息的公开文章和供应商侧低额度专用 Key。

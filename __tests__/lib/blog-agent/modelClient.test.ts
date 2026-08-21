@@ -57,4 +57,36 @@ describe("OpenAICompatibleBlogAgentClient", () => {
       client.complete({ system: "s", user: "u", maxOutputTokens: 10 }),
     ).rejects.not.toThrow("upstream-secret-debug-body");
   });
+
+  it("aborts a provider request at the configured timeout", async () => {
+    vi.useFakeTimers();
+    try {
+      let providerSignal: AbortSignal | undefined;
+      const fetcher = vi.fn<typeof fetch>().mockImplementation((_url, request) => {
+        providerSignal = request?.signal ?? undefined;
+        return new Promise((_resolve, reject) => {
+          providerSignal?.addEventListener("abort", () => {
+            reject(new DOMException("aborted", "AbortError"));
+          });
+        });
+      });
+      const client = new OpenAICompatibleBlogAgentClient({
+        baseUrl: "https://models.example/v1",
+        apiKey: "secret-key",
+        model: "model-a",
+        timeoutMs: 50,
+        fetcher,
+      });
+
+      const completion = client.complete({ system: "s", user: "u", maxOutputTokens: 10 });
+      const rejection = expect(completion).rejects.toMatchObject({ name: "AbortError" });
+      await vi.advanceTimersByTimeAsync(50);
+
+      await rejection;
+      expect(providerSignal?.aborted).toBe(true);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

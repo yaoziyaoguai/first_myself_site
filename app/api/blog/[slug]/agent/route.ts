@@ -20,6 +20,20 @@ function errorResponse(error: string, status: number) {
   return NextResponse.json({ error }, { status });
 }
 
+function requestBoundaryError(request: Request) {
+  const mediaType = request.headers.get("content-type")
+    ?.split(";", 1)[0]
+    .trim()
+    .toLocaleLowerCase();
+  if (mediaType !== "application/json") {
+    return errorResponse("Content-Type must be application/json", 415);
+  }
+  if (request.headers.get("sec-fetch-site") === "cross-site") {
+    return errorResponse("Cross-site request rejected", 403);
+  }
+  return null;
+}
+
 async function readLimitedJsonObject(request: Request): Promise<BodyResult> {
   const contentLength = Number(request.headers.get("content-length"));
   if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
@@ -62,7 +76,12 @@ async function readLimitedJsonObject(request: Request): Promise<BodyResult> {
 function decodeSlug(value: string): string | null {
   try {
     const decoded = decodeURIComponent(value).trim();
-    return decoded && decoded.length <= MAX_SLUG_LENGTH ? decoded : null;
+    return decoded &&
+      decoded.length <= MAX_SLUG_LENGTH &&
+      !decoded.includes("/") &&
+      !decoded.includes("\\")
+      ? decoded
+      : null;
   } catch {
     return null;
   }
@@ -123,6 +142,9 @@ export async function POST(request: Request, { params }: RouteContext) {
         { status: 503 },
       );
     }
+
+    const boundaryError = requestBoundaryError(request);
+    if (boundaryError) return boundaryError;
 
     const body = await readLimitedJsonObject(request);
     if (!body.ok) {

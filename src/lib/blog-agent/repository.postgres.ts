@@ -72,7 +72,7 @@ export class PostgresBlogAgentRepository implements BlogAgentRepository {
       await client.query("BEGIN");
       await client.query(
         "SELECT pg_advisory_xact_lock(hashtext($1))",
-        [`blog-agent-generation:${day}`],
+        ["blog-agent-generation"],
       );
       await client.query(
         'DELETE FROM "blog_agent"."generation_events" WHERE "created_at" < $1',
@@ -176,7 +176,17 @@ export class PostgresBlogAgentRepository implements BlogAgentRepository {
     const answer = parseCachedAnswer(request.answer);
     if (!answer) throw new Error("Cannot cache an invalid grounded answer");
     await this.pool.query(
-      `INSERT INTO "blog_agent"."answer_cache"
+      `WITH expired AS (
+         SELECT ctid
+           FROM "blog_agent"."answer_cache"
+          WHERE "expires_at" <= now()
+          ORDER BY "expires_at"
+          LIMIT 100
+       ), purged AS (
+         DELETE FROM "blog_agent"."answer_cache"
+          WHERE ctid IN (SELECT ctid FROM expired)
+       )
+       INSERT INTO "blog_agent"."answer_cache"
          ("article_hash", "model_cache_key", "question_hash", "response_json", "expires_at")
        VALUES ($1, $2, $3, $4::jsonb, $5)
        ON CONFLICT ("article_hash", "model_cache_key", "question_hash") DO UPDATE

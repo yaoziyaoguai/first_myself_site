@@ -21,4 +21,15 @@ describe("MarkdownArticle", () => {
     expect(screen.getAllByRole("heading")).toHaveLength(1);
     expect(screen.getByText("# 代码里的标题")).toBeInTheDocument();
   });
+
+  it("uses rendered inline text for Setext heading IDs", () => {
+    render(
+      <MarkdownArticle
+        markdown={"[API *网关*](https://example.com) &copy;\n===\n正文"}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "API 网关 ©" }))
+      .toHaveAttribute("id", "api-网关");
+  });
 });

@@ -76,12 +76,6 @@ COPY --from=builder /app/package.json ./package.json
 # 这些文件只存在于服务端文件系统，不复制到 public 或客户端静态资源。
 COPY --from=builder /app/scripts/blog-agent-canary.ts ./scripts/blog-agent-canary.ts
 COPY --from=builder /app/src/lib/blog-agent ./src/lib/blog-agent
-COPY --from=builder /app/src/lib/payload.ts ./src/lib/payload.ts
-COPY --from=builder /app/src/lib/env.ts ./src/lib/env.ts
-COPY --from=builder /app/src/lib/contentFallback.ts ./src/lib/contentFallback.ts
-COPY --from=builder /app/src/content ./src/content
-COPY --from=builder /app/src/payload ./src/payload
-COPY --from=builder /app/payload.config.ts ./payload.config.ts
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
 # 创建上传目录

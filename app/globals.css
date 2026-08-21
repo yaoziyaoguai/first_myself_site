@@ -517,13 +517,18 @@
   opacity: 0.45;
 }
 
-@media (min-width: 64rem) {
+@media (min-width: 80rem) {
   .blog-agent-panel {
     right: 1.25rem;
     bottom: 5.5rem;
     left: auto;
     width: min(23rem, calc(100vw - 2.5rem));
     max-height: min(76vh, 44rem);
+  }
+
+  .site-shell:has(.blog-agent-panel) > article {
+    transform: translateX(min(0px, calc(50vw - 48.75rem)));
+    transition: transform 180ms ease-out;
   }
 }
 

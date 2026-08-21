@@ -202,7 +202,9 @@ export function BlogAgent({
         dispatch({ type: "failed" });
         return;
       }
-      const parsed = parseResponse(await response.json(), articleSlug);
+      const body = await response.json();
+      if (sequence !== requestSequence.current) return;
+      const parsed = parseResponse(body, articleSlug);
       if (!parsed) {
         dispatch({ type: "failed" });
       } else if (parsed.insufficientEvidence) {
@@ -234,17 +236,21 @@ export function BlogAgent({
 
   const selectCitation = (url: string) => {
     const fragment = url.split("#", 2)[1];
-    if (!fragment) return;
-    let id: string;
-    try {
-      id = decodeURIComponent(fragment);
-    } catch {
-      return;
+    let target: HTMLElement | null;
+    if (!fragment) {
+      target = document.getElementById("blog-article-top");
+    } else {
+      let id: string;
+      try {
+        id = decodeURIComponent(fragment);
+      } catch {
+        return;
+      }
+      target = document.getElementById(id);
     }
-    const heading = document.getElementById(id);
-    if (!heading) return;
+    if (!target) return;
     const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    heading.scrollIntoView({
+    target.scrollIntoView({
       behavior: reducedMotion ? "auto" : "smooth",
       block: "start",
     });

@@ -6,6 +6,7 @@ import type { BlogAgentConfig } from "@/lib/blog-agent/config";
 import {
   executeBlogAgentCanary,
   parseCanaryArguments,
+  PostgresCanaryArticleStore,
   type BlogAgentCanaryDependencies,
 } from "../../scripts/blog-agent-canary";
 
@@ -30,8 +31,8 @@ function createDependencies(options?: {
   article?: Record<string, unknown>;
   client?: BlogAgentAnswerClient;
 }) {
-  const find = vi.fn().mockResolvedValue({
-    docs: [options?.article ?? {
+  const loadPublicMarkdownArticle = vi.fn().mockResolvedValue(
+    options?.article ?? {
       id: 7,
       slug: "doris-write-path",
       title: "Doris 写入实践",
@@ -39,8 +40,8 @@ function createDependencies(options?: {
       contentMarkdown: "# 写入路径\nPRIVATE_MARKDOWN_SENTINEL 使用 batch sink。",
       status: "published",
       visibility: "public",
-    }],
-  });
+    },
+  );
   const destroy = vi.fn().mockResolvedValue(undefined);
   const client = options?.client ?? {
     complete: vi.fn().mockResolvedValue({
@@ -57,16 +58,46 @@ function createDependencies(options?: {
   const stderr = vi.fn();
   const dependencies: BlogAgentCanaryDependencies = {
     readConfig: () => config,
-    getPayload: vi.fn().mockResolvedValue({ find, destroy }),
+    openArticleStore: vi.fn().mockResolvedValue({
+      loadPublicMarkdownArticle,
+      destroy,
+    }),
     createClient: () => client,
     createQueryId: () => "query-canary-1",
     stdout,
     stderr,
   };
-  return { dependencies, find, destroy, client, stdout, stderr };
+  return {
+    dependencies,
+    loadPublicMarkdownArticle,
+    destroy,
+    client,
+    stdout,
+    stderr,
+  };
 }
 
 describe("Blog Agent canary", () => {
+  it("uses a parameterized read-only query for the one public article", async () => {
+    const query = vi.fn().mockResolvedValue({ rows: [] });
+    const end = vi.fn().mockResolvedValue(undefined);
+    const store = new PostgresCanaryArticleStore({ query, end });
+
+    await expect(store.loadPublicMarkdownArticle("doris-write-path"))
+      .resolves.toBeNull();
+
+    const [statement, parameters] = query.mock.calls[0];
+    expect(statement).toContain('FROM "blog"');
+    expect(statement).toContain('"status" = \'published\'');
+    expect(statement).toContain('"visibility" = \'public\'');
+    expect(statement).toContain('"slug" = $1');
+    expect(statement).not.toMatch(/\b(?:INSERT|UPDATE|DELETE|ALTER|DROP)\b/i);
+    expect(parameters).toEqual(["doris-write-path"]);
+
+    await store.destroy();
+    expect(end).toHaveBeenCalledOnce();
+  });
+
   it("runs through the repository CommonJS-compatible tsx entrypoint", () => {
     const result = spawnSync(
       process.execPath,
@@ -101,27 +132,10 @@ describe("Blog Agent canary", () => {
     );
 
     expect(code).toBe(0);
-    expect(fixture.find).toHaveBeenCalledOnce();
-    expect(fixture.find).toHaveBeenCalledWith({
-      collection: "blog",
-      where: {
-        slug: { equals: "doris-write-path" },
-        status: { equals: "published" },
-        visibility: { equals: "public" },
-      },
-      depth: 0,
-      limit: 1,
-      overrideAccess: true,
-      select: {
-        id: true,
-        slug: true,
-        title: true,
-        excerpt: true,
-        contentMarkdown: true,
-        status: true,
-        visibility: true,
-      },
-    });
+    expect(fixture.loadPublicMarkdownArticle).toHaveBeenCalledOnce();
+    expect(fixture.loadPublicMarkdownArticle).toHaveBeenCalledWith(
+      "doris-write-path",
+    );
     expect(fixture.destroy).toHaveBeenCalledOnce();
     const output = fixture.stdout.mock.calls.flat().join("\n");
     expect(output).toContain('"queryId":"query-canary-1"');
