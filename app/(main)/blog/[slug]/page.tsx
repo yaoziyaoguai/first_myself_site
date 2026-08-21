@@ -9,10 +9,9 @@ import {
 } from "@/lib/blogVisibility";
 import { RichText } from "@payloadcms/richtext-lexical/react";
 import { defaultJSXConverters } from "@payloadcms/richtext-lexical/react";
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { CommentSection } from "@/components/CommentSection";
 import { LikeButton } from "@/components/LikeButton";
+import { MarkdownArticle } from "@/components/MarkdownArticle";
 import { ShareActions } from "@/components/ShareActions";
 import { SITE_URL, siteDefaults } from "@/content/siteDefaults";
 
@@ -171,11 +170,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                 : "";
 
             if (markdownContent) {
-              return (
-                <Markdown remarkPlugins={[remarkGfm]}>
-                  {markdownContent}
-                </Markdown>
-              );
+              return <MarkdownArticle markdown={markdownContent} />;
             }
 
             return (
