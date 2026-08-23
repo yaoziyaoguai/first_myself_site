@@ -55,7 +55,7 @@ export class GenerationUsagePolicy {
         now: reservationTime,
         inputTokens: result.usage.inputTokens,
         outputTokens: result.usage.outputTokens,
-      });
+      }).catch(() => undefined);
       return { allowed: true, value: result.value };
     } finally {
       const remaining = (this.activeByIdentity.get(identityHash) ?? 1) - 1;

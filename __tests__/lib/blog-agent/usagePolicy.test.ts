@@ -50,6 +50,19 @@ describe("GenerationUsagePolicy", () => {
     }));
   });
 
+  it("returns a paid answer when best-effort token accounting fails", async () => {
+    const repository = createRepository();
+    vi.mocked(repository.recordTokenUsage).mockRejectedValueOnce(
+      new Error("database unavailable"),
+    );
+    const policy = new GenerationUsagePolicy(repository, limits);
+
+    await expect(policy.run("identity-hash", async () => ({
+      value: "answer",
+      usage: { inputTokens: 12, outputTokens: 4 },
+    }))).resolves.toEqual({ allowed: true, value: "answer" });
+  });
+
   it("releases process-local concurrency exactly once after failure", async () => {
     const repository = createRepository();
     const policy = new GenerationUsagePolicy(repository, limits);

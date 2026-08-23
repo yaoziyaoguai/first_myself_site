@@ -131,3 +131,16 @@ export function readBlogAgentConfig(
     ),
   };
 }
+
+export function canShowBlogAgent(
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+): boolean {
+  try {
+    const config = readBlogAgentConfig(environment);
+    return config.enabled &&
+      config.generationEnabled &&
+      config.generationConfigured;
+  } catch {
+    return false;
+  }
+}

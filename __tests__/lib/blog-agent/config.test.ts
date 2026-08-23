@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { readBlogAgentConfig } from "@/lib/blog-agent/config";
+import {
+  canShowBlogAgent,
+  readBlogAgentConfig,
+} from "@/lib/blog-agent/config";
 
 describe("readBlogAgentConfig", () => {
   it("keeps the public Agent and generation disabled by default", () => {
@@ -54,6 +57,17 @@ describe("readBlogAgentConfig", () => {
     expect(() => readBlogAgentConfig({
       BLOG_AGENT_EMBEDDING_DIMENSIONS: "2048",
     })).toThrow("must be 1024");
+  });
+
+  it("keeps article rendering available when optional Agent config is invalid", () => {
+    expect(canShowBlogAgent({
+      BLOG_AGENT_ENABLED: "true",
+      BLOG_AGENT_GENERATION_ENABLED: "true",
+      BLOG_AGENT_BASE_URL: "https://api.deepseek.com",
+      BLOG_AGENT_API_KEY: "server-secret",
+      BLOG_AGENT_MODEL: "deepseek-v4-flash",
+      BLOG_AGENT_EMBEDDING_DIMENSIONS: "2048",
+    })).toBe(false);
   });
 
   it("clamps visitor-controlled cost limits to safe server ranges", () => {

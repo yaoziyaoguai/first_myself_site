@@ -47,6 +47,19 @@ describe("MarkdownArticle", () => {
     expect(headings[1]).toHaveAttribute("id", "中文标题-2");
   });
 
+  it("keeps citation occurrence IDs when the matching title H1 is hidden", () => {
+    render(
+      <MarkdownArticle
+        title="笔记"
+        markdown={"# 笔记\n开场\n## 笔记\n正文"}
+      />,
+    );
+
+    expect(document.getElementById("笔记")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "笔记" }))
+      .toHaveAttribute("id", "笔记-2");
+  });
+
   it("does not turn a heading-like code line into a document heading", () => {
     render(
       <MarkdownArticle markdown={"# 正文\n```md\n# 代码里的标题\n```"} />,

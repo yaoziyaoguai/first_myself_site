@@ -138,22 +138,32 @@ jobs:
             set -euo pipefail
             cd "${{ secrets.PROJECT_PATH }}"
 
-            if [ -z "${BLOG_AGENT_API_KEY:-}" ] || \
-               [ -z "${BLOG_AGENT_ENABLED:-}" ] || \
-               [ -z "${BLOG_AGENT_GENERATION_ENABLED:-}" ] || \
-               [ -z "${BLOG_AGENT_BASE_URL:-}" ] || \
-               [ -z "${BLOG_AGENT_MODEL:-}" ] || \
-               [ -z "${DASHSCOPE_API_KEY:-}" ] || \
-               [ -z "${BLOG_AGENT_EMBEDDING_BASE_URL:-}" ] || \
-               [ -z "${BLOG_AGENT_EMBEDDING_MODEL:-}" ] || \
-               [ -z "${BLOG_AGENT_EMBEDDING_DIMENSIONS:-}" ] || \
-               [ -z "${BLOG_AGENT_EMBEDDING_TIMEOUT_MS:-}" ]; then
-              echo "Blog Agent provider configuration is incomplete in GitHub" >&2
+            export BLOG_AGENT_ENABLED="${BLOG_AGENT_ENABLED:-false}"
+            export BLOG_AGENT_GENERATION_ENABLED="${BLOG_AGENT_GENERATION_ENABLED:-false}"
+            if [ "$BLOG_AGENT_ENABLED" != "true" ] && [ "$BLOG_AGENT_ENABLED" != "false" ]; then
+              echo "BLOG_AGENT_ENABLED must be true or false" >&2
               exit 1
             fi
-            if [ "$BLOG_AGENT_EMBEDDING_DIMENSIONS" != "1024" ]; then
-              echo "BLOG_AGENT_EMBEDDING_DIMENSIONS must be 1024" >&2
+            if [ "$BLOG_AGENT_GENERATION_ENABLED" != "true" ] && [ "$BLOG_AGENT_GENERATION_ENABLED" != "false" ]; then
+              echo "BLOG_AGENT_GENERATION_ENABLED must be true or false" >&2
               exit 1
+            fi
+            if [ "$BLOG_AGENT_ENABLED" = "true" ] || [ "$BLOG_AGENT_GENERATION_ENABLED" = "true" ]; then
+              if [ -z "${BLOG_AGENT_API_KEY:-}" ] || \
+                 [ -z "${BLOG_AGENT_BASE_URL:-}" ] || \
+                 [ -z "${BLOG_AGENT_MODEL:-}" ] || \
+                 [ -z "${DASHSCOPE_API_KEY:-}" ] || \
+                 [ -z "${BLOG_AGENT_EMBEDDING_BASE_URL:-}" ] || \
+                 [ -z "${BLOG_AGENT_EMBEDDING_MODEL:-}" ] || \
+                 [ -z "${BLOG_AGENT_EMBEDDING_DIMENSIONS:-}" ] || \
+                 [ -z "${BLOG_AGENT_EMBEDDING_TIMEOUT_MS:-}" ]; then
+                echo "Blog Agent provider configuration is incomplete in GitHub" >&2
+                exit 1
+              fi
+              if [ "$BLOG_AGENT_EMBEDDING_DIMENSIONS" != "1024" ]; then
+                echo "BLOG_AGENT_EMBEDDING_DIMENSIONS must be 1024" >&2
+                exit 1
+              fi
             fi
 
             compose=(docker compose --env-file .env.docker.prod -f docker/docker-compose.prod.yml)

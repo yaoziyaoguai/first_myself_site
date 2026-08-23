@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { getBlogAgentRuntime } from "@/lib/blog-agent/runtime";
 import { getPayloadAPI } from "@/lib/payload";
 import type { PublicMarkdownArticle } from "@/lib/blog-agent/types";
-import { ArticlePackageValidationError } from "@/lib/blog-agent/articlePackage";
+import {
+  ArticlePackageValidationError,
+  hashPublicArticle,
+} from "@/lib/blog-agent/articlePackage";
+import { ArticlePackageIndexConflictError } from "@/lib/blog-agent/articleIndexRepository.postgres";
 
 export const dynamic = "force-dynamic";
 
@@ -170,6 +174,20 @@ export async function POST(request: Request, { params }: RouteContext) {
   });
   try {
     const summary = await indexer.index({ article, packagePayload: body.value });
+    const latestArticle = await findPrivatePackageArticle(payload, id);
+    const latestPublicArticle = latestArticle && publicMarkdownArticle(latestArticle);
+    if (
+      !latestArticle ||
+      !latestPublicArticle ||
+      latestArticle.status !== "draft" ||
+      latestArticle.visibility !== "private" ||
+      latestArticle.agentContextRequired !== true ||
+      latestArticle.agentPackageHash !== summary.packageHash ||
+      latestArticle.agentIndexStatus !== "pending" ||
+      hashPublicArticle(latestPublicArticle) !== hashPublicArticle(article)
+    ) {
+      return jsonError("Article package state conflict", 409);
+    }
     await payload.update({
       collection: "blog",
       id,
@@ -182,6 +200,9 @@ export async function POST(request: Request, { params }: RouteContext) {
     });
     return NextResponse.json({ ok: true, ...summary, indexedAt: summary.indexedAt.toISOString() });
   } catch (error) {
+    if (error instanceof ArticlePackageIndexConflictError) {
+      return jsonError("Article package state conflict", 409);
+    }
     await payload.update({
       collection: "blog",
       id,

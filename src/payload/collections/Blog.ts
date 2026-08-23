@@ -39,11 +39,15 @@ export function prepareBlogAgentIndexState({
   if (typeof packageHash !== "string" || !/^[a-f0-9]{64}$/.test(packageHash)) {
     throw new Error("文章包需要有效的 SHA-256 package hash");
   }
-  const markdownChanged = data?.contentMarkdown !== undefined &&
-    data.contentMarkdown !== originalDoc?.contentMarkdown;
+  const indexedArticleChanged = [
+    "title",
+    "slug",
+    "excerpt",
+    "contentMarkdown",
+  ].some((key) => data?.[key] !== undefined && data[key] !== originalDoc?.[key]);
   const packageChanged = data?.agentPackageHash !== undefined &&
     data.agentPackageHash !== originalDoc?.agentPackageHash;
-  if (!originalDoc || markdownChanged || packageChanged) {
+  if (!originalDoc || indexedArticleChanged || packageChanged) {
     next.agentIndexStatus = "pending";
     next.agentIndexedPackageHash = null;
     next.agentIndexedAt = null;

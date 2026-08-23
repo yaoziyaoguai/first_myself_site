@@ -16,6 +16,13 @@ const SOURCE_KINDS = new Set<ArticleChunkSourceKind>([
   "image-description",
 ]);
 
+export class ArticlePackageIndexConflictError extends Error {
+  constructor() {
+    super("article package state conflict");
+    this.name = "ArticlePackageIndexConflictError";
+  }
+}
+
 function integer(value: unknown): number | null {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
@@ -177,6 +184,16 @@ export class PostgresArticleIndexRepository implements ArticleIndexRepository {
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
+      const article = await client.query(
+        `SELECT "agent_package_hash"
+           FROM "blog"
+          WHERE "id" = $1
+          FOR UPDATE`,
+        [input.blogId],
+      );
+      if (article.rows[0]?.agent_package_hash !== input.packageHash) {
+        throw new ArticlePackageIndexConflictError();
+      }
       await client.query(
         `DELETE FROM "blog_agent"."article_packages"
           WHERE "blog_id" = $1 AND "package_hash" <> $2`,

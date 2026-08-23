@@ -7,6 +7,7 @@ import { GET, POST } from "@/app/api/blog/[id]/agent-index/route";
 import { getPayloadAPI } from "@/lib/payload";
 import { getBlogAgentRuntime } from "@/lib/blog-agent/runtime";
 import { ArticlePackageValidationError } from "@/lib/blog-agent/articlePackage";
+import { ArticlePackageIndexConflictError } from "@/lib/blog-agent/articleIndexRepository.postgres";
 
 const auth = vi.fn();
 const findByID = vi.fn();
@@ -35,23 +36,27 @@ function request(body: unknown, headers: Record<string, string> = {}): Request {
 
 const context = { params: Promise.resolve({ id: "42" }) };
 
+function privateArticle() {
+  return {
+    id: 42,
+    slug: "agent-loop",
+    title: "Agent Loop",
+    excerpt: "循环",
+    contentMarkdown: "主要内容",
+    status: "draft",
+    visibility: "private",
+    agentContextRequired: true,
+    agentPackageHash: "a".repeat(64),
+    agentIndexStatus: "pending",
+  };
+}
+
 describe("/api/blog/[id]/agent-index", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getPayloadAPI).mockResolvedValue({ auth, findByID, update } as never);
     auth.mockResolvedValue({ user: { id: 1, role: "editor" } });
-    findByID.mockResolvedValue({
-      id: 42,
-      slug: "agent-loop",
-      title: "Agent Loop",
-      excerpt: "循环",
-      contentMarkdown: "主要内容",
-      status: "draft",
-      visibility: "private",
-      agentContextRequired: true,
-      agentPackageHash: "a".repeat(64),
-      agentIndexStatus: "pending",
-    });
+    findByID.mockResolvedValue(privateArticle());
     update.mockResolvedValue({});
     index.mockResolvedValue({
       packageHash: "a".repeat(64),
@@ -153,6 +158,52 @@ describe("/api/blog/[id]/agent-index", () => {
 
     expect(response.status).toBe(422);
     expect(await response.text()).not.toContain("private path");
+  });
+
+  it("returns 409 without marking failure when the package changed during indexing", async () => {
+    index.mockRejectedValueOnce(new ArticlePackageIndexConflictError());
+
+    const response = await POST(request(validBody), context);
+
+    expect(response.status).toBe(409);
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenLastCalledWith(expect.objectContaining({
+      data: { agentIndexStatus: "pending" },
+    }));
+  });
+
+  it("rechecks the Blog before stamping a completed index ready", async () => {
+    findByID
+      .mockResolvedValueOnce(privateArticle())
+      .mockResolvedValueOnce({
+        ...privateArticle(),
+        agentPackageHash: "b".repeat(64),
+      });
+
+    const response = await POST(request(validBody), context);
+
+    expect(response.status).toBe(409);
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenLastCalledWith(expect.objectContaining({
+      data: { agentIndexStatus: "pending" },
+    }));
+  });
+
+  it("does not stamp a stale index ready after article metadata changes", async () => {
+    findByID
+      .mockResolvedValueOnce(privateArticle())
+      .mockResolvedValueOnce({
+        ...privateArticle(),
+        title: "Agent Loop（修订版）",
+      });
+
+    const response = await POST(request(validBody), context);
+
+    expect(response.status).toBe(409);
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenLastCalledWith(expect.objectContaining({
+      data: { agentIndexStatus: "pending" },
+    }));
   });
 
   it("returns an authenticated summary without source content or embeddings", async () => {

@@ -1,31 +1,10 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
-import { fromMarkdown } from "mdast-util-from-markdown";
-import { toString } from "mdast-util-to-string";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { slugifyArticleHeading } from "@/lib/blog-agent/articleMarkdown";
 
 function normalizeTitle(value: string): string {
   return value.normalize("NFKC").trim().replace(/\s+/g, " ");
-}
-
-function removeMatchingTitleHeading(markdown: string, title?: string): string {
-  if (!title) return markdown;
-  const heading = fromMarkdown(markdown).children.find(
-    (node) => node.type === "heading",
-  );
-  if (
-    !heading ||
-    heading.type !== "heading" ||
-    heading.depth !== 1 ||
-    normalizeTitle(toString(heading)) !== normalizeTitle(title)
-  ) {
-    return markdown;
-  }
-  const start = heading.position?.start.offset;
-  const end = heading.position?.end.offset;
-  if (start === undefined || end === undefined) return markdown;
-  return `${markdown.slice(0, start)}${markdown.slice(end)}`.trimStart();
 }
 
 function textFromChildren(children: ReactNode): string {
@@ -45,19 +24,35 @@ function textFromChildren(children: ReactNode): string {
 
 type HeadingTag = "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
 type HeadingProps = ComponentPropsWithoutRef<HeadingTag> & { node?: unknown };
+type HeadingState = {
+  counts: Map<string, number>;
+  seenHeading: boolean;
+  title?: string;
+};
 
 function headingComponent(
   Tag: HeadingTag,
-  counts: Map<string, number>,
+  state: HeadingState,
 ) {
   return function ArticleHeading({ children, node, ...props }: HeadingProps) {
     void node;
     const heading = textFromChildren(children);
     const base = slugifyArticleHeading(heading);
-    const occurrence = (counts.get(base) ?? 0) + 1;
-    counts.set(base, occurrence);
+    const occurrence = (state.counts.get(base) ?? 0) + 1;
+    state.counts.set(base, occurrence);
+    const id = slugifyArticleHeading(heading, occurrence);
+    const isFirstHeading = !state.seenHeading;
+    state.seenHeading = true;
+    if (
+      isFirstHeading &&
+      Tag === "h1" &&
+      state.title &&
+      normalizeTitle(heading) === normalizeTitle(state.title)
+    ) {
+      return <span id={id} aria-hidden="true" />;
+    }
     return (
-      <Tag {...props} id={slugifyArticleHeading(heading, occurrence)}>
+      <Tag {...props} id={id}>
         {children}
       </Tag>
     );
@@ -71,21 +66,24 @@ export function MarkdownArticle({
   markdown: string;
   title?: string;
 }) {
-  const counts = new Map<string, number>();
-  const articleMarkdown = removeMatchingTitleHeading(markdown, title);
+  const headingState: HeadingState = {
+    counts: new Map<string, number>(),
+    seenHeading: false,
+    title,
+  };
   return (
     <Markdown
       remarkPlugins={[remarkGfm]}
       components={{
-        h1: headingComponent("h1", counts),
-        h2: headingComponent("h2", counts),
-        h3: headingComponent("h3", counts),
-        h4: headingComponent("h4", counts),
-        h5: headingComponent("h5", counts),
-        h6: headingComponent("h6", counts),
+        h1: headingComponent("h1", headingState),
+        h2: headingComponent("h2", headingState),
+        h3: headingComponent("h3", headingState),
+        h4: headingComponent("h4", headingState),
+        h5: headingComponent("h5", headingState),
+        h6: headingComponent("h6", headingState),
       }}
     >
-      {articleMarkdown}
+      {markdown}
     </Markdown>
   );
 }

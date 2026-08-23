@@ -15,7 +15,7 @@ import { MarkdownArticle } from "@/components/MarkdownArticle";
 import { BlogAgent } from "@/components/blog-agent/BlogAgent";
 import { ShareActions } from "@/components/ShareActions";
 import { SITE_URL, siteDefaults } from "@/content/siteDefaults";
-import { readBlogAgentConfig } from "@/lib/blog-agent/config";
+import { canShowBlogAgent } from "@/lib/blog-agent/config";
 
 export const dynamic = "force-dynamic";
 
@@ -117,13 +117,10 @@ export default async function BlogPostPage({ params }: PageProps) {
     typeof post.contentMarkdown === "string"
       ? post.contentMarkdown.trim()
       : "";
-  const agentConfig = readBlogAgentConfig();
   const showBlogAgent = Boolean(
     showPublicInteractions &&
     markdownContent &&
-    agentConfig.enabled &&
-    agentConfig.generationEnabled &&
-    agentConfig.generationConfigured,
+    canShowBlogAgent(),
   );
 
   return (

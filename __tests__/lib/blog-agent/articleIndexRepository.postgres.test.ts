@@ -14,13 +14,18 @@ import {
   type IsolatedPostgresDatabase,
 } from "../../helpers/blogAgentPostgres";
 
-function createDatabase(rows: Record<string, unknown>[] = []) {
+function createDatabase(
+  rows: Record<string, unknown>[] = [],
+  expectedPackageHash = "b".repeat(64),
+) {
   const query = vi.fn(async (
-    _text: string,
+    text: string,
     _values?: readonly unknown[],
   ) => {
-    void _text;
     void _values;
+    if (text.includes('FROM "blog"')) {
+      return { rows: [{ agent_package_hash: expectedPackageHash }] };
+    }
     return { rows };
   });
   const release = vi.fn();
@@ -116,6 +121,20 @@ describe("PostgresArticleIndexRepository", () => {
     expect(database.query).not.toHaveBeenCalled();
     expect(database.release).not.toHaveBeenCalled();
   });
+
+  it("rejects a stale package before deleting the current Blog package", async () => {
+    const database = createDatabase([], "c".repeat(64));
+    const repository = new PostgresArticleIndexRepository(database.pool);
+
+    await expect(repository.replacePackage(packageInput)).rejects.toThrow(
+      "article package state conflict",
+    );
+
+    const statements = database.query.mock.calls.map(([sql]) => sql).join("\n");
+    expect(statements).toContain('FROM "blog"');
+    expect(statements).not.toContain('DELETE FROM "blog_agent"."article_packages"');
+    expect(statements).toContain("ROLLBACK");
+  });
 });
 
 const describePostgres = process.env.BLOG_AGENT_TEST_DATABASE_URL
@@ -139,6 +158,10 @@ describePostgres("PostgresArticleIndexRepository on PostgreSQL 15", () => {
     } as unknown as MigrateUpArgs);
     await database.pool.query(
       'INSERT INTO "blog" ("id") VALUES (42), (43)',
+    );
+    await database.pool.query(
+      'UPDATE "blog" SET "agent_package_hash" = $1 WHERE "id" IN (42, 43)',
+      [packageInput.packageHash],
     );
   });
 

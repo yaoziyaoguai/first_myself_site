@@ -72,4 +72,25 @@ describe("Blog Agent publication gate", () => {
       agentIndexedAt: null,
     }));
   });
+
+  it.each(["title", "slug", "excerpt"])(
+    "invalidates readiness when indexed article field %s changes",
+    (field) => {
+      expect(prepareBlogAgentIndexState({
+        data: { [field]: "new" },
+        originalDoc: {
+          [field]: "old",
+          agentContextRequired: true,
+          agentPackageHash: "a".repeat(64),
+          agentIndexStatus: "ready",
+          agentIndexedPackageHash: "a".repeat(64),
+          agentIndexedAt: "2026-08-23T00:00:00.000Z",
+        },
+      })).toEqual(expect.objectContaining({
+        agentIndexStatus: "pending",
+        agentIndexedPackageHash: null,
+        agentIndexedAt: null,
+      }));
+    },
+  );
 });

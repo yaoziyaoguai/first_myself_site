@@ -101,4 +101,27 @@ describe("Blog Agent production defaults", () => {
       "github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')",
     );
   });
+
+  it("keeps an unconfigured disabled Agent from blocking unrelated deploys", () => {
+    const workflow = source(".github/workflows/ci-cd.yml");
+    const disabledDefault = workflow.indexOf(
+      'export BLOG_AGENT_ENABLED="${BLOG_AGENT_ENABLED:-false}"',
+    );
+    const providerGate = workflow.indexOf(
+      'if [ "$BLOG_AGENT_ENABLED" = "true" ] || [ "$BLOG_AGENT_GENERATION_ENABLED" = "true" ]; then',
+    );
+    const providerValidation = workflow.indexOf(
+      'echo "Blog Agent provider configuration is incomplete in GitHub"',
+    );
+
+    expect(disabledDefault).toBeGreaterThan(-1);
+    expect(workflow).toContain(
+      'export BLOG_AGENT_GENERATION_ENABLED="${BLOG_AGENT_GENERATION_ENABLED:-false}"',
+    );
+    expect(providerGate).toBeGreaterThan(disabledDefault);
+    expect(providerValidation).toBeGreaterThan(providerGate);
+    expect(workflow).not.toContain(
+      "BLOG_AGENT_ENABLED must be true when generation is enabled",
+    );
+  });
 });

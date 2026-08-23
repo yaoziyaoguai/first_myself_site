@@ -19,6 +19,8 @@ Agent 只读取访客当前打开的、`published + public` 且包含 Markdown �
 
 工作流通过 SSH 进程环境把它们传给 Docker Compose；Key 不进入镜像构建参数、客户端 bundle、Git 历史或服务器仓库文件。手工部署时必须在服务器 `.env.docker.prod` 中提供这些同名服务端变量。
 
+两个开关都关闭时，工作流只校验开关值，允许在尚未配置 provider 的环境先安全部署数据库 migration 和页面代码。离线索引与 canary 仍需要 DashScope 配置；启用访客入口前则必须同时完整配置 DeepSeek 与 DashScope，工作流会 fail closed。
+
 首次部署保持：
 
 ```dotenv
