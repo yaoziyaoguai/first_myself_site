@@ -114,6 +114,25 @@ describe("Blog Agent production defaults", () => {
     );
   });
 
+  it("runs the package canary through the managed production SSH deploy", () => {
+    const workflow = source(".github/workflows/ci-cd.yml");
+    expect(workflow).toContain(
+      "BLOG_AGENT_CANARY_SLUG: ${{ vars.BLOG_AGENT_CANARY_SLUG }}",
+    );
+    expect(workflow).toContain(
+      "BLOG_AGENT_CANARY_QUESTION: ${{ vars.BLOG_AGENT_CANARY_QUESTION }}",
+    );
+    expect(workflow).toContain(
+      'if [ "$BLOG_AGENT_GENERATION_ENABLED" = "true" ]; then',
+    );
+    expect(workflow).toContain(
+      'exec -T app npm run blog-agent:canary --',
+    );
+    expect(workflow).toContain('"--slug=$BLOG_AGENT_CANARY_SLUG"');
+    expect(workflow).toContain('"--question=$BLOG_AGENT_CANARY_QUESTION"');
+    expect(workflow).toContain("--require-package");
+  });
+
   it("keeps an unconfigured disabled Agent from blocking unrelated deploys", () => {
     const workflow = source(".github/workflows/ci-cd.yml");
     const disabledDefault = workflow.indexOf(

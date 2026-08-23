@@ -16,6 +16,8 @@ Agent 只读取访客当前打开的、`published + public` 且包含 Markdown �
 - `BLOG_AGENT_EMBEDDING_MODEL=qwen3.7-text-embedding`
 - `BLOG_AGENT_EMBEDDING_DIMENSIONS=1024`
 - `BLOG_AGENT_EMBEDDING_TIMEOUT_MS=15000`
+- `BLOG_AGENT_CANARY_SLUG=<公开且 package ready 的实验文章 slug>`
+- `BLOG_AGENT_CANARY_QUESTION=<必须依赖该文章 package 才能深入回答的问题>`
 
 工作流通过 SSH 进程环境把它们传给 Docker Compose；Key 不进入镜像构建参数、客户端 bundle、Git 历史或服务器仓库文件。手工部署时必须在服务器 `.env.docker.prod` 中提供这些同名服务端变量。
 
@@ -92,6 +94,8 @@ docker compose --env-file .env.docker.prod \
 ```
 
 Canary 不经过公网 API、不要求 `BLOG_AGENT_ENABLED=true`、不写 Blog，只输出 query ID、结果类型、引用数量、token 数和 `contextMode`。使用 `--require-package` 时，没有当前 Blog 的 ready package 会直接失败，不会静默退回 Markdown；成功输出必须包含 `"contextMode":"article-package"`。普通 Markdown canary 可省略该参数。它不会输出问题、Markdown、source 内容、回答全文、API Key、数据库地址或供应商错误正文。证据不足、文章不公开、配置缺失或 provider 异常都会以非零状态退出。
+
+GitHub 部署流程会在 `BLOG_AGENT_GENERATION_ENABLED=true` 时通过受管 SSH 自动运行同一条 `--require-package` canary。Canary 失败会触发镜像回滚并让 workflow 失败，因此个人电脑不需要持有生产 SSH 密钥。
 
 ## 开放顺序与验收
 
