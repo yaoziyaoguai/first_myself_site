@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 
 const workflow = readFileSync(
@@ -12,6 +13,34 @@ const productionCompose = readFileSync(
 );
 
 describe("production migration deployment", () => {
+  it("loads the real Payload config through the production CLI", () => {
+    const result = spawnSync(
+      process.execPath,
+      [
+        resolve(process.cwd(), "node_modules/payload/bin.js"),
+        "run",
+        "payload.config.ts",
+      ],
+      {
+        cwd: process.cwd(),
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          BLOG_AGENT_ENABLED: "false",
+          BLOG_AGENT_GENERATION_ENABLED: "false",
+          DATABASE_URL: "postgresql://test:test@127.0.0.1:5432/test",
+          NEXT_PUBLIC_SERVER_URL: "http://localhost:3000",
+          PAYLOAD_SECRET: "payload-cli-smoke-test-secret",
+        },
+        timeout: 30_000,
+      },
+    );
+
+    expect(result.error).toBeUndefined();
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+  }, 30_000);
+
   it("backs up, removes only the legacy dev marker, then replaces the app", () => {
     const buildIndex = workflow.indexOf('"${compose[@]}" build app');
     const backupIndex = workflow.indexOf("./scripts/backup.sh", buildIndex);

@@ -51,6 +51,38 @@
 
 ## 最近 Sessions（从新到旧）
 
+### 2026-08-23 Session-004
+
+**目标**：为每篇 Blog 增加严格文章边界的 Agent 问答，并通过 GitHub 链路安全发布到阿里云
+
+**完成**：
+- 实现 Blog 详情页悬浮 Agent，覆盖桌面浮层和移动端 bottom sheet
+- 实现 Markdown 基础上下文、Blog 内混合检索、引用和无证据拒答
+- 增加可选文章数据包，用于关联代码、文档、图片说明与数据证据
+- 增加限额、并发控制、双功能开关、服务端密钥和私有材料防逐字导出
+- 更新全局发布 Skill，支持 Git 审计、create-only 文章数据包和锚点校验
+- 增加 Payload/PostgreSQL migration、repository、canary 与生产部署测试
+- 用 Claude/智谱和视觉理解复核交互，确认现有设计系统无需大改
+- 修复 Payload CLI 的 ESM 加载问题，并增加真实配置加载 smoke test
+
+**改动**：
+- 新增：Blog Agent API、UI、检索/生成/限额服务、文章数据包与迁移
+- 修改：Blog 详情页、Payload 发布生命周期、Docker/CI-CD、README 与运维文档
+- 修改：全局 `publish-site-article` Skill 及其测试
+- 新增实验文章：`my-first-agent/docs/articles/governed-local-action-beyond-subprocess.md`
+
+**遗留**：
+- 创建并自审 GitHub PR
+- 以关闭开关完成阿里云首次部署和迁移
+- 发布/索引实验文章，开启 Agent 后执行生产 canary
+- 上线稳定后轮换在对话中暴露过的模型 API Key
+
+**下一步**：完成 PR、部署、实验文章发布和生产验证闭环
+
+**对当前状态的影响**：项目从静态技术博客进入“文章即边界、数据增强问答”的 Blog Agent V1 阶段
+
+---
+
 ### 2026-04-12 Session-003
 
 **目标**：修复 CI 失败，优化 Markdown 编辑器滚动同步体验
@@ -144,5 +176,5 @@
 
 ---
 
-**总条数**：3/5  
-**最后更新**：2026-04-12
+**总条数**：4/5
+**最后更新**：2026-08-23

@@ -41,13 +41,12 @@ COPY . .
 ARG NEXT_PUBLIC_SERVER_URL
 
 ENV NEXT_PUBLIC_SERVER_URL=${NEXT_PUBLIC_SERVER_URL}
-# 构建阶段只需通过配置校验，不能接收或保留生产密钥。
-ENV DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build
-ENV PAYLOAD_SECRET=build-only-placeholder-not-used-at-runtime
-ENV NODE_ENV=production
 
-# 构建应用
-RUN npm run build
+# 构建阶段只需通过配置校验；占位值仅存在于此命令，不写入镜像环境。
+RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build \
+    PAYLOAD_SECRET=build-only-placeholder-not-used-at-runtime \
+    NODE_ENV=production \
+    npm run build
 
 # -------------------------------------------------
 # 阶段 3: 运行环境
