@@ -253,6 +253,9 @@ describe("Blog Agent canary", () => {
     expect(code).toBe(1);
     expect(fixture.client.complete).not.toHaveBeenCalled();
     expect(fixture.stdout).not.toHaveBeenCalled();
+    expect(fixture.stderr).toHaveBeenCalledWith(
+      "Blog Agent canary failed: package-not-ready",
+    );
   });
 
   it.each([
@@ -292,7 +295,7 @@ describe("Blog Agent canary", () => {
       providerFixture.dependencies,
     )).toBe(1);
     const errors = providerFixture.stderr.mock.calls.flat().join("\n");
-    expect(errors).toBe("Blog Agent canary failed");
+    expect(errors).toBe("Blog Agent canary failed: generation-unavailable");
     expect(errors).not.toContain("provider body");
 
     const insufficientFixture = createDependencies({
@@ -309,5 +312,8 @@ describe("Blog Agent canary", () => {
       insufficientFixture.dependencies,
     )).toBe(1);
     expect(insufficientFixture.stdout).not.toHaveBeenCalled();
+    expect(insufficientFixture.stderr).toHaveBeenCalledWith(
+      "Blog Agent canary failed: insufficient-evidence",
+    );
   });
 });

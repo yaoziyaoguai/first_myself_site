@@ -95,6 +95,8 @@ docker compose --env-file .env.docker.prod \
 
 Canary 不经过公网 API、不要求 `BLOG_AGENT_ENABLED=true`、不写 Blog，只输出 query ID、结果类型、引用数量、token 数和 `contextMode`。使用 `--require-package` 时，没有当前 Blog 的 ready package 会直接失败，不会静默退回 Markdown；成功输出必须包含 `"contextMode":"article-package"`。普通 Markdown canary 可省略该参数。它不会输出问题、Markdown、source 内容、回答全文、API Key、数据库地址或供应商错误正文。证据不足、文章不公开、配置缺失或 provider 异常都会以非零状态退出。
 
+失败日志只包含固定阶段码，例如 `package-not-ready`、`generation-unavailable` 或 `insufficient-evidence`。阶段码用于区分数据状态、模型调用与证据判定，不会透传供应商响应正文。
+
 GitHub 部署流程会在 `BLOG_AGENT_GENERATION_ENABLED=true` 时通过受管 SSH 自动运行同一条 `--require-package` canary。Canary 失败会先关闭两个 Agent 开关，再触发镜像回滚并让 workflow 失败，避免旧镜像沿用本次未验证的公开配置，因此个人电脑不需要持有生产 SSH 密钥。
 
 数据库 migration 在 canary 前执行，镜像回滚不会反向撤销数据库变更。因此所有 production migration 必须与上一版应用保持向后兼容，确保旧镜像在新 schema 上仍可安全运行。
