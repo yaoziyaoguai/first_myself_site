@@ -59,6 +59,7 @@ function articleSections(articlePackage: ReadyArticlePackage): Array<ArticleSect
       ordinal: chunk.ordinal,
       content: chunk.content,
       protectedMaterial: chunk.sourceKind !== "article",
+      sourceKind: chunk.sourceKind,
       sourcePath: chunk.sourcePath,
       embedding: chunk.embedding,
     };

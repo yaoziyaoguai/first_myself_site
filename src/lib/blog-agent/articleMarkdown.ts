@@ -1,5 +1,6 @@
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { toString } from "mdast-util-to-string";
+import type { ArticleChunkSourceKind } from "./articleIndexRepository";
 
 export type ArticleSection = {
   id: string;
@@ -9,6 +10,7 @@ export type ArticleSection = {
   ordinal: number;
   content: string;
   protectedMaterial?: boolean;
+  sourceKind?: ArticleChunkSourceKind;
 };
 
 export type ParsedArticleMarkdown = {
@@ -77,6 +79,7 @@ export function parseArticleMarkdown(markdown: string): ParsedArticleMarkdown {
       anchor: currentAnchor,
       ordinal,
       content,
+      sourceKind: "article",
     });
   };
 
