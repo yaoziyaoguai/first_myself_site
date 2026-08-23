@@ -1,7 +1,32 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
+import { fromMarkdown } from "mdast-util-from-markdown";
+import { toString } from "mdast-util-to-string";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { slugifyArticleHeading } from "@/lib/blog-agent/articleMarkdown";
+
+function normalizeTitle(value: string): string {
+  return value.normalize("NFKC").trim().replace(/\s+/g, " ");
+}
+
+function removeMatchingTitleHeading(markdown: string, title?: string): string {
+  if (!title) return markdown;
+  const heading = fromMarkdown(markdown).children.find(
+    (node) => node.type === "heading",
+  );
+  if (
+    !heading ||
+    heading.type !== "heading" ||
+    heading.depth !== 1 ||
+    normalizeTitle(toString(heading)) !== normalizeTitle(title)
+  ) {
+    return markdown;
+  }
+  const start = heading.position?.start.offset;
+  const end = heading.position?.end.offset;
+  if (start === undefined || end === undefined) return markdown;
+  return `${markdown.slice(0, start)}${markdown.slice(end)}`.trimStart();
+}
 
 function textFromChildren(children: ReactNode): string {
   if (typeof children === "string" || typeof children === "number") {
@@ -39,8 +64,15 @@ function headingComponent(
   };
 }
 
-export function MarkdownArticle({ markdown }: { markdown: string }) {
+export function MarkdownArticle({
+  markdown,
+  title,
+}: {
+  markdown: string;
+  title?: string;
+}) {
   const counts = new Map<string, number>();
+  const articleMarkdown = removeMatchingTitleHeading(markdown, title);
   return (
     <Markdown
       remarkPlugins={[remarkGfm]}
@@ -53,7 +85,7 @@ export function MarkdownArticle({ markdown }: { markdown: string }) {
         h6: headingComponent("h6", counts),
       }}
     >
-      {markdown}
+      {articleMarkdown}
     </Markdown>
   );
 }

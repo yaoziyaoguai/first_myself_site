@@ -178,7 +178,10 @@ export default async function BlogPostPage({ params }: PageProps) {
         {/* 文章内容渲染 - 优先使用 Markdown，回退到 RichText */}
         <div className="prose prose-neutral max-w-none">
           {markdownContent ? (
-            <MarkdownArticle markdown={markdownContent} />
+            <MarkdownArticle
+              markdown={markdownContent}
+              title={String(post.title)}
+            />
           ) : (
             /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
             <RichText data={post.content as any} converters={defaultJSXConverters} />
