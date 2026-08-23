@@ -107,6 +107,10 @@ async function findPublicMarkdownArticle(
       title: true,
       excerpt: true,
       contentMarkdown: true,
+      agentContextRequired: true,
+      agentPackageHash: true,
+      agentIndexStatus: true,
+      agentIndexedPackageHash: true,
     },
   });
   const article = result.docs[0];
@@ -125,6 +129,16 @@ async function findPublicMarkdownArticle(
     title: article.title,
     excerpt: typeof article.excerpt === "string" ? article.excerpt : "",
     contentMarkdown: article.contentMarkdown,
+    agentContextRequired: article.agentContextRequired === true,
+    agentPackageHash: typeof article.agentPackageHash === "string"
+      ? article.agentPackageHash
+      : undefined,
+    agentIndexStatus: typeof article.agentIndexStatus === "string"
+      ? article.agentIndexStatus
+      : undefined,
+    agentIndexedPackageHash: typeof article.agentIndexedPackageHash === "string"
+      ? article.agentIndexedPackageHash
+      : undefined,
   };
 }
 

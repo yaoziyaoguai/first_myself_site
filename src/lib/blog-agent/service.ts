@@ -1,6 +1,9 @@
 import { createHash, randomUUID } from "node:crypto";
 import { answerFromArticle, type BlogAgentAnswerClient } from "./answer";
 import { buildArticleEvidence, type ArticleEvidence } from "./articleMarkdown";
+import type { ArticleSection } from "./articleMarkdown";
+import { hashPublicArticle } from "./articlePackage";
+import type { BlogScopedArticleRetriever, PreparedArticleContext } from "./articleRetriever";
 import type { BlogAgentRepository, CachedGroundedAnswer } from "./repository";
 import type { BlogAgentResponse, PublicMarkdownArticle } from "./types";
 import type { GenerationUsagePolicy } from "./usagePolicy";
@@ -18,6 +21,7 @@ type BlogAgentServiceDependencies = {
   cacheTtlMs: number;
   now?: () => Date;
   createQueryId?: () => string;
+  articleRetriever?: BlogScopedArticleRetriever;
 };
 
 function sha256(value: string): string {
@@ -28,22 +32,12 @@ function normalizedQuestion(question: string): string {
   return question.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase();
 }
 
-function hashArticle(article: PublicMarkdownArticle): string {
-  return sha256(JSON.stringify({
-    id: article.id,
-    slug: article.slug,
-    title: article.title,
-    excerpt: article.excerpt,
-    contentMarkdown: article.contentMarkdown,
-  }));
-}
-
-function citationsFromEvidence(
+function citationsFromSections(
   article: PublicMarkdownArticle,
-  evidence: ArticleEvidence,
+  sourceSections: ArticleSection[],
   citationIds: string[],
 ) {
-  const sections = new Map(evidence.sections.map((section) => [section.id, section]));
+  const sections = new Map(sourceSections.map((section) => [section.id, section]));
   return citationIds.flatMap((id) => {
     const section = sections.get(id);
     if (!section) return [];
@@ -85,14 +79,22 @@ export class BlogAgentService {
     identityHash: string;
   }): Promise<ServiceResult> {
     const queryId = this.createQueryId();
-    const evidence = buildArticleEvidence({
+    let prepared: PreparedArticleContext | null = null;
+    try {
+      prepared = await this.dependencies.articleRetriever?.prepare(input.article) ?? null;
+    } catch {
+      prepared = null;
+    }
+    const fallbackEvidence = () => buildArticleEvidence({
       title: input.article.title,
       excerpt: input.article.excerpt,
       markdown: input.article.contentMarkdown,
       question: input.question,
     });
+    let evidence: ArticleEvidence | undefined;
+    const contextHash = prepared?.contextHash ?? hashPublicArticle(input.article);
     const cacheKey = {
-      articleHash: hashArticle(input.article),
+      articleHash: sha256(`${hashPublicArticle(input.article)}\0${contextHash}`),
       modelCacheKey: this.dependencies.modelCacheKey,
       questionHash: sha256(normalizedQuestion(input.question)),
     };
@@ -103,9 +105,10 @@ export class BlogAgentService {
         now: this.now(),
       });
       if (cached) {
-        const cachedCitations = citationsFromEvidence(
+        const cachedSections = prepared?.sections ?? (evidence ??= fallbackEvidence()).sections;
+        const cachedCitations = citationsFromSections(
           input.article,
-          evidence,
+          cachedSections,
           cached.citationIds,
         );
         if (cached.insufficientEvidence || cachedCitations.length > 0) {
@@ -126,6 +129,12 @@ export class BlogAgentService {
       const generated = await this.dependencies.usagePolicy.run(
         input.identityHash,
         async () => {
+          evidence = prepared
+            ? await prepared.buildEvidence(input.question)
+            : fallbackEvidence();
+          if (evidence.sections.length === 0 && prepared) {
+            evidence = fallbackEvidence();
+          }
           const answer = await answerFromArticle(
             input.question,
             evidence,
@@ -152,9 +161,9 @@ export class BlogAgentService {
         answer: cacheAnswer,
         expiresAt: new Date(this.now().getTime() + this.dependencies.cacheTtlMs),
       });
-      const citations = citationsFromEvidence(
+      const citations = citationsFromSections(
         input.article,
-        evidence,
+        evidence?.sections ?? [],
         answer.citationIds,
       );
       return {

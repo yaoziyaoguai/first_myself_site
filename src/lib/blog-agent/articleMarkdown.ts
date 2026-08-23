@@ -118,7 +118,7 @@ export function parseArticleMarkdown(markdown: string): ParsedArticleMarkdown {
   return { sections };
 }
 
-function queryTerms(value: string): string[] {
+export function articleQueryTerms(value: string): string[] {
   const normalized = value.normalize("NFKC").toLocaleLowerCase();
   const terms = new Set(
     normalized.match(/[a-z0-9][a-z0-9_.:+/-]*/g) ?? [],
@@ -278,7 +278,7 @@ export function buildArticleEvidence(input: {
   ) {
     candidates = parsed.sections;
   } else {
-    const terms = queryTerms(input.question);
+    const terms = articleQueryTerms(input.question);
     candidates = selectRelevantSections(
       parsed.sections,
       terms,

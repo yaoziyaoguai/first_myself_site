@@ -85,6 +85,10 @@ describe("POST /api/blog/[slug]/agent", () => {
         title: true,
         excerpt: true,
         contentMarkdown: true,
+        agentContextRequired: true,
+        agentPackageHash: true,
+        agentIndexStatus: true,
+        agentIndexedPackageHash: true,
       },
     });
     expect(execute).toHaveBeenCalledWith({
@@ -94,6 +98,10 @@ describe("POST /api/blog/[slug]/agent", () => {
         title: "Doris 写入实践",
         excerpt: "批量写入设计",
         contentMarkdown: "# 写入路径\n使用 batch sink。",
+        agentContextRequired: false,
+        agentPackageHash: undefined,
+        agentIndexStatus: undefined,
+        agentIndexedPackageHash: undefined,
       },
       question: "为什么批量写入？",
       identityHash: "identity-hash",

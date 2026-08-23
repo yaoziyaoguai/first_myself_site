@@ -27,4 +27,8 @@ export type PublicMarkdownArticle = {
   title: string;
   excerpt: string;
   contentMarkdown: string;
+  agentContextRequired?: boolean;
+  agentPackageHash?: string;
+  agentIndexStatus?: string;
+  agentIndexedPackageHash?: string;
 };

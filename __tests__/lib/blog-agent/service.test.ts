@@ -3,6 +3,9 @@ import type { BlogAgentAnswerClient } from "@/lib/blog-agent/answer";
 import type { BlogAgentRepository } from "@/lib/blog-agent/repository";
 import { BlogAgentService } from "@/lib/blog-agent/service";
 import { GenerationUsagePolicy } from "@/lib/blog-agent/usagePolicy";
+import { BlogScopedArticleRetriever } from "@/lib/blog-agent/articleRetriever";
+import type { ArticleIndexRepository } from "@/lib/blog-agent/articleIndexRepository";
+import { hashPublicArticle } from "@/lib/blog-agent/articlePackage";
 
 const article = {
   id: "7",
@@ -17,6 +20,7 @@ function createFixture(options?: {
   reservation?: Awaited<ReturnType<BlogAgentRepository["reserveGeneration"]>>;
   modelContent?: string;
   modelError?: Error;
+  articleRetriever?: BlogScopedArticleRetriever;
 }) {
   const repository: BlogAgentRepository = {
     getCachedAnswer: vi.fn().mockResolvedValue(options?.cached ?? null),
@@ -55,6 +59,7 @@ function createFixture(options?: {
     cacheTtlMs: 86_400_000,
     now: () => new Date("2026-08-21T12:00:00.000Z"),
     createQueryId: () => "query-1",
+    articleRetriever: options?.articleRetriever,
   });
   return { service, repository, client };
 }
@@ -109,6 +114,68 @@ describe("BlogAgentService", () => {
     expect(response.body.answer).toBe("缓存回答");
     expect(response.body.usage).toEqual({ cached: true });
     expect(fixture.repository.reserveGeneration).not.toHaveBeenCalled();
+    expect(fixture.client.complete).not.toHaveBeenCalled();
+  });
+
+  it("serves a package cache hit without calling query embeddings", async () => {
+    const embed = vi.fn(async () => [[1, 0, 0]]);
+    const packageArticle = {
+      ...article,
+      agentContextRequired: true,
+      agentPackageHash: "b".repeat(64),
+      agentIndexStatus: "ready",
+      agentIndexedPackageHash: "b".repeat(64),
+    };
+    const indexRepository = {
+      getReadyPackage: vi.fn().mockResolvedValue({
+        blogId: article.id,
+        articleHash: hashPublicArticle(packageArticle),
+        packageHash: "b".repeat(64),
+        manifest: { version: 1 },
+        embeddingModel: "qwen3.7-text-embedding",
+        embeddingDimensions: 3,
+        indexedAt: new Date("2026-08-23T00:00:00.000Z"),
+        chunks: [{
+          id: "material:edit:0",
+          sourceKind: "code",
+          sourcePath: "src/edit.py",
+          heading: "精确编辑",
+          anchor: "写入路径",
+          ordinal: 0,
+          content: "old 必须唯一",
+          embedding: [1, 0, 0],
+        }],
+      }),
+      getPackageSummary: vi.fn(),
+      replacePackage: vi.fn(),
+    } as unknown as ArticleIndexRepository;
+    const fixture = createFixture({
+      cached: {
+        answer: "缓存的代码回答",
+        citationIds: ["material:edit:0"],
+        insufficientEvidence: false,
+      },
+      articleRetriever: new BlogScopedArticleRetriever({
+        repository: indexRepository,
+        embeddings: { embed },
+        embeddingModel: "qwen3.7-text-embedding",
+        embeddingDimensions: 3,
+      }),
+    });
+
+    const response = await fixture.service.execute({
+      article: packageArticle,
+      question: "edit_file 如何工作？",
+      identityHash: "identity-hash",
+    });
+
+    expect(response.body.answer).toBe("缓存的代码回答");
+    expect(response.body.citations).toEqual([{
+      id: "material:edit:0",
+      heading: "精确编辑 · src/edit.py",
+      url: "/blog/doris-write-path#写入路径",
+    }]);
+    expect(embed).not.toHaveBeenCalled();
     expect(fixture.client.complete).not.toHaveBeenCalled();
   });
 

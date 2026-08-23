@@ -6,6 +6,7 @@ import { OpenAICompatibleBlogAgentClient } from "./modelClient";
 import { ArticleIndexer } from "./articleIndexer";
 import { PostgresArticleIndexRepository } from "./articleIndexRepository.postgres";
 import { DashScopeEmbeddingClient } from "./embeddingClient";
+import { BlogScopedArticleRetriever } from "./articleRetriever";
 import { PostgresBlogAgentRepository } from "./repository.postgres";
 import { BlogAgentService } from "./service";
 import { GenerationUsagePolicy } from "./usagePolicy";
@@ -40,20 +41,34 @@ export function getBlogAgentRuntime(): BlogAgentRuntime {
   if (currentRuntime?.signature === signature) return currentRuntime.value;
 
   const pool = getBlogAgentDatabasePool();
-  const indexer = config.embeddingConfigured
-    ? new ArticleIndexer({
-      repository: new PostgresArticleIndexRepository(pool),
-      embeddings: new DashScopeEmbeddingClient({
+  const articleIndexRepository = config.embeddingConfigured
+    ? new PostgresArticleIndexRepository(pool)
+    : null;
+  const embeddingClient = config.embeddingConfigured
+    ? new DashScopeEmbeddingClient({
         baseUrl: config.embeddingBaseUrl,
         apiKey: config.embeddingApiKey,
         model: config.embeddingModel,
         dimensions: config.embeddingDimensions,
         timeoutMs: config.embeddingTimeoutMs,
-      }),
+      })
+    : null;
+  const indexer = articleIndexRepository && embeddingClient
+    ? new ArticleIndexer({
+      repository: articleIndexRepository,
+      embeddings: embeddingClient,
       embeddingModel: config.embeddingModel,
       embeddingDimensions: config.embeddingDimensions,
     })
     : null;
+  const articleRetriever = articleIndexRepository && embeddingClient
+    ? new BlogScopedArticleRetriever({
+      repository: articleIndexRepository,
+      embeddings: embeddingClient,
+      embeddingModel: config.embeddingModel,
+      embeddingDimensions: config.embeddingDimensions,
+    })
+    : undefined;
   if (!config.enabled || !config.generationEnabled || !config.generationConfigured) {
     const value = { config, service: null, indexer };
     currentRuntime = { signature, value };
@@ -84,6 +99,7 @@ export function getBlogAgentRuntime(): BlogAgentRuntime {
       client,
       modelCacheKey: createModelCacheKey(config),
       cacheTtlMs: config.cacheTtlMs,
+      articleRetriever,
     }),
   };
   currentRuntime = { signature, value };
