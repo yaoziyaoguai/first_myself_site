@@ -32,14 +32,17 @@ npm run build
 npx vitest run \
   __tests__/lib/blog-agent \
   __tests__/api/blog-agent.test.ts \
+  __tests__/api/blog-agent-index.test.ts \
   __tests__/security/blog-agent-adversarial.test.ts \
   __tests__/components/blog-agent \
   __tests__/payload/blog-agent-migration.test.ts \
+  __tests__/payload/blog-agent-article-package-migration.test.ts \
+  __tests__/payload/blog-agent-publication-gate.test.ts \
   __tests__/deployment/blog-agent-defaults.test.ts \
   __tests__/scripts/blog-agent-canary.test.ts
 ```
 
-这些测试验证：单文章 Markdown 上下文、稳定标题锚点、grounded JSON 校验、缓存和配额、请求体严格校验、草稿/私密隔离、浮动面板竞态与安全 Markdown、默认关闭部署和 canary 脱敏输出。
+这些测试验证：单文章 Markdown fallback、文章包校验/切块、当前 Blog scoped retrieval、稳定标题锚点、grounded JSON 校验、缓存和配额、认证索引与发布门禁、请求体严格校验、草稿/私密隔离、浮动面板竞态与安全 Markdown、默认关闭部署和 canary 脱敏输出。
 
 ## 真实 PostgreSQL 15
 
@@ -62,14 +65,15 @@ docker run --rm --name blog-agent-postgres \
 BLOG_AGENT_TEST_DATABASE_URL=postgresql://blog_agent_test:blog_agent_test_password@127.0.0.1:55433/blog_agent_test \
 npx vitest run \
   __tests__/payload/blog-agent-migration.postgres.test.ts \
+  __tests__/payload/blog-agent-article-package-migration.postgres.test.ts \
   __tests__/lib/blog-agent/runtime.postgres.test.ts \
   __tests__/scripts/blog-agent-canary.postgres.test.ts
 ```
 
-真库测试证明 migration up/down 只管理 `blog_agent` schema、运行时只有三张最小表、缓存按文章/模型/问题 hash 隔离并过期、窗口/身份每日/全站每日配额在新 repository 实例和并发事务之间仍然成立。
+真库测试证明 migration up/down 不破坏无关表、文章包查询先锁定 `blog_id + package_hash + article_hash`、缓存按文章/模型/问题 hash 隔离并过期、窗口/身份每日/全站每日配额在新 repository 实例和并发事务之间仍然成立。
 
 ## 浏览器与上线前验证
 
 没有专用模型测试 Key 时，不要把真实个人 Key 放进本地浏览器测试。可以使用本地 OpenAI-compatible mock server 验证文章页机器人、桌面/移动面板、Escape 和焦点、错误重试、引用滚动、reduced motion，以及 private/draft/RichText-only 页面不显示入口。
 
-真实 provider canary 和生产验收按 [Blog Agent 运维手册](docs/blog-agent-operations.md) 执行。Canary 必须使用不含敏感信息的公开文章和供应商侧低额度专用 Key。
+真实 provider canary 和生产验收按 [Blog Agent 运维手册](docs/blog-agent-operations.md) 执行。文章包使用 `--require-package`，只有输出 `contextMode=article-package` 才能证明 scoped RAG 生效。Canary 必须使用审核过的公开文章和供应商侧低额度专用 Key。

@@ -3,27 +3,34 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import { answerFromArticle, type BlogAgentAnswerClient } from "../src/lib/blog-agent/answer";
+import type { ArticleIndexRepository } from "../src/lib/blog-agent/articleIndexRepository";
+import { PostgresArticleIndexRepository } from "../src/lib/blog-agent/articleIndexRepository.postgres";
 import { buildArticleEvidence } from "../src/lib/blog-agent/articleMarkdown";
+import { BlogScopedArticleRetriever } from "../src/lib/blog-agent/articleRetriever";
 import { readBlogAgentConfig, type BlogAgentConfig } from "../src/lib/blog-agent/config";
+import { DashScopeEmbeddingClient, type ArticleEmbeddingClient } from "../src/lib/blog-agent/embeddingClient";
 import { OpenAICompatibleBlogAgentClient } from "../src/lib/blog-agent/modelClient";
+import type { BlogAgentQueryPool } from "../src/lib/blog-agent/repository.postgres";
+import type { PublicMarkdownArticle } from "../src/lib/blog-agent/types";
 
-type CanaryArguments = { slug: string; question: string };
+type CanaryArguments = { slug: string; question: string; requirePackage: boolean };
 
 type CanaryArticleStore = {
   loadPublicMarkdownArticle(slug: string): Promise<Record<string, unknown> | null>;
+  getReadyPackage: ArticleIndexRepository["getReadyPackage"];
   destroy(): Promise<void>;
 };
 
-type CanaryQueryPool = {
-  query(
-    text: string,
-    values?: readonly unknown[],
-  ): Promise<{ rows: Record<string, unknown>[] }>;
+type CanaryQueryPool = BlogAgentQueryPool & {
   end(): Promise<void>;
 };
 
 export class PostgresCanaryArticleStore implements CanaryArticleStore {
-  constructor(private readonly pool: CanaryQueryPool) {}
+  private readonly articleIndex: Pick<ArticleIndexRepository, "getReadyPackage">;
+
+  constructor(private readonly pool: CanaryQueryPool) {
+    this.articleIndex = new PostgresArticleIndexRepository(pool);
+  }
 
   async loadPublicMarkdownArticle(
     slug: string,
@@ -35,6 +42,10 @@ export class PostgresCanaryArticleStore implements CanaryArticleStore {
          "title",
          "excerpt",
          "content_markdown" AS "contentMarkdown",
+         "agent_context_required" AS "agentContextRequired",
+         "agent_package_hash" AS "agentPackageHash",
+         "agent_index_status" AS "agentIndexStatus",
+         "agent_indexed_package_hash" AS "agentIndexedPackageHash",
          "status",
          "visibility"
        FROM "blog"
@@ -47,6 +58,12 @@ export class PostgresCanaryArticleStore implements CanaryArticleStore {
     return result.rows[0] ?? null;
   }
 
+  async getReadyPackage(
+    request: Parameters<ArticleIndexRepository["getReadyPackage"]>[0],
+  ) {
+    return this.articleIndex.getReadyPackage(request);
+  }
+
   async destroy(): Promise<void> {
     await this.pool.end();
   }
@@ -56,6 +73,7 @@ export type BlogAgentCanaryDependencies = {
   readConfig: () => BlogAgentConfig;
   openArticleStore: () => Promise<CanaryArticleStore>;
   createClient: (config: BlogAgentConfig) => BlogAgentAnswerClient;
+  createEmbeddingClient: (config: BlogAgentConfig) => ArticleEmbeddingClient;
   createQueryId: () => string;
   stdout: (line: string) => void;
   stderr: (line: string) => void;
@@ -85,16 +103,31 @@ const defaultDependencies: BlogAgentCanaryDependencies = {
     model: config.model,
     timeoutMs: config.modelTimeoutMs,
   }),
+  createEmbeddingClient: (config) => new DashScopeEmbeddingClient({
+    baseUrl: config.embeddingBaseUrl,
+    apiKey: config.embeddingApiKey,
+    model: config.embeddingModel,
+    dimensions: config.embeddingDimensions,
+    timeoutMs: config.embeddingTimeoutMs,
+  }),
   createQueryId: randomUUID,
   stdout: (line) => console.log(line),
   stderr: (line) => console.error(line),
 };
 
 export function parseCanaryArguments(argv: string[]): CanaryArguments {
-  if (argv.length !== 2) throw new CanaryFailure("Invalid canary arguments");
+  if (argv.length !== 2 && argv.length !== 3) {
+    throw new CanaryFailure("Invalid canary arguments");
+  }
   const slugValues = argv.filter((value) => value.startsWith("--slug="));
   const questionValues = argv.filter((value) => value.startsWith("--question="));
-  if (slugValues.length !== 1 || questionValues.length !== 1) {
+  const packageFlags = argv.filter((value) => value === "--require-package");
+  if (
+    slugValues.length !== 1 ||
+    questionValues.length !== 1 ||
+    packageFlags.length > 1 ||
+    slugValues.length + questionValues.length + packageFlags.length !== argv.length
+  ) {
     throw new CanaryFailure("Invalid canary arguments");
   }
   const slug = slugValues[0].slice("--slug=".length).trim();
@@ -105,7 +138,42 @@ export function parseCanaryArguments(argv: string[]): CanaryArguments {
   if (!question || question.length > 500) {
     throw new CanaryFailure("Invalid canary question");
   }
-  return { slug, question };
+  return { slug, question, requirePackage: packageFlags.length === 1 };
+}
+
+function publicArticle(
+  raw: Record<string, unknown>,
+  slug: string,
+): PublicMarkdownArticle | null {
+  if (
+    (typeof raw.id !== "number" && typeof raw.id !== "string") ||
+    raw.status !== "published" ||
+    raw.visibility !== "public" ||
+    typeof raw.slug !== "string" ||
+    raw.slug !== slug ||
+    typeof raw.title !== "string" ||
+    typeof raw.contentMarkdown !== "string" ||
+    !raw.contentMarkdown.trim()
+  ) {
+    return null;
+  }
+  return {
+    id: String(raw.id),
+    slug: raw.slug,
+    title: raw.title,
+    excerpt: typeof raw.excerpt === "string" ? raw.excerpt : "",
+    contentMarkdown: raw.contentMarkdown,
+    agentContextRequired: raw.agentContextRequired === true,
+    agentPackageHash: typeof raw.agentPackageHash === "string"
+      ? raw.agentPackageHash
+      : undefined,
+    agentIndexStatus: typeof raw.agentIndexStatus === "string"
+      ? raw.agentIndexStatus
+      : undefined,
+    agentIndexedPackageHash: typeof raw.agentIndexedPackageHash === "string"
+      ? raw.agentIndexedPackageHash
+      : undefined,
+  };
 }
 
 async function runBlogAgentCanary(
@@ -125,25 +193,30 @@ async function runBlogAgentCanary(
     if (!rawArticle || typeof rawArticle !== "object" || Array.isArray(rawArticle)) {
       throw new CanaryFailure("Public Markdown article not found");
     }
-    const article = rawArticle as Record<string, unknown>;
-    if (
-      article.status !== "published" ||
-      article.visibility !== "public" ||
-      typeof article.slug !== "string" ||
-      article.slug !== args.slug ||
-      typeof article.title !== "string" ||
-      typeof article.contentMarkdown !== "string" ||
-      !article.contentMarkdown.trim()
-    ) {
+    const article = publicArticle(rawArticle, args.slug);
+    if (!article) {
       throw new CanaryFailure("Public Markdown article not found");
     }
 
-    const evidence = buildArticleEvidence({
-      title: article.title,
-      excerpt: typeof article.excerpt === "string" ? article.excerpt : "",
-      markdown: article.contentMarkdown,
-      question: args.question,
-    });
+    const prepared = config.embeddingConfigured
+      ? await new BlogScopedArticleRetriever({
+        repository: articleStore,
+        embeddings: dependencies.createEmbeddingClient(config),
+        embeddingModel: config.embeddingModel,
+        embeddingDimensions: config.embeddingDimensions,
+      }).prepare(article)
+      : null;
+    if (args.requirePackage && !prepared) {
+      throw new CanaryFailure("Ready article package not found");
+    }
+    const evidence = prepared
+      ? await prepared.buildEvidence(args.question)
+      : buildArticleEvidence({
+        title: article.title,
+        excerpt: article.excerpt,
+        markdown: article.contentMarkdown,
+        question: args.question,
+      });
     if (evidence.sections.length === 0) {
       throw new CanaryFailure("Article has no usable evidence");
     }
@@ -161,6 +234,7 @@ async function runBlogAgentCanary(
       citationCount: answer.citationIds.length,
       inputTokens: answer.usage.inputTokens,
       outputTokens: answer.usage.outputTokens,
+      contextMode: prepared ? "article-package" : "markdown",
     }));
   } finally {
     await articleStore?.destroy();

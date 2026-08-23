@@ -2,7 +2,9 @@ import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import type { BlogAgentAnswerClient } from "@/lib/blog-agent/answer";
+import { hashPublicArticle } from "@/lib/blog-agent/articlePackage";
 import type { BlogAgentConfig } from "@/lib/blog-agent/config";
+import type { ReadyArticlePackage } from "@/lib/blog-agent/articleIndexRepository";
 import {
   executeBlogAgentCanary,
   parseCanaryArguments,
@@ -25,11 +27,18 @@ const config: BlogAgentConfig = {
   globalDaily: 100,
   perIdentityConcurrency: 1,
   globalConcurrency: 3,
+  embeddingConfigured: true,
+  embeddingBaseUrl: "https://dashscope.example/v1",
+  embeddingApiKey: "embedding-secret-api-key",
+  embeddingModel: "qwen3.7-text-embedding",
+  embeddingDimensions: 1024,
+  embeddingTimeoutMs: 15_000,
 };
 
 function createDependencies(options?: {
   article?: Record<string, unknown>;
   client?: BlogAgentAnswerClient;
+  articlePackage?: ReadyArticlePackage | null;
 }) {
   const loadPublicMarkdownArticle = vi.fn().mockResolvedValue(
     options?.article ?? {
@@ -43,6 +52,7 @@ function createDependencies(options?: {
     },
   );
   const destroy = vi.fn().mockResolvedValue(undefined);
+  const getReadyPackage = vi.fn().mockResolvedValue(options?.articlePackage ?? null);
   const client = options?.client ?? {
     complete: vi.fn().mockResolvedValue({
       content: JSON.stringify({
@@ -60,9 +70,13 @@ function createDependencies(options?: {
     readConfig: () => config,
     openArticleStore: vi.fn().mockResolvedValue({
       loadPublicMarkdownArticle,
+      getReadyPackage,
       destroy,
     }),
     createClient: () => client,
+    createEmbeddingClient: () => ({
+      embed: vi.fn().mockResolvedValue([Array.from({ length: 1024 }, () => 0.01)]),
+    }),
     createQueryId: () => "query-canary-1",
     stdout,
     stderr,
@@ -72,6 +86,7 @@ function createDependencies(options?: {
     loadPublicMarkdownArticle,
     destroy,
     client,
+    getReadyPackage,
     stdout,
     stderr,
   };
@@ -81,7 +96,8 @@ describe("Blog Agent canary", () => {
   it("uses a parameterized read-only query for the one public article", async () => {
     const query = vi.fn().mockResolvedValue({ rows: [] });
     const end = vi.fn().mockResolvedValue(undefined);
-    const store = new PostgresCanaryArticleStore({ query, end });
+    const connect = vi.fn().mockRejectedValue(new Error("unused"));
+    const store = new PostgresCanaryArticleStore({ query, connect, end });
 
     await expect(store.loadPublicMarkdownArticle("doris-write-path"))
       .resolves.toBeNull();
@@ -124,6 +140,18 @@ describe("Blog Agent canary", () => {
     expect(() => parseCanaryArguments(argv)).toThrow();
   });
 
+  it("accepts a single explicit package canary flag", () => {
+    expect(parseCanaryArguments([
+      "--slug=agent-loop",
+      "--question=为什么不能复用批准？",
+      "--require-package",
+    ])).toEqual({
+      slug: "agent-loop",
+      question: "为什么不能复用批准？",
+      requirePackage: true,
+    });
+  });
+
   it("loads one public article and prints only a redacted result summary", async () => {
     const fixture = createDependencies();
     const code = await executeBlogAgentCanary(
@@ -146,6 +174,85 @@ describe("Blog Agent canary", () => {
     expect(output).not.toContain(config.apiKey);
     expect(output).not.toContain("为什么批量写入");
     expect(output).not.toContain("DATABASE_URL");
+    expect(output).toContain('"contextMode":"markdown"');
+  });
+
+  it("proves a ready current-article package was used when required", async () => {
+    const article = {
+      id: "7",
+      slug: "agent-loop",
+      title: "Agent Loop",
+      excerpt: "受控循环",
+      contentMarkdown: "# 授权边界\n正文没有 executable drift 的细节。",
+      status: "published",
+      visibility: "public",
+      agentContextRequired: true,
+      agentPackageHash: "b".repeat(64),
+      agentIndexStatus: "ready",
+      agentIndexedPackageHash: "b".repeat(64),
+    };
+    const articlePackage: ReadyArticlePackage = {
+      blogId: article.id,
+      articleHash: hashPublicArticle(article),
+      packageHash: article.agentPackageHash,
+      manifest: {},
+      embeddingModel: config.embeddingModel,
+      embeddingDimensions: config.embeddingDimensions,
+      indexedAt: new Date("2026-08-23T00:00:00Z"),
+      chunks: [{
+        id: "material:authority:0",
+        sourceKind: "code",
+        sourcePath: "agent/runtime/state.py",
+        heading: "权限租约",
+        anchor: "授权边界",
+        ordinal: 0,
+        content: "command fingerprint 漂移时旧 lease 不得复用。",
+        embedding: Array.from({ length: 1024 }, () => 0.01),
+      }],
+    };
+    const fixture = createDependencies({
+      article,
+      articlePackage,
+      client: {
+        complete: vi.fn().mockResolvedValue({
+          content: JSON.stringify({
+            answer: "批准与 command fingerprint 精确绑定。",
+            citationIds: ["material:authority:0"],
+            insufficientEvidence: false,
+          }),
+          inputTokens: 9,
+          outputTokens: 4,
+        }),
+      },
+    });
+
+    const code = await executeBlogAgentCanary([
+      "--slug=agent-loop",
+      "--question=为什么不能复用批准？",
+      "--require-package",
+    ], fixture.dependencies);
+
+    expect(code).toBe(0);
+    expect(fixture.getReadyPackage).toHaveBeenCalledWith({
+      blogId: "7",
+      articleHash: articlePackage.articleHash,
+      packageHash: articlePackage.packageHash,
+    });
+    expect(fixture.stdout.mock.calls.flat().join("\n"))
+      .toContain('"contextMode":"article-package"');
+  });
+
+  it("fails a required package canary instead of silently using Markdown", async () => {
+    const fixture = createDependencies();
+    const code = await executeBlogAgentCanary([
+      "--slug=doris-write-path",
+      "--question=为什么？",
+      "--require-package",
+    ], fixture.dependencies);
+
+    expect(code).toBe(1);
+    expect(fixture.client.complete).not.toHaveBeenCalled();
+    expect(fixture.stdout).not.toHaveBeenCalled();
   });
 
   it.each([

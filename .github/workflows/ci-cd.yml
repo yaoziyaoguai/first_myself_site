@@ -79,6 +79,7 @@ jobs:
         run: >-
           npx vitest run
           __tests__/payload/blog-agent-migration.postgres.test.ts
+          __tests__/payload/blog-agent-article-package-migration.postgres.test.ts
           __tests__/lib/blog-agent/runtime.postgres.test.ts
           __tests__/scripts/blog-agent-canary.postgres.test.ts
         env:
@@ -116,23 +117,35 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         env:
           BLOG_AGENT_API_KEY: ${{ secrets.BLOG_AGENT_API_KEY }}
+          BLOG_AGENT_ENABLED: ${{ vars.BLOG_AGENT_ENABLED }}
+          BLOG_AGENT_GENERATION_ENABLED: ${{ vars.BLOG_AGENT_GENERATION_ENABLED }}
           BLOG_AGENT_BASE_URL: ${{ vars.BLOG_AGENT_BASE_URL }}
           BLOG_AGENT_MODEL: ${{ vars.BLOG_AGENT_MODEL }}
           DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          BLOG_AGENT_EMBEDDING_BASE_URL: ${{ vars.BLOG_AGENT_EMBEDDING_BASE_URL }}
+          BLOG_AGENT_EMBEDDING_MODEL: ${{ vars.BLOG_AGENT_EMBEDDING_MODEL }}
+          BLOG_AGENT_EMBEDDING_DIMENSIONS: ${{ vars.BLOG_AGENT_EMBEDDING_DIMENSIONS }}
+          BLOG_AGENT_EMBEDDING_TIMEOUT_MS: ${{ vars.BLOG_AGENT_EMBEDDING_TIMEOUT_MS }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: BLOG_AGENT_API_KEY,BLOG_AGENT_BASE_URL,BLOG_AGENT_MODEL,DASHSCOPE_API_KEY
+          envs: BLOG_AGENT_API_KEY,BLOG_AGENT_ENABLED,BLOG_AGENT_GENERATION_ENABLED,BLOG_AGENT_BASE_URL,BLOG_AGENT_MODEL,DASHSCOPE_API_KEY,BLOG_AGENT_EMBEDDING_BASE_URL,BLOG_AGENT_EMBEDDING_MODEL,BLOG_AGENT_EMBEDDING_DIMENSIONS,BLOG_AGENT_EMBEDDING_TIMEOUT_MS
           command_timeout: 30m
           script: |
             set -euo pipefail
             cd "${{ secrets.PROJECT_PATH }}"
 
             if [ -z "${BLOG_AGENT_API_KEY:-}" ] || \
+               [ -z "${BLOG_AGENT_ENABLED:-}" ] || \
+               [ -z "${BLOG_AGENT_GENERATION_ENABLED:-}" ] || \
                [ -z "${BLOG_AGENT_BASE_URL:-}" ] || \
                [ -z "${BLOG_AGENT_MODEL:-}" ] || \
-               [ -z "${DASHSCOPE_API_KEY:-}" ]; then
+               [ -z "${DASHSCOPE_API_KEY:-}" ] || \
+               [ -z "${BLOG_AGENT_EMBEDDING_BASE_URL:-}" ] || \
+               [ -z "${BLOG_AGENT_EMBEDDING_MODEL:-}" ] || \
+               [ -z "${BLOG_AGENT_EMBEDDING_DIMENSIONS:-}" ] || \
+               [ -z "${BLOG_AGENT_EMBEDDING_TIMEOUT_MS:-}" ]; then
               echo "Blog Agent provider configuration is incomplete in GitHub" >&2
               exit 1
             fi
@@ -223,7 +236,10 @@ jobs:
             fi
 
             "${compose[@]}" ps
-            unset BLOG_AGENT_API_KEY BLOG_AGENT_BASE_URL BLOG_AGENT_MODEL DASHSCOPE_API_KEY
+            unset BLOG_AGENT_API_KEY BLOG_AGENT_ENABLED BLOG_AGENT_GENERATION_ENABLED
+            unset BLOG_AGENT_BASE_URL BLOG_AGENT_MODEL DASHSCOPE_API_KEY
+            unset BLOG_AGENT_EMBEDDING_BASE_URL BLOG_AGENT_EMBEDDING_MODEL
+            unset BLOG_AGENT_EMBEDDING_DIMENSIONS BLOG_AGENT_EMBEDDING_TIMEOUT_MS
             # 清理悬空镜像，释放磁盘空间
             docker image prune -f
             echo "✅ 部署完成"

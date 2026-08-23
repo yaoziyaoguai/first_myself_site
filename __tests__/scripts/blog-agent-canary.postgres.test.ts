@@ -21,6 +21,10 @@ describePostgres("Blog Agent canary article lookup on PostgreSQL 15", () => {
         "title" varchar NOT NULL,
         "excerpt" varchar,
         "content_markdown" text,
+        "agent_context_required" boolean NOT NULL DEFAULT false,
+        "agent_package_hash" varchar,
+        "agent_index_status" varchar NOT NULL DEFAULT 'none',
+        "agent_indexed_package_hash" varchar,
         "status" varchar NOT NULL,
         "visibility" varchar NOT NULL
       )
@@ -55,6 +59,7 @@ describePostgres("Blog Agent canary article lookup on PostgreSQL 15", () => {
         );
         return { rows: result.rows };
       },
+      connect: async () => database.pool.connect(),
       end: async () => undefined,
     });
 

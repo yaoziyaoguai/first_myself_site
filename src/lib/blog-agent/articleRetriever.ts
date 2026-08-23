@@ -102,7 +102,7 @@ function rankSections(
 
 export class BlogScopedArticleRetriever {
   constructor(private readonly dependencies: {
-    repository: ArticleIndexRepository;
+    repository: Pick<ArticleIndexRepository, "getReadyPackage">;
     embeddings: ArticleEmbeddingClient;
     embeddingModel: string;
     embeddingDimensions: number;
