@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
 import { summarizeExcerpt } from "@/lib/discovery";
 import { getPayloadAPI } from "@/lib/payload";
+import { formatSiteDate } from "@/lib/siteDate";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +59,7 @@ export default async function BlogPage() {
                   <span className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
                     <time>
                       {post.publishedDate
-                        ? new Date(post.publishedDate).toISOString().slice(0, 10)
+                        ? formatSiteDate(post.publishedDate)
                         : ""}
                     </time>
                     {post.readingTime ? <span>{post.readingTime}</span> : null}
