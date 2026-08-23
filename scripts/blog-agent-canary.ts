@@ -197,15 +197,29 @@ async function runBlogAgentCanary(
   dependencies: BlogAgentCanaryDependencies,
 ): Promise<void> {
   const args = parseCanaryArguments(argv);
-  const config = dependencies.readConfig();
+  let config: BlogAgentConfig;
+  try {
+    config = dependencies.readConfig();
+  } catch {
+    throw new CanaryFailure("configuration-unavailable");
+  }
   if (!config.generationConfigured) {
     throw new CanaryFailure("configuration-unavailable");
   }
 
   let articleStore: CanaryArticleStore | undefined;
   try {
-    articleStore = await dependencies.openArticleStore();
-    const rawArticle = await articleStore.loadPublicMarkdownArticle(args.slug);
+    try {
+      articleStore = await dependencies.openArticleStore();
+    } catch {
+      throw new CanaryFailure("database-unavailable");
+    }
+    let rawArticle: Record<string, unknown> | null;
+    try {
+      rawArticle = await articleStore.loadPublicMarkdownArticle(args.slug);
+    } catch {
+      throw new CanaryFailure("database-unavailable");
+    }
     if (!rawArticle || typeof rawArticle !== "object" || Array.isArray(rawArticle)) {
       throw new CanaryFailure("article-not-found");
     }
