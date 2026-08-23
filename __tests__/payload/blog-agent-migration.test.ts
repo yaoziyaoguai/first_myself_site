@@ -9,7 +9,20 @@ import { migrations } from "@/payload/migrations";
 
 describe("blog agent runtime migration", () => {
   it("registers the migration after existing production migrations", () => {
-    expect(migrations.at(1)).toEqual({
+    const pageViewsIndex = migrations.findIndex(
+      ({ name }) => name === "20260810_110000_add_page_views",
+    );
+    const runtimeIndex = migrations.findIndex(
+      ({ name }) => name === "20260821_000000_add_blog_agent_runtime",
+    );
+    const packageIndex = migrations.findIndex(
+      ({ name }) => name === "20260823_000000_add_blog_agent_article_packages",
+    );
+
+    expect(pageViewsIndex).toBeGreaterThan(-1);
+    expect(runtimeIndex).toBeGreaterThan(pageViewsIndex);
+    expect(packageIndex).toBeGreaterThan(runtimeIndex);
+    expect(migrations[runtimeIndex]).toEqual({
       name: "20260821_000000_add_blog_agent_runtime",
       up: blogAgentRuntimeMigration.up,
       down: blogAgentRuntimeMigration.down,

@@ -18,6 +18,7 @@ import Media from "./src/payload/collections/Media";
 import Blog from "./src/payload/collections/Blog";
 import Comments from "./src/payload/collections/Comments";
 import Likes from "./src/payload/collections/Likes";
+import PageViews from "./src/payload/collections/PageViews";
 
 validateRequiredEnvVars();
 
@@ -31,7 +32,7 @@ export default buildConfig({
   },
   editor: lexicalEditor(),
   globals: [Home, SiteSettings, About, Contact],
-  collections: [Users, Media, Blog, Projects, Comments, Likes],
+  collections: [Users, Media, Blog, Projects, Comments, Likes, PageViews],
   db: postgresAdapter({
     pool: {
       connectionString: process.env.DATABASE_URL!,

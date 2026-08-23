@@ -1,102 +1,91 @@
 # STATUS.md
 
 > **User-Defined Harness File**
-> 不是 Claude Code 默认系统文件，而是用户自定义的仓库级记忆机制。
-> **职责**：存储**当前仍然有效**的项目状态快照，不是历史流水账。
-
----
+> 当前仍然有效的项目状态快照，不记录临时调试过程。
 
 ## 项目基础
 
-**名称**：个人技术博客与实践展示站点
-**仓库**：first_myself_site
-**线上地址**：https://wangjinkun333.me
-
----
+- **名称**：个人博客与作品展示站点
+- **仓库**：`yaoziyaoguai/first_myself_site`
+- **线上地址**：<https://wangjinkun333.me>
+- **生产环境**：阿里云 ECS
 
 ## 技术栈
 
-- **框架**：Next.js 16（App Router）
-- **CMS**：Payload CMS 3.x
-- **数据库**：PostgreSQL 15
-- **样式**：Tailwind CSS 4 + shadcn/ui
-- **部署**：GitHub Actions → Docker Compose → 阿里云 ECS
-- **Blog Agent**：DeepSeek Flash 生成 + DashScope Qwen Embedding + Blog 内 RAG
-
----
+- Next.js 16.3（App Router）与 React 19.2
+- Payload CMS 3.87
+- PostgreSQL 15
+- Tailwind CSS 4 与 shadcn/ui
+- Docker Compose、Nginx、GitHub Actions
 
 ## 当前阶段
 
-**阶段**：Blog Agent V1 发布候选已完成，等待走 PR 与生产灰度链路
+**阶段**：核心内容、互动、运营统计和 GitHub → 阿里云部署链路已上线；Blog Agent V1 已完成本地发布候选验证，仍待 PR 与生产灰度。
 
-**一句话概括**：每篇公开 Blog 有独立悬浮 Agent；问题、检索、引用和可选文章数据包都严格限制在当前 Blog，不跨文章检索。
-
----
-
-## 当前主线任务
-
-1. 完成 `codex/blog-agent-v1` 的最终审计与 PR
-2. 先以关闭开关部署到阿里云，执行迁移与健康检查
-3. 通过全局发布 Skill 发布并索引实验文章
-4. 开启 Agent 后执行生产 canary，失败则立即关闭开关并重新部署
-
----
+**定位**：以低调的方式记录数据工程、AI 评测和 Agent 系统的学习、实验与转型过程。
 
 ## 当前整体状态
 
 | 模块 | 状态 |
-|------|------|
-| Blog 文章管理 | ✅ Markdown + Lexical 双模式 |
-| Project 展示 | ✅ 完成 |
-| Payload Admin | ✅ 完成 |
-| Markdown 编辑器 | ✅ 双栏预览与滚动同步 |
-| 访问与停留统计 | ✅ 完成 |
-| Blog Agent UI | ✅ 桌面浮层 + 移动端 bottom sheet |
-| Blog 内 RAG | ✅ 混合检索、引用、无证据拒答 |
-| 文章数据包 | ✅ 可选、create-only、Git 审计、Blog 生命周期绑定 |
-| Agent 安全 | ✅ 双开关、限额、并发限制、输入边界、私有材料防逐字导出 |
-| 发布 Skill | ✅ Markdown/图片/文章数据包离线发布，Keychain 凭据 |
-| 生产发布 | ⏳ PR 与阿里云灰度验证待完成 |
-
----
+| --- | --- |
+| 首页、关于、联系和站点信息 | 已由 Payload 配置，仓库默认值只作空值兜底 |
+| 最近在学习 | 后台“首页与最近学习”可维护 |
+| 项目与实验 | 后台可维护标题、描述、标签、亮点、排序和外部链接 |
+| Blog | Markdown、GFM、图片、草稿/公开/私有可见性已上线 |
+| Markdown 编辑器 | 双栏预览和基于内容锚点的双向滚动同步已上线验证 |
+| 评论与点赞 | 受控公开接口、匿名 HMAC 身份和权限隔离已上线 |
+| 访问统计 | 后台可查看访问、估算访客、有效停留、阅读深度和热门页面 |
+| 内容发布 Skill | 全局 `publish-site-article` 可从任意 Codex 项目上传 Markdown 与图片 |
+| Blog Agent UI | 桌面浮层与移动端 bottom sheet 已实现，生产开关默认关闭 |
+| Blog 内 RAG | 当前文章 Markdown 为基线；可选文章包补充同一 Blog 的代码、文档、数据和图片说明 |
+| Agent 安全 | 不跨 Blog；服务端 Key、持久化配额、并发限制、无证据拒答和紧急双开关已实现 |
+| SEO / 发现 | sitemap、RSS 和 canonical metadata 已上线 |
+| 测试 | 合并候选已通过 70 个测试文件、555 个测试、ESLint、TypeScript、PostgreSQL 15 与生产 Docker 构建；PR CI 仍是最终门禁 |
+| 部署 | PR → CI → main → 阿里云串行部署，带备份、健康检查和应用镜像回滚；数据库恢复需人工处理 |
 
 ## 当前 Blockers
 
-无代码阻碍。
+无影响网站可用性的阻碍。
 
-生产注意项：
+Blog Agent 尚未对访客开放；需要先完成 PR、关闭开关部署、实验文章索引和生产 canary。
 
-- 首次部署必须保持 `BLOG_AGENT_ENABLED=false` 与 `BLOG_AGENT_GENERATION_ENABLED=false`
-- Payload migration 必须在应用切换前从 candidate image 执行
-- 生产 canary 失败时，通过 GitHub Repository Variables 关闭两个开关并手动重新部署
-- 曾在对话中暴露过模型 API Key，上线稳定后应轮换 DeepSeek 与 DashScope Key
+仍需持续关注：
 
----
+- 证书续期和 Nginx 配置在服务器层，不由本仓库管理
+- 备份尚未自动复制到 ECS 之外，也没有定期恢复演练
+- 尚未接入独立的外部 uptime monitoring
+- 进程内限流不适合未来的多实例部署
+- 对话中使用过的模型 API Key 应在上线稳定后轮换
+
+## 下一步建议
+
+1. 完成 Blog Agent PR，并以两个开关关闭的状态部署 migration 与页面代码
+2. 通过全局发布 Skill 发布和索引实验文章，运行关闭入口时的 package canary
+3. 开启访客入口并执行公网 canary；失败时立即关闭两个 Repository Variables 并重部署
+4. 配置异地备份、恢复演练和低维护成本的 uptime / TLS 监控
 
 ## 重要决策与约束
 
-- **产品边界**：Agent 入口在 Blog 详情页，不能跨 Blog 检索或回答
-- **内容基线**：每篇文章的 Markdown 永远是基础上下文
-- **深层数据**：代码、文档、图片说明和数据证据只通过可选文章数据包补充
-- **发布方式**：仅离线发布，不实时连接本地 Codex
-- **安全默认**：功能开关默认关闭；模型 Key 只在服务端；无证据时拒答
-- **发布链路**：独立分支 → GitHub PR/CI → 合并 → 阿里云部署 → canary
-- **设计系统**：米白纸张感、黑色排版、蓝色交互强调；不做大改版
-- **技术约束**：TypeScript 严格模式；项目使用 ESM；生产不得保留 `.env.local`
-
----
+- 个人定位强调“学习和转型”，不做夸大的专家包装
+- 生产代码不在服务器直接修改，始终走 GitHub PR 和部署工作流
+- 内容上传默认草稿且私有，公开发布需要单独明确确认
+- CMS 已编辑内容优先，迁移和兜底不能覆盖用户数据
+- 访问统计无 Cookie，并尊重 DNT/GPC
+- Nginx 必须覆盖代理身份头，应用端口不能直接暴露公网
+- Agent 的问题、检索、引用和数据上下文必须限制在当前 Blog，不能跨文章
+- Markdown 永远是基础上下文；可选文章包仅离线发布，不实时连接本地 Codex
+- Agent 的模型 Key 只在服务端，功能开关默认关闭，无足够证据时拒答
 
 ## 常用命令
 
 ```bash
 npm run dev
 npm run lint
+npx tsc --noEmit -p tsconfig.ci.json
 npm test
 npm run build
-npm run payload -- run payload.config.ts  # 验证 Payload CLI 能加载生产配置
+npm run payload -- run payload.config.ts
 ```
 
----
-
 **最后更新**：2026-08-23
-**更新说明**：记录 Blog Agent V1、文章级数据组织、安全边界、发布 Skill 与阿里云灰度计划
+**更新说明**：保留已上线的统计与编辑器能力，并记录 Blog Agent V1 的文章边界、安全设计和灰度发布状态。
