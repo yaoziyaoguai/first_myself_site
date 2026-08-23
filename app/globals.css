@@ -302,8 +302,8 @@
 
 .blog-agent-icon-button {
   display: grid;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.75rem;
+  height: 2.75rem;
   flex: 0 0 auto;
   place-items: center;
   border-radius: 999px;
@@ -336,7 +336,7 @@
 }
 
 .blog-agent-suggestions button {
-  min-height: 2rem;
+  min-height: 2.75rem;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--background);
@@ -382,6 +382,7 @@
 
 .blog-agent-status-error button {
   flex: 0 0 auto;
+  min-height: 2.75rem;
   border-bottom: 1px solid currentColor;
   font-weight: 650;
 }
@@ -452,7 +453,7 @@
 
 .blog-agent-citations button {
   display: flex;
-  min-height: 2.45rem;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
@@ -503,8 +504,8 @@
 
 .blog-agent-form button {
   display: grid;
-  width: 2.35rem;
-  height: 2.35rem;
+  width: 2.75rem;
+  height: 2.75rem;
   flex: 0 0 auto;
   place-items: center;
   border-radius: 0.7rem;
@@ -515,6 +516,24 @@
 .blog-agent-form button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+@media (max-width: 79.999rem) {
+  .blog-agent-root:has(.blog-agent-panel) .blog-agent-trigger {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .blog-agent-panel {
+    right: 0;
+    bottom: 0;
+    left: 0;
+    max-height: 84svh;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 1.35rem 1.35rem 0 0;
+  }
 }
 
 @media (min-width: 80rem) {
