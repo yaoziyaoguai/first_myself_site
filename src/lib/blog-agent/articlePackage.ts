@@ -294,7 +294,9 @@ export function buildArticlePackageChunks(input: {
     throw new ArticlePackageValidationError("文章包主 Markdown 超过 200 KiB");
   }
   const chunks: Array<Omit<ArticleChunkRecord, "embedding">> = [];
-  for (const section of parseArticleMarkdown(input.markdown).sections) {
+  const articleSections = parseArticleMarkdown(input.markdown).sections;
+  const renderedAnchors = new Set(articleSections.map((section) => section.anchor));
+  for (const section of articleSections) {
     splitContent(section.content, ARTICLE_CHUNK_CHARACTERS, ARTICLE_CHUNK_OVERLAP)
       .forEach((content, piece) => {
         chunks.push({
@@ -309,6 +311,12 @@ export function buildArticlePackageChunks(input: {
       });
   }
   for (const source of input.package.sources) {
+    const sourceAnchor = slugifyArticleHeading(source.sectionAnchor);
+    if (!renderedAnchors.has(sourceAnchor)) {
+      throw new ArticlePackageValidationError(
+        `source sectionAnchor 不存在于文章: ${source.path}`,
+      );
+    }
     splitContent(source.content, MATERIAL_CHUNK_CHARACTERS, MATERIAL_CHUNK_OVERLAP)
       .forEach((content, piece) => {
         chunks.push({
@@ -316,7 +324,7 @@ export function buildArticlePackageChunks(input: {
           sourceKind: source.kind,
           sourcePath: source.path,
           heading: source.label,
-          anchor: slugifyArticleHeading(source.sectionAnchor),
+          anchor: sourceAnchor,
           ordinal: chunks.length,
           content,
         });

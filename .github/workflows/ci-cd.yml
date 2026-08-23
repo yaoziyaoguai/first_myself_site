@@ -151,6 +151,10 @@ jobs:
               echo "Blog Agent provider configuration is incomplete in GitHub" >&2
               exit 1
             fi
+            if [ "$BLOG_AGENT_EMBEDDING_DIMENSIONS" != "1024" ]; then
+              echo "BLOG_AGENT_EMBEDDING_DIMENSIONS must be 1024" >&2
+              exit 1
+            fi
 
             compose=(docker compose --env-file .env.docker.prod -f docker/docker-compose.prod.yml)
             previous_image="$(docker inspect --format='{{.Image}}' first_myself_site_prod 2>/dev/null || true)"

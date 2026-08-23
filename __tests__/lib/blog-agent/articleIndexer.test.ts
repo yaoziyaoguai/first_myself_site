@@ -11,7 +11,7 @@ const repository = {
 
 const payload = {
   version: 1,
-  packageHash: "a217e0d45262e2832249ff7cd7de7972f2d818ebd8fc1616fdcf6a7b0275a492",
+  packageHash: "9890d9f085d9ce2937001634303819f2336cefb28717463592bc3313b95b635e",
   sourceCommit: "a".repeat(40),
   mainSha256: "da1a7634bf82fdcd88624385c313a9496a2b43f469ec545693d6199c03989c2f",
   manifestPath: "docs/agent-loop.agent.json",
@@ -19,7 +19,7 @@ const payload = {
     path: "src/loop.py",
     kind: "code",
     label: "Agent 主循环",
-    sectionAnchor: "核心实现",
+    sectionAnchor: "top",
     sha256: "08a01a1cf8ff85e271bbdfa903feebc565b8c2546c2e49d77b817e73dfc1999a",
     content: "while step < 3:\n    step += 1",
   }],

@@ -115,4 +115,16 @@ describe("article package chunking", () => {
     expect(chunks.every((chunk) => chunk.content.length <= 1_700)).toBe(true);
     expect(new Set(chunks.map((chunk) => chunk.id)).size).toBe(chunks.length);
   });
+
+  it("rejects a material citation anchor that is absent from the article", () => {
+    const validated = validateArticlePackagePayload(VALID_PAYLOAD, {
+      markdown: "主要内容",
+    });
+
+    expect(() => buildArticlePackageChunks({
+      title: "Agent Loop",
+      markdown: "主要内容",
+      package: validated,
+    })).toThrow("sectionAnchor 不存在于文章");
+  });
 });

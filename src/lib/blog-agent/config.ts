@@ -36,6 +36,14 @@ function boundedInteger(
   return Math.min(maximum, Math.max(minimum, parsed));
 }
 
+function embeddingDimensions(value: string | undefined): number {
+  if (value === undefined || value.trim() === "") return 1_024;
+  if (value.trim() !== "1024") {
+    throw new Error("BLOG_AGENT_EMBEDDING_DIMENSIONS must be 1024");
+  }
+  return 1_024;
+}
+
 export function readBlogAgentConfig(
   environment: Readonly<Record<string, string | undefined>> = process.env,
 ): BlogAgentConfig {
@@ -47,11 +55,8 @@ export function readBlogAgentConfig(
   const embeddingApiKey = environment.DASHSCOPE_API_KEY?.trim() ?? "";
   const embeddingModel = environment.BLOG_AGENT_EMBEDDING_MODEL?.trim() ||
     "qwen3.7-text-embedding";
-  const embeddingDimensions = boundedInteger(
+  const configuredEmbeddingDimensions = embeddingDimensions(
     environment.BLOG_AGENT_EMBEDDING_DIMENSIONS,
-    1_024,
-    1_024,
-    1_024,
   );
 
   return {
@@ -117,7 +122,7 @@ export function readBlogAgentConfig(
     embeddingBaseUrl,
     embeddingApiKey,
     embeddingModel,
-    embeddingDimensions,
+    embeddingDimensions: configuredEmbeddingDimensions,
     embeddingTimeoutMs: boundedInteger(
       environment.BLOG_AGENT_EMBEDDING_TIMEOUT_MS,
       15_000,

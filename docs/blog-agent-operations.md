@@ -101,7 +101,7 @@ Canary 成功后，按下面顺序执行，每次只重建 app 容器：
 4. 验证 private/draft/RichText-only 文章均无机器人且 API 为 `404`。
 5. 验证桌面侧栏、移动端底部面板、键盘 Escape、焦点恢复和 reduced motion。
 6. 检查域名 TLS、`/api/health`、浏览器控制台和模型费用。
-7. 最后把 GitHub Repository Variables `BLOG_AGENT_GENERATION_ENABLED`、`BLOG_AGENT_ENABLED` 设为 `true`，通过 `main` workflow 重部署，再进行一轮小流量验证；不要只在服务器临时改文件。
+7. 最后把 GitHub Repository Variables `BLOG_AGENT_GENERATION_ENABLED`、`BLOG_AGENT_ENABLED` 设为 `true`，手动触发 `main` workflow 重部署，立即用测试文章调用一次公网 API 并核对 `200`、当前文章引用和 provider 用量。失败时立刻把两个 Variables 都恢复为 `false` 并再次手动部署；不要只在服务器临时改文件。入口关闭时的 canary 不经过公开 route、runtime 配额或缓存，因此不能替代这一步。
 
 重建命令：
 
@@ -113,4 +113,6 @@ docker compose --env-file .env.docker.prod \
 
 ## 紧急关闭
 
-出现费用异常、滥用、错误引用或 provider 故障时，第一步把 `.env.docker.prod` 中 `BLOG_AGENT_ENABLED=false`，然后只重建 app 容器。确认文章页不再渲染机器人、API 返回 `404`，再调查用量与日志。必要时同时在供应商侧吊销专用 Key；不要删除 Blog、数据库表或整站容器作为第一响应。
+出现费用异常、滥用、错误引用或 provider 故障时，GitHub Repository Variables 是自动部署的配置源：第一步把 `BLOG_AGENT_ENABLED`、`BLOG_AGENT_GENERATION_ENABLED` 都设为 `false`，手动触发 `main` workflow，并确认文章页不再渲染机器人、API 返回 `404`。必要时同时在供应商侧吊销专用 Key；不要删除 Blog、数据库表或整站容器作为第一响应。
+
+只有 GitHub 暂时不可用时，才把服务器 `.env.docker.prod` 中两个开关设为 `false` 并只重建 app 作为临时止血。该文件会被后续 GitHub 部署进程中的 Repository Variables 覆盖，所以 GitHub 恢复后必须同步把 Variables 设为 `false`，并在任何新部署前复核开关状态。

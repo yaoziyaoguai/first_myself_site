@@ -6,6 +6,7 @@ vi.mock("@/lib/blog-agent/runtime", () => ({ getBlogAgentRuntime: vi.fn() }));
 import { GET, POST } from "@/app/api/blog/[id]/agent-index/route";
 import { getPayloadAPI } from "@/lib/payload";
 import { getBlogAgentRuntime } from "@/lib/blog-agent/runtime";
+import { ArticlePackageValidationError } from "@/lib/blog-agent/articlePackage";
 
 const auth = vi.fn();
 const findByID = vi.fn();
@@ -133,15 +134,25 @@ describe("/api/blog/[id]/agent-index", () => {
     expect(index).not.toHaveBeenCalled();
   });
 
-  it("marks the private draft failed when indexing fails without returning provider details", async () => {
+  it("returns 503 for a retryable provider failure without returning details", async () => {
     index.mockRejectedValueOnce(new Error("provider body: secret-debug"));
     const response = await POST(request(validBody), context);
 
-    expect(response.status).toBe(422);
+    expect(response.status).toBe(503);
     expect(await response.text()).not.toContain("secret-debug");
     expect(update).toHaveBeenLastCalledWith(expect.objectContaining({
       data: expect.objectContaining({ agentIndexStatus: "failed" }),
     }));
+  });
+
+  it("returns 422 for a permanent package validation failure", async () => {
+    index.mockRejectedValueOnce(
+      new ArticlePackageValidationError("invalid private path"),
+    );
+    const response = await POST(request(validBody), context);
+
+    expect(response.status).toBe(422);
+    expect(await response.text()).not.toContain("private path");
   });
 
   it("returns an authenticated summary without source content or embeddings", async () => {

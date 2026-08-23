@@ -88,6 +88,9 @@ describe("Blog Agent production defaults", () => {
     expect(workflow).toContain(
       "BLOG_AGENT_EMBEDDING_MODEL: ${{ vars.BLOG_AGENT_EMBEDDING_MODEL }}",
     );
+    expect(workflow).toContain(
+      'if [ "$BLOG_AGENT_EMBEDDING_DIMENSIONS" != "1024" ]; then',
+    );
     expect(workflow).not.toMatch(/build-args:[\s\S]*BLOG_AGENT_API_KEY/);
   });
 

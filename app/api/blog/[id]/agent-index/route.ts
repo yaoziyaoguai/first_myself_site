@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getBlogAgentRuntime } from "@/lib/blog-agent/runtime";
 import { getPayloadAPI } from "@/lib/payload";
 import type { PublicMarkdownArticle } from "@/lib/blog-agent/types";
+import { ArticlePackageValidationError } from "@/lib/blog-agent/articlePackage";
 
 export const dynamic = "force-dynamic";
 
@@ -180,7 +181,7 @@ export async function POST(request: Request, { params }: RouteContext) {
       },
     });
     return NextResponse.json({ ok: true, ...summary, indexedAt: summary.indexedAt.toISOString() });
-  } catch {
+  } catch (error) {
     await payload.update({
       collection: "blog",
       id,
@@ -191,7 +192,9 @@ export async function POST(request: Request, { params }: RouteContext) {
         agentIndexedAt: null,
       },
     }).catch(() => undefined);
-    return jsonError("Article package indexing failed", 422);
+    return error instanceof ArticlePackageValidationError
+      ? jsonError("Article package validation failed", 422)
+      : jsonError("Article package indexing unavailable", 503);
   }
 }
 

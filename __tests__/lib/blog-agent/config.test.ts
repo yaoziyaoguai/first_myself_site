@@ -36,7 +36,7 @@ describe("readBlogAgentConfig", () => {
       DASHSCOPE_API_KEY: " server-embedding-secret ",
       BLOG_AGENT_EMBEDDING_BASE_URL: " https://dashscope.example/v1/ ",
       BLOG_AGENT_EMBEDDING_MODEL: " qwen3.7-text-embedding ",
-      BLOG_AGENT_EMBEDDING_DIMENSIONS: "2048",
+      BLOG_AGENT_EMBEDDING_DIMENSIONS: "1024",
       BLOG_AGENT_EMBEDDING_TIMEOUT_MS: "999999",
     });
 
@@ -48,6 +48,12 @@ describe("readBlogAgentConfig", () => {
       embeddingDimensions: 1024,
       embeddingTimeoutMs: 60_000,
     });
+  });
+
+  it("rejects an embedding dimension that would invalidate stored packages", () => {
+    expect(() => readBlogAgentConfig({
+      BLOG_AGENT_EMBEDDING_DIMENSIONS: "2048",
+    })).toThrow("must be 1024");
   });
 
   it("clamps visitor-controlled cost limits to safe server ranges", () => {
