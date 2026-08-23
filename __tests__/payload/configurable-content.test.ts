@@ -14,6 +14,8 @@ import SiteSettings from "@/payload/globals/SiteSettings";
 import { migrations } from "@/payload/migrations";
 import * as configurableContentSchemaMigration from "@/payload/migrations/20260810_000000_add_configurable_content_columns";
 import * as pageViewsSchemaMigration from "@/payload/migrations/20260810_110000_add_page_views";
+import * as blogAgentRuntimeMigration from "@/payload/migrations/20260821_000000_add_blog_agent_runtime";
+import * as blogAgentArticlePackageMigration from "@/payload/migrations/20260823_000000_add_blog_agent_article_packages";
 import {
   CONFIGURABLE_CONTENT_VERSION,
   backfillConfigurableContent,
@@ -40,6 +42,16 @@ describe("configurable portfolio content", () => {
         name: "20260810_110000_add_page_views",
         up: pageViewsSchemaMigration.up,
         down: pageViewsSchemaMigration.down,
+      },
+      {
+        name: "20260821_000000_add_blog_agent_runtime",
+        up: blogAgentRuntimeMigration.up,
+        down: blogAgentRuntimeMigration.down,
+      },
+      {
+        name: "20260823_000000_add_blog_agent_article_packages",
+        up: blogAgentArticlePackageMigration.up,
+        down: blogAgentArticlePackageMigration.down,
       },
     ]);
   });

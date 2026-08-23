@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   # ── 第1层：代码规范检查 ──────────────────────────
@@ -53,6 +54,20 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     needs: type-check
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: blog_agent_test
+          POSTGRES_USER: blog_agent_test
+          POSTGRES_PASSWORD: blog_agent_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U blog_agent_test -d blog_agent_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -61,6 +76,16 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm test
+      - name: Verify Blog Agent migration, cache, and quotas
+        run: >-
+          npx vitest run
+          __tests__/payload/blog-agent-migration.postgres.test.ts
+          __tests__/payload/blog-agent-article-package-migration.postgres.test.ts
+          __tests__/lib/blog-agent/articleIndexRepository.postgres.test.ts
+          __tests__/lib/blog-agent/runtime.postgres.test.ts
+          __tests__/scripts/blog-agent-canary.postgres.test.ts
+        env:
+          BLOG_AGENT_TEST_DATABASE_URL: postgresql://blog_agent_test:blog_agent_test_password@127.0.0.1:5432/blog_agent_test
 
   # ── 第4层：构建检查 ───────────────────────────────
   build:
@@ -80,27 +105,69 @@ jobs:
           DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
           PAYLOAD_SECRET: ci-placeholder-secret-32-chars-long
           NEXT_PUBLIC_SERVER_URL: http://localhost:3000
+          BLOG_AGENT_ENABLED: false
+          BLOG_AGENT_GENERATION_ENABLED: false
 
   # ── CD：自动部署（仅 main 分支） ──────────────────
   deploy:
     name: Deploy to Server
     runs-on: ubuntu-latest
     needs: [build, security]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     concurrency:
       group: production-deploy
       cancel-in-progress: false
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          BLOG_AGENT_API_KEY: ${{ secrets.BLOG_AGENT_API_KEY }}
+          BLOG_AGENT_ENABLED: ${{ vars.BLOG_AGENT_ENABLED }}
+          BLOG_AGENT_GENERATION_ENABLED: ${{ vars.BLOG_AGENT_GENERATION_ENABLED }}
+          BLOG_AGENT_BASE_URL: ${{ vars.BLOG_AGENT_BASE_URL }}
+          BLOG_AGENT_MODEL: ${{ vars.BLOG_AGENT_MODEL }}
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          BLOG_AGENT_EMBEDDING_BASE_URL: ${{ vars.BLOG_AGENT_EMBEDDING_BASE_URL }}
+          BLOG_AGENT_EMBEDDING_MODEL: ${{ vars.BLOG_AGENT_EMBEDDING_MODEL }}
+          BLOG_AGENT_EMBEDDING_DIMENSIONS: ${{ vars.BLOG_AGENT_EMBEDDING_DIMENSIONS }}
+          BLOG_AGENT_EMBEDDING_TIMEOUT_MS: ${{ vars.BLOG_AGENT_EMBEDDING_TIMEOUT_MS }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: BLOG_AGENT_API_KEY,BLOG_AGENT_ENABLED,BLOG_AGENT_GENERATION_ENABLED,BLOG_AGENT_BASE_URL,BLOG_AGENT_MODEL,DASHSCOPE_API_KEY,BLOG_AGENT_EMBEDDING_BASE_URL,BLOG_AGENT_EMBEDDING_MODEL,BLOG_AGENT_EMBEDDING_DIMENSIONS,BLOG_AGENT_EMBEDDING_TIMEOUT_MS
           command_timeout: 30m
           script: |
             set -euo pipefail
             cd "${{ secrets.PROJECT_PATH }}"
+
+            export BLOG_AGENT_ENABLED="${BLOG_AGENT_ENABLED:-false}"
+            export BLOG_AGENT_GENERATION_ENABLED="${BLOG_AGENT_GENERATION_ENABLED:-false}"
+            if [ "$BLOG_AGENT_ENABLED" != "true" ] && [ "$BLOG_AGENT_ENABLED" != "false" ]; then
+              echo "BLOG_AGENT_ENABLED must be true or false" >&2
+              exit 1
+            fi
+            if [ "$BLOG_AGENT_GENERATION_ENABLED" != "true" ] && [ "$BLOG_AGENT_GENERATION_ENABLED" != "false" ]; then
+              echo "BLOG_AGENT_GENERATION_ENABLED must be true or false" >&2
+              exit 1
+            fi
+            if [ "$BLOG_AGENT_ENABLED" = "true" ] || [ "$BLOG_AGENT_GENERATION_ENABLED" = "true" ]; then
+              if [ -z "${BLOG_AGENT_API_KEY:-}" ] || \
+                 [ -z "${BLOG_AGENT_BASE_URL:-}" ] || \
+                 [ -z "${BLOG_AGENT_MODEL:-}" ] || \
+                 [ -z "${DASHSCOPE_API_KEY:-}" ] || \
+                 [ -z "${BLOG_AGENT_EMBEDDING_BASE_URL:-}" ] || \
+                 [ -z "${BLOG_AGENT_EMBEDDING_MODEL:-}" ] || \
+                 [ -z "${BLOG_AGENT_EMBEDDING_DIMENSIONS:-}" ] || \
+                 [ -z "${BLOG_AGENT_EMBEDDING_TIMEOUT_MS:-}" ]; then
+                echo "Blog Agent provider configuration is incomplete in GitHub" >&2
+                exit 1
+              fi
+              if [ "$BLOG_AGENT_EMBEDDING_DIMENSIONS" != "1024" ]; then
+                echo "BLOG_AGENT_EMBEDDING_DIMENSIONS must be 1024" >&2
+                exit 1
+              fi
+            fi
 
             compose=(docker compose --env-file .env.docker.prod -f docker/docker-compose.prod.yml)
             previous_image="$(docker inspect --format='{{.Image}}' first_myself_site_prod 2>/dev/null || true)"
@@ -158,6 +225,8 @@ jobs:
             END
             $migration_marker_cleanup$;
             SQL
+            # 使用刚构建的 candidate image 执行显式 production migration；失败时旧容器继续服务。
+            "${compose[@]}" run --rm --no-deps app npm run payload -- migrate
             # build 完成后再切换（停机时间 < 10秒）
             if ! "${compose[@]}" up -d; then
               rollback || true
@@ -188,6 +257,10 @@ jobs:
             fi
 
             "${compose[@]}" ps
+            unset BLOG_AGENT_API_KEY BLOG_AGENT_ENABLED BLOG_AGENT_GENERATION_ENABLED
+            unset BLOG_AGENT_BASE_URL BLOG_AGENT_MODEL DASHSCOPE_API_KEY
+            unset BLOG_AGENT_EMBEDDING_BASE_URL BLOG_AGENT_EMBEDDING_MODEL
+            unset BLOG_AGENT_EMBEDDING_DIMENSIONS BLOG_AGENT_EMBEDDING_TIMEOUT_MS
             # 清理悬空镜像，释放磁盘空间
             docker image prune -f
             echo "✅ 部署完成"

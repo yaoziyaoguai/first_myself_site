@@ -17,6 +17,7 @@
 - 草稿、公开文章和登录可见文章具有独立的可见性规则
 - 评论、回复和点赞通过受控接口提供，Payload collection 不向匿名用户直开
 - 后台“运营 → 访问统计”展示访问量、估算访客、有效停留和阅读深度
+- 公开 Markdown 文章可启用悬浮 Agent，只回答当前 Blog，并可选使用同一文章的私有材料包增强上下文
 - sitemap、RSS、canonical metadata 和数据库就绪检查已接入
 - GitHub Pull Request 通过 CI 后合并到 `main`，自动部署到阿里云
 
@@ -103,6 +104,14 @@ npm run build
 - `viewer`：不能进入 Payload Admin
 
 访问统计不使用 Cookie，尊重 Do Not Track 和 Global Privacy Control。系统只保留经 HMAC 处理的匿名标识、页面、来源域名、有效停留和最大阅读深度，不保存原始 IP。
+
+## 单文章 Blog Agent
+
+Blog Agent 始终以一篇 Blog 为唯一的数据与安全边界。机器人只出现在 `published + public` 且包含 Markdown 的文章页；服务端根据 URL slug 重新读取当前文章，请求体只能包含一个 1～500 字符的问题。Markdown 永远是基础上下文，可选文章包只补充同一 Blog 的代码、文档、数据或图片说明，不会跨文章搜索。
+
+文章包由全局发布 Skill 离线生成，并通过 admin/editor 认证接口写入私有 PostgreSQL 表。包必须来自 Git `HEAD` 中已跟踪且干净的文件，受 source 数量、大小、chunk 数、hash 和敏感信息扫描约束。索引未 ready 或文章内容发生变化时，Payload 会拒绝公开发布。
+
+模型与 embedding API Key 仅存在于服务端。访客入口与生成能力由两个默认关闭的开关控制，并有持久化配额、并发限制、超时、缓存、无证据拒答和紧急关闭能力。真实 provider canary 与开放顺序见 [Blog Agent 运维手册](docs/blog-agent-operations.md)。
 
 更多安全边界见 [SECURITY.md](SECURITY.md)。
 

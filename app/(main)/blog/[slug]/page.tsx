@@ -9,12 +9,13 @@ import {
 } from "@/lib/blogVisibility";
 import { RichText } from "@payloadcms/richtext-lexical/react";
 import { defaultJSXConverters } from "@payloadcms/richtext-lexical/react";
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { CommentSection } from "@/components/CommentSection";
 import { LikeButton } from "@/components/LikeButton";
+import { MarkdownArticle } from "@/components/MarkdownArticle";
+import { BlogAgent } from "@/components/blog-agent/BlogAgent";
 import { ShareActions } from "@/components/ShareActions";
 import { SITE_URL, siteDefaults } from "@/content/siteDefaults";
+import { canShowBlogAgent } from "@/lib/blog-agent/config";
 
 export const dynamic = "force-dynamic";
 
@@ -112,10 +113,19 @@ export default async function BlogPostPage({ params }: PageProps) {
     ? new Date(post.publishedDate).toISOString().split("T")[0]
     : "";
   const showPublicInteractions = canUsePublicInteractions(post.visibility);
+  const markdownContent =
+    typeof post.contentMarkdown === "string"
+      ? post.contentMarkdown.trim()
+      : "";
+  const showBlogAgent = Boolean(
+    showPublicInteractions &&
+    markdownContent &&
+    canShowBlogAgent(),
+  );
 
   return (
     <div className="site-shell page-space">
-      <article className="mx-auto max-w-[46rem]">
+      <article id="blog-article-top" className="mx-auto max-w-[46rem]">
         <Link
           href="/blog"
           className="text-link mb-10"
@@ -164,25 +174,15 @@ export default async function BlogPostPage({ params }: PageProps) {
 
         {/* 文章内容渲染 - 优先使用 Markdown，回退到 RichText */}
         <div className="prose prose-neutral max-w-none">
-          {(() => {
-            const markdownContent =
-              typeof post.contentMarkdown === "string"
-                ? post.contentMarkdown.trim()
-                : "";
-
-            if (markdownContent) {
-              return (
-                <Markdown remarkPlugins={[remarkGfm]}>
-                  {markdownContent}
-                </Markdown>
-              );
-            }
-
-            return (
-              /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-              <RichText data={post.content as any} converters={defaultJSXConverters} />
-            );
-          })()}
+          {markdownContent ? (
+            <MarkdownArticle
+              markdown={markdownContent}
+              title={String(post.title)}
+            />
+          ) : (
+            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+            <RichText data={post.content as any} converters={defaultJSXConverters} />
+          )}
         </div>
 
         <div className="h-px bg-border my-12" />
@@ -211,6 +211,12 @@ export default async function BlogPostPage({ params }: PageProps) {
           </div>
         </div>
       </article>
+      {showBlogAgent && (
+        <BlogAgent
+          articleSlug={String(post.slug)}
+          articleTitle={String(post.title)}
+        />
+      )}
     </div>
   );
 }

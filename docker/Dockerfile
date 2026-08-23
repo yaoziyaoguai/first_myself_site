@@ -41,13 +41,12 @@ COPY . .
 ARG NEXT_PUBLIC_SERVER_URL
 
 ENV NEXT_PUBLIC_SERVER_URL=${NEXT_PUBLIC_SERVER_URL}
-# 构建阶段只需通过配置校验，不能接收或保留生产密钥。
-ENV DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build
-ENV PAYLOAD_SECRET=build-only-placeholder-not-used-at-runtime
-ENV NODE_ENV=production
 
-# 构建应用
-RUN npm run build
+# 构建阶段只需通过配置校验；占位值仅存在于此命令，不写入镜像环境。
+RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build \
+    PAYLOAD_SECRET=build-only-placeholder-not-used-at-runtime \
+    NODE_ENV=production \
+    npm run build
 
 # -------------------------------------------------
 # 阶段 3: 运行环境
@@ -71,6 +70,13 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
+
+# 只读 canary 与切换前的 Payload migration 都从 candidate runtime image 执行。
+# 源码只存在于服务端文件系统，不复制到 public 或客户端静态资源。
+COPY --from=builder /app/scripts/blog-agent-canary.ts ./scripts/blog-agent-canary.ts
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/payload.config.ts ./payload.config.ts
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
 # 创建上传目录
 RUN mkdir -p /app/media && chown -R nextjs:nodejs /app/media

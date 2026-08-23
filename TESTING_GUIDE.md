@@ -4,12 +4,13 @@
 
 ## 当前基线
 
-截至 2026-08-10：
+截至 2026-08-23 的 Blog Agent 合并候选：
 
-- 42 个测试文件
-- 382 个自动化测试
+- 70 个测试文件，其中 66 个通过、4 个按真库条件跳过
+- 555 个自动化测试通过，7 个按真库条件跳过
 - ESLint、TypeScript、Vitest 和 production build 均通过
 - GitHub Actions 在 Pull Request 上执行完整检查
+- Blog Agent 另有 PostgreSQL 15 真库门禁和生产 Docker/Payload CLI 验证
 
 不要用“测试文件存在”代替“测试已运行”。超时、截断输出或没有成功退出码都不能算通过。
 
@@ -77,6 +78,16 @@ __tests__/
 - 只清理 Payload 的 legacy dev migration marker
 - 部署失败时保留回滚路径
 
+### 单文章 Blog Agent
+
+- 公共 API 只接受当前 slug 的单个问题，不读取其他 Blog、草稿或私有文章
+- Markdown 证据、文章包检索、引用锚点和无证据拒答保持同一 Blog 边界
+- 文章包只接受 Git 审计后的有界 source，索引状态与文章内容/hash 绑定
+- 持久化窗口/每日配额、并发限制、缓存隔离和供应商失败路径
+- 桌面浮层、移动端 bottom sheet、键盘焦点、引用跳转和 reduced motion
+
+没有 `BLOG_AGENT_TEST_DATABASE_URL` 时，Blog Agent 真库测试会显示为 `skipped`，不能把普通 `npm test` 当作真库通过。CI 会使用 PostgreSQL 15 运行这些 migration、repository 与 canary 测试。真实 provider 验收按 [Blog Agent 运维手册](docs/blog-agent-operations.md) 执行；不要把个人主 Key 放进浏览器测试或 GitHub 日志。
+
 ## 按范围运行
 
 ```bash
@@ -118,6 +129,7 @@ npm run test:watch
 2. 首页、项目页、文章列表和一篇长文正常加载。
 3. 浏览器没有 TLS 警告，静态资源和文章图片返回成功。
 4. Payload Admin 可以登录，内容与统计页面可打开。
+5. Agent 开关关闭时文章页不渲染机器人且 API 返回 `404`；开放后只用审核过的实验文章做有额度约束的 canary。
 
 ## CI/CD 顺序
 
@@ -125,10 +137,10 @@ npm run test:watch
 ESLint
   → TypeScript ─→ Tests → Build ─┐
   → Security Scan ────────────────┤
-                                  └→ Deploy（仅 main push）
+                                  └→ Deploy（main push 或受控手工触发）
 ```
 
-Pull Request 不会部署。只有合并到 `main` 且全部上游检查成功后，Deploy job 才会连接阿里云。
+Pull Request 不会部署。只有 `main` 的 push 或明确的 `workflow_dispatch` 且全部上游检查成功后，Deploy job 才会连接阿里云；同一生产服务器的部署按 concurrency group 串行执行。
 
 ## 结果报告要求
 
