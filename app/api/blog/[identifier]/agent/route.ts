@@ -11,7 +11,7 @@ const MAX_BODY_BYTES = 8 * 1024;
 const MAX_QUESTION_LENGTH = 500;
 const MAX_SLUG_LENGTH = 128;
 
-type RouteContext = { params: Promise<{ slug: string }> };
+type RouteContext = { params: Promise<{ identifier: string }> };
 type BodyResult =
   | { ok: true; value: Record<string, unknown> }
   | { ok: false; tooLarge: boolean };
@@ -178,7 +178,7 @@ export async function POST(request: Request, { params }: RouteContext) {
       return errorResponse("Question must contain 1 to 500 characters", 400);
     }
 
-    const { slug: rawSlug } = await params;
+    const { identifier: rawSlug } = await params;
     const slug = decodeSlug(rawSlug);
     if (!slug) return errorResponse("Invalid article", 400);
     const article = await findPublicMarkdownArticle(slug);
