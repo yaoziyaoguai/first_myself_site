@@ -267,6 +267,9 @@ jobs:
                 "--slug=$BLOG_AGENT_CANARY_SLUG" \
                 "--question=$BLOG_AGENT_CANARY_QUESTION" \
                 --require-package; then
+                # Canary 未通过时必须 fail closed，避免旧镜像沿用本次未验证的公开开关。
+                export BLOG_AGENT_ENABLED=false
+                export BLOG_AGENT_GENERATION_ENABLED=false
                 rollback || true
                 exit 1
               fi

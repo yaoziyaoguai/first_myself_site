@@ -116,6 +116,28 @@ describe("Blog Agent production defaults", () => {
 
   it("runs the package canary through the managed production SSH deploy", () => {
     const workflow = source(".github/workflows/ci-cd.yml");
+    const envForwarding = workflow.slice(
+      workflow.indexOf("          envs:"),
+      workflow.indexOf("          command_timeout:"),
+    );
+    const publicHealthCheck = workflow.indexOf(
+      "https://wangjinkun333.me/api/health",
+    );
+    const canaryCommand = workflow.indexOf(
+      "exec -T app npm run blog-agent:canary --",
+    );
+    const disablePublicAgent = workflow.indexOf(
+      "export BLOG_AGENT_ENABLED=false",
+      canaryCommand,
+    );
+    const disableGeneration = workflow.indexOf(
+      "export BLOG_AGENT_GENERATION_ENABLED=false",
+      canaryCommand,
+    );
+    const rollback = workflow.indexOf("rollback || true", canaryCommand);
+    const failureExit = workflow.indexOf("exit 1", rollback);
+    const deploySuccess = workflow.indexOf('"${compose[@]}" ps', failureExit);
+
     expect(workflow).toContain(
       "BLOG_AGENT_CANARY_SLUG: ${{ vars.BLOG_AGENT_CANARY_SLUG }}",
     );
@@ -131,6 +153,16 @@ describe("Blog Agent production defaults", () => {
     expect(workflow).toContain('"--slug=$BLOG_AGENT_CANARY_SLUG"');
     expect(workflow).toContain('"--question=$BLOG_AGENT_CANARY_QUESTION"');
     expect(workflow).toContain("--require-package");
+    expect(envForwarding).toContain("BLOG_AGENT_CANARY_SLUG");
+    expect(envForwarding).toContain("BLOG_AGENT_CANARY_QUESTION");
+    expect(publicHealthCheck).toBeGreaterThan(-1);
+    expect(canaryCommand).toBeGreaterThan(publicHealthCheck);
+    expect(disablePublicAgent).toBeGreaterThan(canaryCommand);
+    expect(disableGeneration).toBeGreaterThan(canaryCommand);
+    expect(rollback).toBeGreaterThan(disablePublicAgent);
+    expect(rollback).toBeGreaterThan(disableGeneration);
+    expect(failureExit).toBeGreaterThan(rollback);
+    expect(deploySuccess).toBeGreaterThan(failureExit);
   });
 
   it("keeps an unconfigured disabled Agent from blocking unrelated deploys", () => {
