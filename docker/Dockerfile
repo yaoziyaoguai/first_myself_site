@@ -72,10 +72,11 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
 
-# 只读 Blog Agent canary 在入口关闭时直接加载公开文章并调用模型。
-# 这些文件只存在于服务端文件系统，不复制到 public 或客户端静态资源。
+# 只读 canary 与切换前的 Payload migration 都从 candidate runtime image 执行。
+# 源码只存在于服务端文件系统，不复制到 public 或客户端静态资源。
 COPY --from=builder /app/scripts/blog-agent-canary.ts ./scripts/blog-agent-canary.ts
-COPY --from=builder /app/src/lib/blog-agent ./src/lib/blog-agent
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/payload.config.ts ./payload.config.ts
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
 # 创建上传目录

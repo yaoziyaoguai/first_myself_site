@@ -235,4 +235,46 @@ describe("BlogAgentService", () => {
     expect(serialized).not.toContain("token=abc");
     expect(serialized).not.toContain(article.contentMarkdown);
   });
+
+  it("fails closed when an article requires a package that cannot be prepared", async () => {
+    const prepare = vi.fn().mockResolvedValue(null);
+    const fixture = createFixture({
+      articleRetriever: { prepare } as unknown as BlogScopedArticleRetriever,
+    });
+    const packageArticle = {
+      ...article,
+      agentContextRequired: true,
+      agentPackageHash: "b".repeat(64),
+      agentIndexStatus: "ready",
+      agentIndexedPackageHash: "b".repeat(64),
+    };
+
+    const response = await fixture.service.execute({
+      article: packageArticle,
+      question: "代码守卫如何工作？",
+      identityHash: "identity-hash",
+    });
+
+    expect(response.status).toBe(503);
+    expect(response.body.usage.reason).toBe("provider-unavailable");
+    expect(fixture.client.complete).not.toHaveBeenCalled();
+    expect(fixture.repository.reserveGeneration).not.toHaveBeenCalled();
+  });
+
+  it("returns a completed answer when only the cache write fails", async () => {
+    const fixture = createFixture();
+    vi.mocked(fixture.repository.setCachedAnswer).mockRejectedValue(
+      new Error("cache unavailable"),
+    );
+
+    const response = await fixture.service.execute({
+      article,
+      question: "为什么批量写入？",
+      identityHash: "identity-hash",
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.answer).toBe("批量写入可以减少小批次开销。");
+    expect(response.body.usage).toEqual({ cached: false });
+  });
 });

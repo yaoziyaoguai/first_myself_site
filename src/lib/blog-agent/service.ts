@@ -85,6 +85,12 @@ export class BlogAgentService {
     } catch {
       prepared = null;
     }
+    if (input.article.agentContextRequired === true && !prepared) {
+      return {
+        status: 503,
+        body: createBlogAgentUnavailableResponse("provider-unavailable", queryId),
+      };
+    }
     const fallbackEvidence = () => buildArticleEvidence({
       title: input.article.title,
       excerpt: input.article.excerpt,
@@ -160,7 +166,7 @@ export class BlogAgentService {
         ...cacheKey,
         answer: cacheAnswer,
         expiresAt: new Date(this.now().getTime() + this.dependencies.cacheTtlMs),
-      });
+      }).catch(() => undefined);
       const citations = citationsFromSections(
         input.article,
         evidence?.sections ?? [],

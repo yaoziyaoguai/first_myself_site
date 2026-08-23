@@ -19,17 +19,33 @@ describe("production migration deployment", () => {
       "to_regclass('payload_migrations')",
       backupIndex,
     );
-    const cutoverIndex = workflow.indexOf('"${compose[@]}" up -d', cleanupIndex);
+    const migrationIndex = workflow.indexOf(
+      '"${compose[@]}" run --rm --no-deps app npm run payload -- migrate',
+      cleanupIndex,
+    );
+    const cutoverIndex = workflow.indexOf('"${compose[@]}" up -d', migrationIndex);
 
     expect(buildIndex).toBeGreaterThan(-1);
     expect(backupIndex).toBeGreaterThan(buildIndex);
     expect(cleanupIndex).toBeGreaterThan(backupIndex);
-    expect(cutoverIndex).toBeGreaterThan(cleanupIndex);
+    expect(migrationIndex).toBeGreaterThan(cleanupIndex);
+    expect(cutoverIndex).toBeGreaterThan(migrationIndex);
     expect(workflow).toContain("set -euo pipefail");
     expect(workflow).toContain(
       `DELETE FROM "payload_migrations"\n                  WHERE "batch" = -1 AND "name" = 'dev'`,
     );
     expect(workflow.match(/DELETE FROM "payload_migrations"/g)).toHaveLength(1);
+  });
+
+  it("ships the Payload migration source in the candidate runtime image", () => {
+    const dockerfile = readFileSync(
+      resolve(process.cwd(), "docker/Dockerfile"),
+      "utf8",
+    );
+    expect(dockerfile).toContain(
+      "COPY --from=builder /app/payload.config.ts ./payload.config.ts",
+    );
+    expect(dockerfile).toContain("COPY --from=builder /app/src ./src");
   });
 
   it("injects the DashScope key through the server-only deploy environment", () => {

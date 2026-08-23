@@ -58,6 +58,7 @@ function articleSections(articlePackage: ReadyArticlePackage): Array<ArticleSect
       anchor: chunk.anchor || "top",
       ordinal: chunk.ordinal,
       content: chunk.content,
+      protectedMaterial: chunk.sourceKind !== "article",
       sourcePath: chunk.sourcePath,
       embedding: chunk.embedding,
     };

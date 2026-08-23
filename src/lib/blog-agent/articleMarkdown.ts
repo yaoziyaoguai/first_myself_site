@@ -8,6 +8,7 @@ export type ArticleSection = {
   anchor: string;
   ordinal: number;
   content: string;
+  protectedMaterial?: boolean;
 };
 
 export type ParsedArticleMarkdown = {

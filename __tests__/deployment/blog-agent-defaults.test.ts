@@ -55,7 +55,7 @@ describe("Blog Agent production defaults", () => {
       "COPY --from=builder /app/scripts/blog-agent-canary.ts ./scripts/blog-agent-canary.ts",
     );
     expect(dockerfile).toContain(
-      "COPY --from=builder /app/src/lib/blog-agent ./src/lib/blog-agent",
+      "COPY --from=builder /app/src ./src",
     );
     expect(dockerfile).not.toMatch(/COPY .*blog-agent-canary.*public/);
   });

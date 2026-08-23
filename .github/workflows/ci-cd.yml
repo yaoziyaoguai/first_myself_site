@@ -207,6 +207,8 @@ jobs:
             END
             $migration_marker_cleanup$;
             SQL
+            # 使用刚构建的 candidate image 执行显式 production migration；失败时旧容器继续服务。
+            "${compose[@]}" run --rm --no-deps app npm run payload -- migrate
             # build 完成后再切换（停机时间 < 10秒）
             if ! "${compose[@]}" up -d; then
               rollback || true
