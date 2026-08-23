@@ -59,7 +59,7 @@ const packageInput = {
 
 describe("PostgresArticleIndexRepository", () => {
   it("loads chunks only through an exact server-owned Blog and package filter", async () => {
-    const database = createDatabase([{ 
+    const database = createDatabase([{
       blog_id: 42,
       article_hash: "a".repeat(64),
       package_hash: "b".repeat(64),
