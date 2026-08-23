@@ -9,7 +9,7 @@ import { migrations } from "@/payload/migrations";
 
 describe("blog agent runtime migration", () => {
   it("registers the migration after existing production migrations", () => {
-    expect(migrations.at(-1)).toEqual({
+    expect(migrations.at(1)).toEqual({
       name: "20260821_000000_add_blog_agent_runtime",
       up: blogAgentRuntimeMigration.up,
       down: blogAgentRuntimeMigration.down,
