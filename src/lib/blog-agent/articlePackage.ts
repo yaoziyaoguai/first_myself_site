@@ -25,7 +25,7 @@ const SHA256_RE = /^[a-f0-9]{64}$/;
 const COMMIT_RE = /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/;
 const SECRET_PATTERNS = [
   /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/i,
-  /\b(?:sk|ghp|github_pat)_[A-Za-z0-9._-]{12,}\b/,
+  /\b(?:sk[-_]|ghp_|github_pat_)[A-Za-z0-9._-]{12,}\b/,
   /\bAKIA[0-9A-Z]{16}\b/,
   /\b(?:api[_-]?key|password|passwd|secret|token)\s*[:=]\s*["'][^"']{8,}["']/i,
   /\bAuthorization\s*:\s*Bearer\s+[A-Za-z0-9._-]{12,}/i,

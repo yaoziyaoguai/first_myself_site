@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   ArticlePackageValidationError,
@@ -46,6 +47,21 @@ describe("article package validation", () => {
     const payload = { ...VALID_PAYLOAD, ...patch };
     expect(() => validateArticlePackagePayload(payload, { markdown: "主要内容" }))
       .toThrow(ArticlePackageValidationError);
+  });
+
+  it("rejects a bare provider key before accepting the snapshot", () => {
+    const content = "accidentally copied sk-1234567890abcdef";
+    const payload = {
+      ...VALID_PAYLOAD,
+      sources: [{
+        ...VALID_PAYLOAD.sources[0],
+        content,
+        sha256: createHash("sha256").update(content).digest("hex"),
+      }],
+    };
+
+    expect(() => validateArticlePackagePayload(payload, { markdown: "主要内容" }))
+      .toThrow("敏感信息");
   });
 
   it("enforces source count, per-file bytes, and total bytes independently", () => {
