@@ -223,26 +223,35 @@ export async function answerFromArticle(
       })),
     },
   });
-  const response = await client.complete({
-    system: BLOG_AGENT_SYSTEM_PROMPT,
-    user,
-    maxOutputTokens: 600,
-  });
-  const answer = parseGroundedAnswer(response, knownIds);
-  if (!answer) throw new BlogAgentInvalidAnswerError();
-  if (
-    !answer.insufficientEvidence &&
-    (
-      exceedsPublicCodeExcerptBudget(answer.answer) ||
-      reproducesProtectedMaterial(answer.answer, evidence)
-    )
-  ) {
-    return {
-      answer: "",
-      citationIds: [],
-      insufficientEvidence: true,
-      usage: answer.usage,
-    };
+  const usage = { inputTokens: 0, outputTokens: 0 };
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const response = await client.complete({
+      system: attempt === 0
+        ? BLOG_AGENT_SYSTEM_PROMPT
+        : `${BLOG_AGENT_SYSTEM_PROMPT}\n上一次响应未通过格式或引用校验。只返回合同要求的 JSON，并且 citationIds 只能从当前证据 id 中选择；无法满足时返回 insufficientEvidence=true。`,
+      user,
+      maxOutputTokens: 600,
+    });
+    usage.inputTokens += safeTokenCount(response.inputTokens);
+    usage.outputTokens += safeTokenCount(response.outputTokens);
+    const answer = parseGroundedAnswer(response, knownIds);
+    if (!answer) continue;
+    answer.usage = usage;
+    if (
+      !answer.insufficientEvidence &&
+      (
+        exceedsPublicCodeExcerptBudget(answer.answer) ||
+        reproducesProtectedMaterial(answer.answer, evidence)
+      )
+    ) {
+      return {
+        answer: "",
+        citationIds: [],
+        insufficientEvidence: true,
+        usage: answer.usage,
+      };
+    }
+    return answer;
   }
-  return answer;
+  throw new BlogAgentInvalidAnswerError();
 }

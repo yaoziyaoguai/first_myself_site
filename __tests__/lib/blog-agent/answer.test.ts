@@ -67,6 +67,38 @@ describe("answerFromArticle", () => {
     ).rejects.toThrow("invalid grounded answer");
   });
 
+  it("repairs one malformed grounded response before surfacing an outage", async () => {
+    const responses: BlogAgentModelResponse[] = [
+      {
+        content: JSON.stringify({
+          answer: "批量写入用于合并小批次。",
+          citationIds: ["unknown"],
+          insufficientEvidence: false,
+        }),
+        inputTokens: 20,
+        outputTokens: 10,
+      },
+      {
+        content: JSON.stringify({
+          answer: "批量写入用于合并小批次。",
+          citationIds: ["section:0:写入路径"],
+          insufficientEvidence: false,
+        }),
+        inputTokens: 22,
+        outputTokens: 11,
+      },
+    ];
+    const client: BlogAgentAnswerClient = {
+      complete: async () => responses.shift()!,
+    };
+
+    const result = await answerFromArticle("为什么批量写入？", evidence, client);
+
+    expect(result.answer).toBe("批量写入用于合并小批次。");
+    expect(result.citationIds).toEqual(["section:0:写入路径"]);
+    expect(result.usage).toEqual({ inputTokens: 42, outputTokens: 21 });
+  });
+
   it("normalizes a valid insufficient-evidence response", async () => {
     const result = await answerFromArticle(
       "正文没有的问题",

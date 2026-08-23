@@ -114,6 +114,14 @@ describe("BlogScopedArticleRetriever", () => {
     expect(evidence?.sections[0]?.id).toBe("material:edit:0");
   });
 
+  it("prioritizes reviewed code for a natural code question when query embedding is unavailable", async () => {
+    const { retriever } = fixture(vi.fn().mockRejectedValue(new Error("provider down")));
+    const prepared = await retriever.prepare(article);
+    const evidence = await prepared?.buildEvidence("给我看看这篇文章的关键代码，并解释它在做什么。");
+
+    expect(evidence?.sections[0]?.id).toBe("material:edit:0");
+  });
+
   it("changes the context cache version when the ready package hash changes", async () => {
     const first = fixture();
     const firstPrepared = await first.retriever.prepare(article);
