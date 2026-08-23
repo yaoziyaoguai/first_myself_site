@@ -2,14 +2,22 @@ import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
-import { answerFromArticle, type BlogAgentAnswerClient } from "../src/lib/blog-agent/answer";
+import {
+  answerFromArticle,
+  BlogAgentInvalidAnswerError,
+  type BlogAgentAnswerClient,
+} from "../src/lib/blog-agent/answer";
 import type { ArticleIndexRepository } from "../src/lib/blog-agent/articleIndexRepository";
 import { PostgresArticleIndexRepository } from "../src/lib/blog-agent/articleIndexRepository.postgres";
 import { buildArticleEvidence } from "../src/lib/blog-agent/articleMarkdown";
 import { BlogScopedArticleRetriever } from "../src/lib/blog-agent/articleRetriever";
 import { readBlogAgentConfig, type BlogAgentConfig } from "../src/lib/blog-agent/config";
 import { DashScopeEmbeddingClient, type ArticleEmbeddingClient } from "../src/lib/blog-agent/embeddingClient";
-import { OpenAICompatibleBlogAgentClient } from "../src/lib/blog-agent/modelClient";
+import {
+  BlogAgentProviderError,
+  type BlogAgentProviderFailureCategory,
+  DeepSeekBlogAgentClient,
+} from "../src/lib/blog-agent/modelClient";
 import type { BlogAgentQueryPool } from "../src/lib/blog-agent/repository.postgres";
 import type { PublicMarkdownArticle } from "../src/lib/blog-agent/types";
 
@@ -89,7 +97,30 @@ type CanaryFailureCode =
   | "invalid-question"
   | "invalid-slug"
   | "package-not-ready"
-  | "generation-unavailable";
+  | "generation-unavailable"
+  | "answer-invalid"
+  | "provider-authentication"
+  | "provider-billing"
+  | "provider-invalid-response"
+  | "provider-network"
+  | "provider-rate-limit"
+  | "provider-request"
+  | "provider-server"
+  | "provider-timeout";
+
+const PROVIDER_FAILURE_CODES: Record<
+  BlogAgentProviderFailureCategory,
+  CanaryFailureCode
+> = {
+  authentication: "provider-authentication",
+  billing: "provider-billing",
+  "invalid-response": "provider-invalid-response",
+  network: "provider-network",
+  "rate-limit": "provider-rate-limit",
+  request: "provider-request",
+  server: "provider-server",
+  timeout: "provider-timeout",
+};
 
 class CanaryFailure extends Error {
   constructor(readonly code: CanaryFailureCode) {
@@ -113,7 +144,7 @@ const defaultDependencies: BlogAgentCanaryDependencies = {
       idleTimeoutMillis: 5_000,
     }));
   },
-  createClient: (config) => new OpenAICompatibleBlogAgentClient({
+  createClient: (config) => new DeepSeekBlogAgentClient({
     baseUrl: config.baseUrl,
     apiKey: config.apiKey,
     model: config.model,
@@ -257,7 +288,13 @@ async function runBlogAgentCanary(
         evidence,
         dependencies.createClient(config),
       );
-    } catch {
+    } catch (error) {
+      if (error instanceof BlogAgentProviderError) {
+        throw new CanaryFailure(PROVIDER_FAILURE_CODES[error.category]);
+      }
+      if (error instanceof BlogAgentInvalidAnswerError) {
+        throw new CanaryFailure("answer-invalid");
+      }
       throw new CanaryFailure("generation-unavailable");
     }
     if (answer.insufficientEvidence) {

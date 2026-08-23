@@ -24,6 +24,14 @@ export type GroundedArticleAnswer = {
   };
 };
 
+export class BlogAgentInvalidAnswerError extends Error {
+  readonly name = "BlogAgentInvalidAnswerError";
+
+  constructor() {
+    super("Blog Agent returned an invalid grounded answer");
+  }
+}
+
 export const BLOG_AGENT_SYSTEM_PROMPT = [
   "你是当前技术文章的只读问答助手。",
   "只能依据用户消息里的当前文章证据回答，不得使用外部知识补全事实。",
@@ -142,7 +150,7 @@ export async function answerFromArticle(
     maxOutputTokens: 600,
   });
   const answer = parseGroundedAnswer(response, knownIds);
-  if (!answer) throw new Error("Blog Agent returned an invalid grounded answer");
+  if (!answer) throw new BlogAgentInvalidAnswerError();
   if (
     !answer.insufficientEvidence &&
     reproducesProtectedMaterial(answer.answer, evidence)

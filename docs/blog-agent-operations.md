@@ -28,7 +28,7 @@ Agent 只读取访客当前打开的、`published + public` 且包含 Markdown �
 ```dotenv
 BLOG_AGENT_ENABLED=false
 BLOG_AGENT_GENERATION_ENABLED=false
-BLOG_AGENT_BASE_URL=<供应商官方 OpenAI-compatible Base URL>
+BLOG_AGENT_BASE_URL=https://api.deepseek.com
 BLOG_AGENT_API_KEY=<专用低额度 Key>
 BLOG_AGENT_MODEL=<模型名>
 DASHSCOPE_API_KEY=<百炼专用低额度 Key>
@@ -95,7 +95,9 @@ docker compose --env-file .env.docker.prod \
 
 Canary 不经过公网 API、不要求 `BLOG_AGENT_ENABLED=true`、不写 Blog，只输出 query ID、结果类型、引用数量、token 数和 `contextMode`。使用 `--require-package` 时，没有当前 Blog 的 ready package 会直接失败，不会静默退回 Markdown；成功输出必须包含 `"contextMode":"article-package"`。普通 Markdown canary 可省略该参数。它不会输出问题、Markdown、source 内容、回答全文、API Key、数据库地址或供应商错误正文。证据不足、文章不公开、配置缺失或 provider 异常都会以非零状态退出。
 
-失败日志只包含固定阶段码，例如 `configuration-unavailable`、`database-unavailable`、`package-not-ready`、`generation-unavailable` 或 `insufficient-evidence`。阶段码用于区分配置、数据库、数据 package、模型调用与证据判定；未分类异常只输出 `internal`，不会透传配置内容、连接信息或供应商响应正文。
+失败日志只包含固定阶段码，例如 `configuration-unavailable`、`database-unavailable`、`package-not-ready`、`provider-authentication`、`provider-billing`、`provider-invalid-response`、`answer-invalid` 或 `insufficient-evidence`。阶段码用于区分配置、数据库、数据 package、供应商调用、回答校验与证据判定；未分类异常只输出 `internal`，不会透传配置内容、连接信息或供应商响应正文。
+
+DeepSeek V4 默认开启 thinking mode。当前 Blog Agent 明确使用 `deepseek-v4-flash` 的 non-thinking mode：该链路只做有界文章问答和严格 JSON 输出，关闭 thinking 可以避免推理 token 挤占 600 token 的结构化答案预算，并降低延迟与费用。
 
 GitHub 部署流程会在 `BLOG_AGENT_GENERATION_ENABLED=true` 时通过受管 SSH 自动运行同一条 `--require-package` canary。Canary 失败会先关闭两个 Agent 开关，再触发镜像回滚并让 workflow 失败，避免旧镜像沿用本次未验证的公开配置，因此个人电脑不需要持有生产 SSH 密钥。
 
