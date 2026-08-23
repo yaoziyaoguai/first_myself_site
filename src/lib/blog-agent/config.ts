@@ -13,6 +13,12 @@ export type BlogAgentConfig = {
   globalDaily: number;
   perIdentityConcurrency: number;
   globalConcurrency: number;
+  embeddingConfigured: boolean;
+  embeddingBaseUrl: string;
+  embeddingApiKey: string;
+  embeddingModel: string;
+  embeddingDimensions: number;
+  embeddingTimeoutMs: number;
 };
 
 function enabled(value: string | undefined): boolean {
@@ -36,6 +42,17 @@ export function readBlogAgentConfig(
   const baseUrl = environment.BLOG_AGENT_BASE_URL?.trim() ?? "";
   const apiKey = environment.BLOG_AGENT_API_KEY?.trim() ?? "";
   const model = environment.BLOG_AGENT_MODEL?.trim() ?? "";
+  const embeddingBaseUrl = environment.BLOG_AGENT_EMBEDDING_BASE_URL?.trim() ||
+    "https://dashscope.aliyuncs.com/compatible-mode/v1";
+  const embeddingApiKey = environment.DASHSCOPE_API_KEY?.trim() ?? "";
+  const embeddingModel = environment.BLOG_AGENT_EMBEDDING_MODEL?.trim() ||
+    "qwen3.7-text-embedding";
+  const embeddingDimensions = boundedInteger(
+    environment.BLOG_AGENT_EMBEDDING_DIMENSIONS,
+    1_024,
+    1_024,
+    1_024,
+  );
 
   return {
     enabled: enabled(environment.BLOG_AGENT_ENABLED),
@@ -93,6 +110,19 @@ export function readBlogAgentConfig(
       3,
       1,
       100,
+    ),
+    embeddingConfigured: Boolean(
+      embeddingBaseUrl && embeddingApiKey && embeddingModel,
+    ),
+    embeddingBaseUrl,
+    embeddingApiKey,
+    embeddingModel,
+    embeddingDimensions,
+    embeddingTimeoutMs: boundedInteger(
+      environment.BLOG_AGENT_EMBEDDING_TIMEOUT_MS,
+      15_000,
+      1_000,
+      60_000,
     ),
   };
 }
