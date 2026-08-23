@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { BLOG_AGENT_SYSTEM_PROMPT } from "./answer";
 import { readBlogAgentConfig, type BlogAgentConfig } from "./config";
 import { getBlogAgentDatabasePool } from "./database";
-import { OpenAICompatibleBlogAgentClient } from "./modelClient";
+import { DeepSeekBlogAgentClient } from "./modelClient";
 import { ArticleIndexer } from "./articleIndexer";
 import { PostgresArticleIndexRepository } from "./articleIndexRepository.postgres";
 import { DashScopeEmbeddingClient } from "./embeddingClient";
@@ -84,7 +84,7 @@ export function getBlogAgentRuntime(): BlogAgentRuntime {
     perIdentityConcurrency: config.perIdentityConcurrency,
     globalConcurrency: config.globalConcurrency,
   });
-  const client = new OpenAICompatibleBlogAgentClient({
+  const client = new DeepSeekBlogAgentClient({
     baseUrl: config.baseUrl,
     apiKey: config.apiKey,
     model: config.model,

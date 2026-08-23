@@ -6,6 +6,10 @@ import { hashPublicArticle } from "@/lib/blog-agent/articlePackage";
 import type { BlogAgentConfig } from "@/lib/blog-agent/config";
 import type { ReadyArticlePackage } from "@/lib/blog-agent/articleIndexRepository";
 import {
+  BlogAgentProviderError,
+  type BlogAgentProviderFailureCategory,
+} from "@/lib/blog-agent/modelClient";
+import {
   executeBlogAgentCanary,
   parseCanaryArguments,
   PostgresCanaryArticleStore,
@@ -363,6 +367,57 @@ describe("Blog Agent canary", () => {
     )).toBe(1);
     expect(fixture.stderr.mock.calls).toEqual([
       ["Blog Agent canary failed: internal"],
+    ]);
+  });
+
+  it.each([
+    ["authentication", "provider-authentication"],
+    ["billing", "provider-billing"],
+    ["invalid-response", "provider-invalid-response"],
+    ["network", "provider-network"],
+    ["rate-limit", "provider-rate-limit"],
+    ["request", "provider-request"],
+    ["server", "provider-server"],
+    ["timeout", "provider-timeout"],
+  ] satisfies ReadonlyArray<[BlogAgentProviderFailureCategory, string]>)(
+    "reports only the safe %s provider category",
+    async (category, code) => {
+      const fixture = createDependencies({
+        client: {
+          complete: vi.fn().mockRejectedValue(
+            new BlogAgentProviderError(category),
+          ),
+        },
+      });
+
+      expect(await executeBlogAgentCanary(
+        ["--slug=doris-write-path", "--question=为什么？"],
+        fixture.dependencies,
+      )).toBe(1);
+      expect(fixture.stderr.mock.calls).toEqual([
+        [`Blog Agent canary failed: ${code}`],
+      ]);
+      expect(fixture.stdout).not.toHaveBeenCalled();
+    },
+  );
+
+  it("distinguishes an invalid grounded answer from provider failure", async () => {
+    const fixture = createDependencies({
+      client: {
+        complete: vi.fn().mockResolvedValue({
+          content: "{}",
+          inputTokens: 3,
+          outputTokens: 1,
+        }),
+      },
+    });
+
+    expect(await executeBlogAgentCanary(
+      ["--slug=doris-write-path", "--question=为什么？"],
+      fixture.dependencies,
+    )).toBe(1);
+    expect(fixture.stderr.mock.calls).toEqual([
+      ["Blog Agent canary failed: answer-invalid"],
     ]);
   });
 });
