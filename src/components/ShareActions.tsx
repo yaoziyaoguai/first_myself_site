@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 interface ShareActionsProps {
   url: string;
@@ -8,10 +8,26 @@ interface ShareActionsProps {
   summary?: string;
 }
 
+function subscribeToNativeShare() {
+  return () => undefined;
+}
+
+function getNativeShareSnapshot() {
+  return typeof navigator.share === "function";
+}
+
+function getServerNativeShareSnapshot() {
+  return false;
+}
+
 export function ShareActions({ url, title, summary }: ShareActionsProps) {
   const [copied, setCopied] = useState(false);
-
-  const canNativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
+  // server snapshot 固定为 false，浏览器接管后再读取真实能力，避免 hydration 漂移。
+  const canNativeShare = useSyncExternalStore(
+    subscribeToNativeShare,
+    getNativeShareSnapshot,
+    getServerNativeShareSnapshot,
+  );
 
   const handleCopy = async () => {
     try {
