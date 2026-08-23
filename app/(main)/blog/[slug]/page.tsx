@@ -16,6 +16,7 @@ import { BlogAgent } from "@/components/blog-agent/BlogAgent";
 import { ShareActions } from "@/components/ShareActions";
 import { SITE_URL, siteDefaults } from "@/content/siteDefaults";
 import { canShowBlogAgent } from "@/lib/blog-agent/config";
+import { formatSiteDate } from "@/lib/siteDate";
 
 export const dynamic = "force-dynamic";
 
@@ -110,7 +111,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   const tags = (post.tags as { tag: string }[] | undefined) || [];
   const dateStr = post.publishedDate
-    ? new Date(post.publishedDate).toISOString().split("T")[0]
+    ? formatSiteDate(post.publishedDate)
     : "";
   const showPublicInteractions = canUsePublicInteractions(post.visibility);
   const markdownContent =

@@ -131,11 +131,13 @@ jobs:
           BLOG_AGENT_EMBEDDING_MODEL: ${{ vars.BLOG_AGENT_EMBEDDING_MODEL }}
           BLOG_AGENT_EMBEDDING_DIMENSIONS: ${{ vars.BLOG_AGENT_EMBEDDING_DIMENSIONS }}
           BLOG_AGENT_EMBEDDING_TIMEOUT_MS: ${{ vars.BLOG_AGENT_EMBEDDING_TIMEOUT_MS }}
+          BLOG_AGENT_CANARY_SLUG: ${{ vars.BLOG_AGENT_CANARY_SLUG }}
+          BLOG_AGENT_CANARY_QUESTION: ${{ vars.BLOG_AGENT_CANARY_QUESTION }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: BLOG_AGENT_API_KEY,BLOG_AGENT_ENABLED,BLOG_AGENT_GENERATION_ENABLED,BLOG_AGENT_BASE_URL,BLOG_AGENT_MODEL,DASHSCOPE_API_KEY,BLOG_AGENT_EMBEDDING_BASE_URL,BLOG_AGENT_EMBEDDING_MODEL,BLOG_AGENT_EMBEDDING_DIMENSIONS,BLOG_AGENT_EMBEDDING_TIMEOUT_MS
+          envs: BLOG_AGENT_API_KEY,BLOG_AGENT_ENABLED,BLOG_AGENT_GENERATION_ENABLED,BLOG_AGENT_BASE_URL,BLOG_AGENT_MODEL,DASHSCOPE_API_KEY,BLOG_AGENT_EMBEDDING_BASE_URL,BLOG_AGENT_EMBEDDING_MODEL,BLOG_AGENT_EMBEDDING_DIMENSIONS,BLOG_AGENT_EMBEDDING_TIMEOUT_MS,BLOG_AGENT_CANARY_SLUG,BLOG_AGENT_CANARY_QUESTION
           command_timeout: 30m
           script: |
             set -euo pipefail
@@ -165,6 +167,10 @@ jobs:
               fi
               if [ "$BLOG_AGENT_EMBEDDING_DIMENSIONS" != "1024" ]; then
                 echo "BLOG_AGENT_EMBEDDING_DIMENSIONS must be 1024" >&2
+                exit 1
+              fi
+              if [ -z "${BLOG_AGENT_CANARY_SLUG:-}" ] || [ -z "${BLOG_AGENT_CANARY_QUESTION:-}" ]; then
+                echo "Blog Agent production canary configuration is incomplete in GitHub" >&2
                 exit 1
               fi
             fi
@@ -256,11 +262,25 @@ jobs:
               exit 1
             fi
 
+            if [ "$BLOG_AGENT_GENERATION_ENABLED" = "true" ]; then
+              if ! "${compose[@]}" exec -T app npm run blog-agent:canary -- \
+                "--slug=$BLOG_AGENT_CANARY_SLUG" \
+                "--question=$BLOG_AGENT_CANARY_QUESTION" \
+                --require-package; then
+                # Canary 未通过时必须 fail closed，避免旧镜像沿用本次未验证的公开开关。
+                export BLOG_AGENT_ENABLED=false
+                export BLOG_AGENT_GENERATION_ENABLED=false
+                rollback || true
+                exit 1
+              fi
+            fi
+
             "${compose[@]}" ps
             unset BLOG_AGENT_API_KEY BLOG_AGENT_ENABLED BLOG_AGENT_GENERATION_ENABLED
             unset BLOG_AGENT_BASE_URL BLOG_AGENT_MODEL DASHSCOPE_API_KEY
             unset BLOG_AGENT_EMBEDDING_BASE_URL BLOG_AGENT_EMBEDDING_MODEL
             unset BLOG_AGENT_EMBEDDING_DIMENSIONS BLOG_AGENT_EMBEDDING_TIMEOUT_MS
+            unset BLOG_AGENT_CANARY_SLUG BLOG_AGENT_CANARY_QUESTION
             # 清理悬空镜像，释放磁盘空间
             docker image prune -f
             echo "✅ 部署完成"

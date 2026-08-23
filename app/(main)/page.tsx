@@ -6,6 +6,7 @@ import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
 import { resolveArray, resolveText } from "@/lib/contentFallback";
 import { summarizeExcerpt } from "@/lib/discovery";
 import { getPayloadAPI } from "@/lib/payload";
+import { formatSiteDate } from "@/lib/siteDate";
 
 export const dynamic = "force-dynamic";
 
@@ -161,7 +162,7 @@ export default async function Home() {
                 >
                   <time className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
                     {post.publishedDate
-                      ? new Date(post.publishedDate).toISOString().slice(0, 10)
+                      ? formatSiteDate(post.publishedDate)
                       : ""}
                   </time>
                   <span>
