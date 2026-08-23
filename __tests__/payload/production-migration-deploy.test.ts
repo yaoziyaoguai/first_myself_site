@@ -6,6 +6,10 @@ const workflow = readFileSync(
   resolve(process.cwd(), ".github/workflows/ci-cd.yml"),
   "utf8",
 );
+const productionCompose = readFileSync(
+  resolve(process.cwd(), "docker/docker-compose.prod.yml"),
+  "utf8",
+);
 
 describe("production migration deployment", () => {
   it("backs up, removes only the legacy dev marker, then replaces the app", () => {
@@ -26,5 +30,16 @@ describe("production migration deployment", () => {
       `DELETE FROM "payload_migrations"\n                  WHERE "batch" = -1 AND "name" = 'dev'`,
     );
     expect(workflow.match(/DELETE FROM "payload_migrations"/g)).toHaveLength(1);
+  });
+
+  it("injects the DashScope key through the server-only deploy environment", () => {
+    expect(workflow).toContain(
+      "DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}",
+    );
+    expect(workflow).toContain("envs: DASHSCOPE_API_KEY");
+    expect(workflow).not.toContain("NEXT_PUBLIC_DASHSCOPE_API_KEY");
+    expect(productionCompose).toContain(
+      "DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}",
+    );
   });
 });

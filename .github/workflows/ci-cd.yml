@@ -114,14 +114,22 @@ jobs:
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: DASHSCOPE_API_KEY
           command_timeout: 30m
           script: |
             set -euo pipefail
             cd "${{ secrets.PROJECT_PATH }}"
+
+            if [ -z "${DASHSCOPE_API_KEY:-}" ]; then
+              echo "DASHSCOPE_API_KEY is not configured in GitHub Actions Secrets" >&2
+              exit 1
+            fi
 
             compose=(docker compose --env-file .env.docker.prod -f docker/docker-compose.prod.yml)
             previous_image="$(docker inspect --format='{{.Image}}' first_myself_site_prod 2>/dev/null || true)"
@@ -209,6 +217,7 @@ jobs:
             fi
 
             "${compose[@]}" ps
+            unset DASHSCOPE_API_KEY
             # 清理悬空镜像，释放磁盘空间
             docker image prune -f
             echo "✅ 部署完成"

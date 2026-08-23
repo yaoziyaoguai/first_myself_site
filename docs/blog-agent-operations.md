@@ -4,7 +4,9 @@
 
 ## 上线前配置
 
-在模型供应商后台单独创建一个低额度、可随时吊销的 API Key，并为它配置消费上限和告警。不要复用个人主 Key，不要把 Key 粘贴到聊天、Issue、PR、日志或 Git。真实值只写入阿里云服务器仓库根目录、权限受限且已被 Git 忽略的 `.env.docker.prod`。
+在模型供应商后台分别创建低额度、可随时吊销的生成与向量化 API Key，并为它们配置消费上限和告警。不要复用个人主 Key，不要把 Key 粘贴到 Issue、PR、日志或 Git。生成模型的真实值写入阿里云服务器仓库根目录、权限受限且已被 Git 忽略的 `.env.docker.prod`。
+
+百炼向量化 Key 使用仓库级 GitHub Actions Secret `DASHSCOPE_API_KEY`。自动部署会通过 SSH 进程环境把它传给 Docker Compose；Key 不进入镜像构建参数、客户端 bundle、Git 历史或服务器仓库文件。手工部署时必须在服务器 `.env.docker.prod` 中提供同名服务端变量。
 
 首次部署保持：
 
@@ -14,6 +16,7 @@ BLOG_AGENT_GENERATION_ENABLED=false
 BLOG_AGENT_BASE_URL=<供应商官方 OpenAI-compatible Base URL>
 BLOG_AGENT_API_KEY=<专用低额度 Key>
 BLOG_AGENT_MODEL=<模型名>
+DASHSCOPE_API_KEY=<百炼专用低额度 Key>
 ```
 
 其余限额使用 `.env.docker.prod.example` 的保守默认值。所有 `BLOG_AGENT_*` 变量都是服务端变量；不要添加 `NEXT_PUBLIC_` 前缀。
