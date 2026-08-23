@@ -87,4 +87,12 @@ describe("Blog Agent production defaults", () => {
     );
     expect(workflow).not.toMatch(/build-args:[\s\S]*BLOG_AGENT_API_KEY/);
   });
+
+  it("supports a gated manual redeploy after production variables change", () => {
+    const workflow = source(".github/workflows/ci-cd.yml");
+    expect(workflow).toMatch(/\n  workflow_dispatch:\s*\n/);
+    expect(workflow).toContain(
+      "github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')",
+    );
+  });
 });
