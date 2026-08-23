@@ -8,7 +8,14 @@ import type {
 } from "@/lib/blog-agent/repository.postgres";
 
 function createDatabase(rows: Record<string, unknown>[] = []) {
-  const query = vi.fn(async () => ({ rows }));
+  const query = vi.fn(async (
+    _text: string,
+    _values?: readonly unknown[],
+  ) => {
+    void _text;
+    void _values;
+    return { rows };
+  });
   const release = vi.fn();
   const client = { query, release } as unknown as BlogAgentQueryClient;
   const pool = {
@@ -72,7 +79,7 @@ describe("PostgresArticleIndexRepository", () => {
     expect(sql).toContain('p."article_hash" = $3');
     expect(sql).toContain("LIMIT 128");
     expect(values).toEqual(["42", "b".repeat(64), "a".repeat(64)]);
-    expect(sql).not.toMatch(/trigram|<->|@@|ORDER BY.*embedding/is);
+    expect(sql).not.toMatch(/trigram|<->|@@|ORDER BY[\s\S]*embedding/i);
   });
 
   it("transactionally replaces one Blog package and releases the connection", async () => {
