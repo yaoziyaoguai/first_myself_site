@@ -29,6 +29,8 @@ describe("Blog Agent article package migration", () => {
     const source = statements.join("\n").replace(/\s+/g, " ");
     expect(source).toContain('ALTER TABLE "blog" ADD COLUMN IF NOT EXISTS "agent_context_required" boolean');
     expect(source).toContain('CREATE TABLE IF NOT EXISTS "blog_agent"."article_packages"');
+    expect(source).toContain('"blog_id" integer NOT NULL');
+    expect(source).toContain('FOREIGN KEY ("blog_id") REFERENCES "blog" ("id") ON DELETE CASCADE');
     expect(source).toContain('CREATE TABLE IF NOT EXISTS "blog_agent"."article_chunks"');
     expect(source).toContain('PRIMARY KEY ("blog_id", "package_hash", "chunk_id")');
     expect(source).toContain('CREATE INDEX IF NOT EXISTS "article_chunks_blog_package_idx" ON "blog_agent"."article_chunks" ("blog_id", "package_hash")');

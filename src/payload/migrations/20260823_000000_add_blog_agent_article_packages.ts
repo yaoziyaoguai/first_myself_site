@@ -20,7 +20,7 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
     CREATE SCHEMA IF NOT EXISTS "blog_agent";
 
     CREATE TABLE IF NOT EXISTS "blog_agent"."article_packages" (
-      "blog_id" text NOT NULL,
+      "blog_id" integer NOT NULL,
       "package_hash" varchar(64) NOT NULL,
       "article_hash" varchar(64) NOT NULL,
       "manifest_json" jsonb NOT NULL,
@@ -29,12 +29,13 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
       "chunk_count" integer NOT NULL,
       "indexed_at" timestamptz NOT NULL,
       PRIMARY KEY ("blog_id", "package_hash"),
+      FOREIGN KEY ("blog_id") REFERENCES "blog" ("id") ON DELETE CASCADE,
       CHECK ("embedding_dimensions" > 0 AND "embedding_dimensions" <= 4096),
       CHECK ("chunk_count" >= 0 AND "chunk_count" <= 128)
     );
 
     CREATE TABLE IF NOT EXISTS "blog_agent"."article_chunks" (
-      "blog_id" text NOT NULL,
+      "blog_id" integer NOT NULL,
       "package_hash" varchar(64) NOT NULL,
       "chunk_id" text NOT NULL,
       "source_kind" text NOT NULL,

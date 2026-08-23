@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import type { MigrateUpArgs } from "@payloadcms/db-postgres";
+import { PgDialect } from "drizzle-orm/pg-core";
 import {
   PostgresArticleIndexRepository,
 } from "@/lib/blog-agent/articleIndexRepository.postgres";
@@ -6,6 +8,11 @@ import type {
   BlogAgentQueryClient,
   BlogAgentQueryPool,
 } from "@/lib/blog-agent/repository.postgres";
+import { up as migrateArticlePackages } from "@/payload/migrations/20260823_000000_add_blog_agent_article_packages";
+import {
+  createIsolatedPostgresDatabase,
+  type IsolatedPostgresDatabase,
+} from "../../helpers/blogAgentPostgres";
 
 function createDatabase(rows: Record<string, unknown>[] = []) {
   const query = vi.fn(async (
@@ -48,7 +55,7 @@ const packageInput = {
 describe("PostgresArticleIndexRepository", () => {
   it("loads chunks only through an exact server-owned Blog and package filter", async () => {
     const database = createDatabase([{ 
-      blog_id: "42",
+      blog_id: 42,
       article_hash: "a".repeat(64),
       package_hash: "b".repeat(64),
       manifest_json: { version: 1 },
@@ -108,5 +115,76 @@ describe("PostgresArticleIndexRepository", () => {
 
     expect(database.query).not.toHaveBeenCalled();
     expect(database.release).not.toHaveBeenCalled();
+  });
+});
+
+const describePostgres = process.env.BLOG_AGENT_TEST_DATABASE_URL
+  ? describe
+  : describe.skip;
+
+describePostgres("PostgresArticleIndexRepository on PostgreSQL 15", () => {
+  let database: IsolatedPostgresDatabase;
+  const dialect = new PgDialect();
+
+  beforeAll(async () => {
+    database = await createIsolatedPostgresDatabase();
+    await database.pool.query('CREATE TABLE "blog" ("id" serial PRIMARY KEY)');
+    await migrateArticlePackages({
+      db: {
+        execute: async (query: Parameters<PgDialect["sqlToQuery"]>[0]) => {
+          const compiled = dialect.sqlToQuery(query);
+          return database.pool.query(compiled.sql, compiled.params);
+        },
+      },
+    } as unknown as MigrateUpArgs);
+    await database.pool.query(
+      'INSERT INTO "blog" ("id") VALUES (42), (43)',
+    );
+  });
+
+  afterAll(async () => database?.destroy());
+
+  it("round-trips JSONB and real[] while isolating Blogs", async () => {
+    const repository = new PostgresArticleIndexRepository(database.pool);
+    await repository.replacePackage(packageInput);
+    await repository.replacePackage({
+      ...packageInput,
+      blogId: "43",
+      articleHash: "c".repeat(64),
+      chunks: [{
+        ...packageInput.chunks[0],
+        id: "material:other:0",
+        content: "other Blog material",
+        embedding: [0, 1, 0],
+      }],
+    });
+
+    const loaded = await repository.getReadyPackage({
+      blogId: "42",
+      articleHash: packageInput.articleHash,
+      packageHash: packageInput.packageHash,
+    });
+    const summary = await repository.getPackageSummary({
+      blogId: "42",
+      packageHash: packageInput.packageHash,
+    });
+
+    expect(loaded).toMatchObject({
+      blogId: "42",
+      articleHash: packageInput.articleHash,
+      packageHash: packageInput.packageHash,
+      manifest: { version: 1 },
+      chunks: [{
+        id: "material:loop:0",
+        content: "while steps < max_steps:",
+        embedding: [1, 0, 0],
+      }],
+    });
+    expect(JSON.stringify(loaded)).not.toContain("other Blog material");
+    expect(summary).toMatchObject({
+      blogId: "42",
+      chunkCount: 1,
+      embeddingDimensions: 3,
+    });
   });
 });

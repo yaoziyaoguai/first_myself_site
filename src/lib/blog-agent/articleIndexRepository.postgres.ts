@@ -21,6 +21,11 @@ function integer(value: unknown): number | null {
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
+function normalizedBlogId(value: unknown): string | null {
+  const parsed = integer(value);
+  return parsed === null ? null : String(parsed);
+}
+
 function finiteVector(value: unknown, dimensions: number): number[] | null {
   if (!Array.isArray(value) || value.length !== dimensions) return null;
   const vector = value.map(Number);
@@ -99,8 +104,9 @@ export class PostgresArticleIndexRepository implements ArticleIndexRepository {
     const first = result.rows[0];
     if (!first) return null;
     const dimensions = integer(first.embedding_dimensions);
+    const blogId = normalizedBlogId(first.blog_id);
     if (
-      typeof first.blog_id !== "string" ||
+      !blogId ||
       typeof first.article_hash !== "string" ||
       typeof first.package_hash !== "string" ||
       typeof first.embedding_model !== "string" ||
@@ -118,7 +124,7 @@ export class PostgresArticleIndexRepository implements ArticleIndexRepository {
       return null;
     }
     return {
-      blogId: first.blog_id,
+      blogId,
       articleHash: first.article_hash,
       packageHash: first.package_hash,
       manifest: first.manifest_json,
@@ -142,9 +148,10 @@ export class PostgresArticleIndexRepository implements ArticleIndexRepository {
     const row = result.rows[0];
     const dimensions = integer(row?.embedding_dimensions);
     const chunkCount = integer(row?.chunk_count);
+    const blogId = normalizedBlogId(row?.blog_id);
     if (
       !row ||
-      typeof row.blog_id !== "string" ||
+      !blogId ||
       typeof row.article_hash !== "string" ||
       typeof row.package_hash !== "string" ||
       typeof row.embedding_model !== "string" ||
@@ -155,7 +162,7 @@ export class PostgresArticleIndexRepository implements ArticleIndexRepository {
       return null;
     }
     return {
-      blogId: row.blog_id,
+      blogId,
       articleHash: row.article_hash,
       packageHash: row.package_hash,
       embeddingModel: row.embedding_model,

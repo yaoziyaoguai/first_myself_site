@@ -56,6 +56,35 @@ describePostgres("article package migration on PostgreSQL 15", () => {
       "agent_indexed_at",
     ]);
 
+    const inserted = await database.pool.query<{ id: number }>(
+      'INSERT INTO "blog" DEFAULT VALUES RETURNING "id"',
+    );
+    const blogId = inserted.rows[0].id;
+    const packageHash = "b".repeat(64);
+    await database.pool.query(
+      `INSERT INTO "blog_agent"."article_packages"
+        ("blog_id", "package_hash", "article_hash", "manifest_json",
+         "embedding_model", "embedding_dimensions", "chunk_count", "indexed_at")
+       VALUES ($1, $2, $3, '{}'::jsonb, 'embedding-model', 3, 1, now())`,
+      [blogId, packageHash, "a".repeat(64)],
+    );
+    await database.pool.query(
+      `INSERT INTO "blog_agent"."article_chunks"
+        ("blog_id", "package_hash", "chunk_id", "source_kind", "source_path",
+         "heading", "anchor", "ordinal", "content", "embedding")
+       VALUES ($1, $2, 'chunk-1', 'code', 'src/a.ts', 'A', 'a', 0, 'body', ARRAY[1,0,0]::real[])`,
+      [blogId, packageHash],
+    );
+    await database.pool.query('DELETE FROM "blog" WHERE "id" = $1', [blogId]);
+    const packageRows = await database.pool.query<{ count: string }>(
+      'SELECT COUNT(*)::text AS count FROM "blog_agent"."article_packages"',
+    );
+    const chunkRows = await database.pool.query<{ count: string }>(
+      'SELECT COUNT(*)::text AS count FROM "blog_agent"."article_chunks"',
+    );
+    expect(packageRows.rows[0].count).toBe("0");
+    expect(chunkRows.rows[0].count).toBe("0");
+
     await down({ db: migrationDb() } as unknown as MigrateDownArgs);
     const sentinel = await database.pool.query(
       `SELECT to_regclass('sentinel.keep_me') AS keep_me, to_regclass('public.blog') AS blog`,

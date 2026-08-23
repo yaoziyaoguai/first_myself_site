@@ -74,6 +74,9 @@ describe("Blog Agent production defaults", () => {
       "__tests__/lib/blog-agent/runtime.postgres.test.ts",
     );
     expect(workflow).toContain(
+      "__tests__/lib/blog-agent/articleIndexRepository.postgres.test.ts",
+    );
+    expect(workflow).toContain(
       "__tests__/scripts/blog-agent-canary.postgres.test.ts",
     );
     expect(workflow).toContain(
