@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/payload", () => ({ getPayloadAPI: vi.fn() }));
 vi.mock("@/lib/blog-agent/runtime", () => ({ getBlogAgentRuntime: vi.fn() }));
 
-import { GET, POST } from "@/app/api/blog/[id]/agent-index/route";
+import { GET, POST } from "@/app/api/blog/[identifier]/agent-index/route";
 import { getPayloadAPI } from "@/lib/payload";
 import { getBlogAgentRuntime } from "@/lib/blog-agent/runtime";
 import { ArticlePackageValidationError } from "@/lib/blog-agent/articlePackage";
@@ -34,7 +34,7 @@ function request(body: unknown, headers: Record<string, string> = {}): Request {
   });
 }
 
-const context = { params: Promise.resolve({ id: "42" }) };
+const context = { params: Promise.resolve({ identifier: "42" }) };
 
 function privateArticle() {
   return {

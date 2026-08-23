@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -7,6 +7,18 @@ function source(path: string): string {
 }
 
 describe("Blog Agent production defaults", () => {
+  it("uses one dynamic parameter name for sibling Blog API routes", () => {
+    const dynamicDirectories = readdirSync(
+      resolve(process.cwd(), "app/api/blog"),
+      { withFileTypes: true },
+    )
+      .filter((entry) => entry.isDirectory() && /^\[[^\]]+\]$/.test(entry.name))
+      .map((entry) => entry.name)
+      .sort();
+
+    expect(dynamicDirectories).toEqual(["[identifier]"]);
+  });
+
   it.each([".env.example", ".env.docker.prod.example"])(
     "keeps public generation disabled in %s",
     (path) => {

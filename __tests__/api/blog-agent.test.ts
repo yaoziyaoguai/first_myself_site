@@ -6,7 +6,7 @@ vi.mock("@/lib/requestIdentity", () => ({
 }));
 vi.mock("@/lib/blog-agent/runtime", () => ({ getBlogAgentRuntime: vi.fn() }));
 
-import { POST } from "@/app/api/blog/[slug]/agent/route";
+import { POST } from "@/app/api/blog/[identifier]/agent/route";
 import { getPayloadAPI } from "@/lib/payload";
 import { getBlogAgentRuntime } from "@/lib/blog-agent/runtime";
 
@@ -26,7 +26,7 @@ function request(
 }
 
 function context(slug = "doris-write-path") {
-  return { params: Promise.resolve({ slug }) };
+  return { params: Promise.resolve({ identifier: slug }) };
 }
 
 describe("POST /api/blog/[slug]/agent", () => {

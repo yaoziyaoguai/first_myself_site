@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 const MAX_BODY_BYTES = 160 * 1024;
 const MAX_ID_LENGTH = 128;
 
-type RouteContext = { params: Promise<{ id: string }> };
+type RouteContext = { params: Promise<{ identifier: string }> };
 type AuthenticatedPayload = Awaited<ReturnType<typeof getPayloadAPI>>;
 
 function jsonError(error: string, status: number) {
@@ -141,7 +141,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   if (boundaryError) return boundaryError;
   const { payload, denied } = await authenticate(request);
   if (denied) return denied;
-  const id = validId((await params).id);
+  const id = validId((await params).identifier);
   if (!id) return jsonError("Invalid article", 400);
   const body = await readLimitedJson(request);
   if (!body.ok) {
@@ -222,7 +222,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 export async function GET(request: Request, { params }: RouteContext) {
   const { payload, denied } = await authenticate(request);
   if (denied) return denied;
-  const id = validId((await params).id);
+  const id = validId((await params).identifier);
   if (!id) return jsonError("Invalid article", 400);
   const article = await findPrivatePackageArticle(payload, id);
   if (!article) return jsonError("Article not found", 404);
