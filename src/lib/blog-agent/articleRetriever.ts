@@ -37,7 +37,11 @@ function lexicalScore(section: ArticleSection & { sourcePath: string }, terms: s
   const heading = section.heading.normalize("NFKC").toLocaleLowerCase();
   const path = section.sourcePath.normalize("NFKC").toLocaleLowerCase();
   const content = section.content.normalize("NFKC").toLocaleLowerCase();
-  return terms.reduce((score, term) => score +
+  const asksForCode = terms.some((term) =>
+    term === "代码" || term === "源码" || term === "code"
+  );
+  const sourceKindScore = asksForCode && section.sourceKind === "code" ? 8 : 0;
+  return sourceKindScore + terms.reduce((score, term) => score +
     (heading.includes(term) ? 5 : 0) +
     (path.includes(term) ? 6 : 0) +
     (content.includes(term) ? 1 : 0), 0);
