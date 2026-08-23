@@ -68,7 +68,7 @@ server {
 
 ## 文章包的离线发布边界
 
-增强模式只用于新 slug，不更新或覆盖现有文章。执行全局 `publish-site-article` Skill 的 Agent 必须阅读文章与候选材料，自主选择最多 10 个 Git-tracked、clean-at-HEAD、可公开 source，并为主动排除的高相关候选记录理由。脚本会限制单个 20 KiB、合计 120 KiB、最多 128 chunks，并在发送 embedding 前对 path、symlink、Git 状态、hash 和常见凭据模式 fail closed。
+增强模式只用于新 slug，不更新或覆盖现有文章。执行全局 `publish-site-article` Skill 的 Agent 必须阅读文章与候选材料，自主选择最多 10 个 Git-tracked、clean-at-HEAD、可公开 source，并为主动排除的高相关候选记录理由。选入 source 代表允许 Agent 向匿名访客展示与问题直接相关的短代码、文档或数据摘录；只适合内部检索或概括的材料不得选入。脚本会限制单个 20 KiB、合计 120 KiB、最多 128 chunks，并在发送 embedding 前对 path、symlink、Git 状态、hash 和常见凭据模式 fail closed。
 
 推荐顺序：
 
@@ -78,7 +78,7 @@ server {
 4. Skill 创建 `draft + private`，再调用 admin/editor-only 的 `/api/blog/<id>/agent-index`。只有状态 `ready`、expected/indexed hash 相同且 `chunkCount > 0` 才算成功。
 5. 确认索引 ready 后，在两个 Agent 开关仍关闭时公开这篇文章；Payload hook 会拒绝绕过 ready gate。随后运行 package canary，只有通过后才开启访客 Agent。
 
-source 内容和 embeddings 只存 PostgreSQL 私有 `blog_agent` 表，不出现在匿名 Blog API、plan、inspect 或日志中。访客问题只会对当前 Blog 的最多 128 个 chunks 做有界内存排名；SQL 不形成全站向量/FTS 查询。
+source snapshot 和 embeddings 只存 PostgreSQL 私有 `blog_agent` 表，不会被匿名 raw-data API、plan、inspect 或日志完整返回。文章 Agent 可以在回答中展示最多两个有界代码块；服务端按 CommonMark AST 统计 backtick、tilde、缩进和未闭合 fence 等实际可渲染 code node，单块最多 1,200 字符、合计最多 1,600 字符。完整补充 source 不允许返回；回答在一个或多个补充 source 中累计复刻达到 600 字符时也会降级为证据不足。访客问题只会对当前 Blog 的最多 128 个 chunks 做有界内存排名；SQL 不形成全站向量/FTS 查询。
 
 ## 入口关闭时运行 canary
 
@@ -89,17 +89,18 @@ docker compose --env-file .env.docker.prod \
   -f docker/docker-compose.prod.yml \
   exec app npm run blog-agent:canary -- \
   --slug=<公开文章-slug> \
-  --question=<只能由该文章回答的问题> \
-  --require-package
+  --question=<要求从该文章包给出最小代码片段的问题> \
+  --require-package \
+  --require-code
 ```
 
-Canary 不经过公网 API、不要求 `BLOG_AGENT_ENABLED=true`、不写 Blog，只输出 query ID、结果类型、引用数量、token 数和 `contextMode`。使用 `--require-package` 时，没有当前 Blog 的 ready package 会直接失败，不会静默退回 Markdown；成功输出必须包含 `"contextMode":"article-package"`。普通 Markdown canary 可省略该参数。它不会输出问题、Markdown、source 内容、回答全文、API Key、数据库地址或供应商错误正文。证据不足、文章不公开、配置缺失或 provider 异常都会以非零状态退出。
+Canary 不经过公网 API、不要求 `BLOG_AGENT_ENABLED=true`、不写 Blog，只输出 query ID、结果类型、引用数量、token 数、`contextMode` 和是否存在代码摘录。使用 `--require-package` 时，没有当前 Blog 的 ready package 会直接失败，不会静默退回 Markdown；`--require-code` 只能与 `--require-package` 一起使用，并要求回答含非空 CommonMark code node、引用本次选中的 `sourceKind=code` 证据，且代码中至少 24 个实质字符来自该引用 source。生产部署同时启用两项门禁，成功输出必须包含 `"contextMode":"article-package"` 和 `"codeExcerpt":true`。它不会输出问题、Markdown、source 内容、回答全文、API Key、数据库地址或供应商错误正文。证据不足、文章不公开、代码摘录缺失、代码证据不匹配、配置缺失或 provider 异常都会以非零状态退出。
 
-失败日志只包含固定阶段码，例如 `configuration-unavailable`、`database-unavailable`、`package-not-ready`、`provider-authentication`、`provider-billing`、`provider-invalid-response`、`answer-invalid` 或 `insufficient-evidence`。阶段码用于区分配置、数据库、数据 package、供应商调用、回答校验与证据判定；未分类异常只输出 `internal`，不会透传配置内容、连接信息或供应商响应正文。
+失败日志只包含固定阶段码，例如 `configuration-unavailable`、`database-unavailable`、`package-not-ready`、`code-excerpt-missing`、`code-evidence-missing`、`provider-authentication`、`provider-billing`、`provider-invalid-response`、`answer-invalid` 或 `insufficient-evidence`。阶段码用于区分配置、数据库、数据 package、代码摘录、代码来源、供应商调用、回答校验与证据判定；未分类异常只输出 `internal`，不会透传配置内容、连接信息或供应商响应正文。
 
 DeepSeek V4 默认开启 thinking mode。当前 Blog Agent 明确使用 `deepseek-v4-flash` 的 non-thinking mode：该链路只做有界文章问答和严格 JSON 输出，关闭 thinking 可以避免推理 token 挤占 600 token 的结构化答案预算，并降低延迟与费用。
 
-GitHub 部署流程会在 `BLOG_AGENT_GENERATION_ENABLED=true` 时通过受管 SSH 自动运行同一条 `--require-package` canary。Canary 失败会先关闭两个 Agent 开关，再触发镜像回滚并让 workflow 失败，避免旧镜像沿用本次未验证的公开配置，因此个人电脑不需要持有生产 SSH 密钥。
+GitHub 部署流程会保存目标开关，然后强制以 `BLOG_AGENT_ENABLED=false`、`BLOG_AGENT_GENERATION_ENABLED=false` 启动候选版本。候选完成内部健康检查、域名/TLS 检查和同一条 `--require-package --require-code` canary 后，工作流才恢复目标开关、重建 app，并复验健康状态与容器中的实际开关值。任何失败都会用关闭状态回滚上一镜像；若回滚本身失败，则停止 app，避免未验证或已开启的 Agent 继续对外服务。因此个人电脑不需要持有生产 SSH 密钥。
 
 数据库 migration 在 canary 前执行，镜像回滚不会反向撤销数据库变更。因此所有 production migration 必须与上一版应用保持向后兼容，确保旧镜像在新 schema 上仍可安全运行。
 
@@ -109,7 +110,7 @@ Canary 成功后，按下面顺序执行，每次只重建 app 容器：
 
 1. 设置 `BLOG_AGENT_GENERATION_ENABLED=true`，`BLOG_AGENT_ENABLED=false`，重建 app；确认直接访问 API 仍为 `404`。
 2. 复核模型供应商消费上限、PostgreSQL runtime 表、应用配额和 Nginx 限流。
-3. 用公开测试文章验证正常问题、需要 package source 的深问题、证据不足、文章/source 内 prompt injection、跨文章诱导和模型生成外链；回答引用只能跳到当前文章标题。
+3. 用公开测试文章验证正常问题、需要 package source 的深问题、要求最小代码片段的问题、完整文件导出拒绝、证据不足、文章/source 内 prompt injection、跨文章诱导和模型生成外链；代码回答必须包含 code block、引用对应的 `code` source，且摘录行能在该 source 中核对，回答引用只能跳到当前文章标题。
 4. 验证 private/draft/RichText-only 文章均无机器人且 API 为 `404`。
 5. 验证桌面侧栏、移动端底部面板、键盘 Escape、焦点恢复和 reduced motion。
 6. 检查域名 TLS、`/api/health`、浏览器控制台和模型费用。

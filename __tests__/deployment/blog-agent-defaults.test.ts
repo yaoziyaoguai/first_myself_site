@@ -120,23 +120,41 @@ describe("Blog Agent production defaults", () => {
       workflow.indexOf("          envs:"),
       workflow.indexOf("          command_timeout:"),
     );
+    const targetFlags = workflow.indexOf(
+      'target_blog_agent_enabled="$BLOG_AGENT_ENABLED"',
+    );
+    const disableCandidate = workflow.indexOf(
+      "export BLOG_AGENT_ENABLED=false",
+      targetFlags,
+    );
+    const firstCandidateStart = workflow.indexOf(
+      '"${compose[@]}" up -d',
+      disableCandidate,
+    );
     const publicHealthCheck = workflow.indexOf(
       "https://wangjinkun333.me/api/health",
+      firstCandidateStart,
     );
     const canaryCommand = workflow.indexOf(
       "exec -T app npm run blog-agent:canary --",
     );
-    const disablePublicAgent = workflow.indexOf(
-      "export BLOG_AGENT_ENABLED=false",
+    const restorePublicAgent = workflow.indexOf(
+      'export BLOG_AGENT_ENABLED="$target_blog_agent_enabled"',
       canaryCommand,
     );
-    const disableGeneration = workflow.indexOf(
-      "export BLOG_AGENT_GENERATION_ENABLED=false",
+    const restoreGeneration = workflow.indexOf(
+      'export BLOG_AGENT_GENERATION_ENABLED="$target_blog_agent_generation_enabled"',
       canaryCommand,
     );
-    const rollback = workflow.indexOf("rollback || true", canaryCommand);
-    const failureExit = workflow.indexOf("exit 1", rollback);
-    const deploySuccess = workflow.indexOf('"${compose[@]}" ps', failureExit);
+    const finalCandidateStart = workflow.indexOf(
+      '"${compose[@]}" up -d --no-deps --force-recreate app',
+      restoreGeneration,
+    );
+    const runtimeFlagCheck = workflow.indexOf(
+      "verify_runtime_agent_flags",
+      finalCandidateStart,
+    );
+    const deploySuccess = workflow.indexOf('"${compose[@]}" ps', runtimeFlagCheck);
 
     expect(workflow).toContain(
       "BLOG_AGENT_CANARY_SLUG: ${{ vars.BLOG_AGENT_CANARY_SLUG }}",
@@ -145,7 +163,7 @@ describe("Blog Agent production defaults", () => {
       "BLOG_AGENT_CANARY_QUESTION: ${{ vars.BLOG_AGENT_CANARY_QUESTION }}",
     );
     expect(workflow).toContain(
-      'if [ "$BLOG_AGENT_GENERATION_ENABLED" = "true" ]; then',
+      'if [ "$target_blog_agent_generation_enabled" = "true" ]; then',
     );
     expect(workflow).toContain(
       'exec -T app npm run blog-agent:canary --',
@@ -153,16 +171,22 @@ describe("Blog Agent production defaults", () => {
     expect(workflow).toContain('"--slug=$BLOG_AGENT_CANARY_SLUG"');
     expect(workflow).toContain('"--question=$BLOG_AGENT_CANARY_QUESTION"');
     expect(workflow).toContain("--require-package");
+    expect(workflow).toContain("--require-code");
     expect(envForwarding).toContain("BLOG_AGENT_CANARY_SLUG");
     expect(envForwarding).toContain("BLOG_AGENT_CANARY_QUESTION");
+    expect(targetFlags).toBeGreaterThan(-1);
+    expect(disableCandidate).toBeGreaterThan(targetFlags);
+    expect(firstCandidateStart).toBeGreaterThan(disableCandidate);
     expect(publicHealthCheck).toBeGreaterThan(-1);
     expect(canaryCommand).toBeGreaterThan(publicHealthCheck);
-    expect(disablePublicAgent).toBeGreaterThan(canaryCommand);
-    expect(disableGeneration).toBeGreaterThan(canaryCommand);
-    expect(rollback).toBeGreaterThan(disablePublicAgent);
-    expect(rollback).toBeGreaterThan(disableGeneration);
-    expect(failureExit).toBeGreaterThan(rollback);
-    expect(deploySuccess).toBeGreaterThan(failureExit);
+    expect(restorePublicAgent).toBeGreaterThan(canaryCommand);
+    expect(restoreGeneration).toBeGreaterThan(canaryCommand);
+    expect(finalCandidateStart).toBeGreaterThan(restoreGeneration);
+    expect(runtimeFlagCheck).toBeGreaterThan(finalCandidateStart);
+    expect(deploySuccess).toBeGreaterThan(runtimeFlagCheck);
+    expect(workflow).toContain("verify_agent_disabled");
+    expect(workflow).toContain("fail_closed_rollback");
+    expect(workflow).not.toContain("rollback || true");
   });
 
   it("keeps an unconfigured disabled Agent from blocking unrelated deploys", () => {

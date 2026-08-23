@@ -98,6 +98,61 @@ function createDependencies(options?: {
   };
 }
 
+function packagedArticle() {
+  return {
+    id: "7",
+    slug: "agent-loop",
+    title: "Agent Loop",
+    excerpt: "受控循环",
+    contentMarkdown: "# 授权边界\n正文没有 executable drift 的细节。",
+    status: "published",
+    visibility: "public",
+    agentContextRequired: true,
+    agentPackageHash: "b".repeat(64),
+    agentIndexStatus: "ready",
+    agentIndexedPackageHash: "b".repeat(64),
+  };
+}
+
+function codePackage(article = packagedArticle()): ReadyArticlePackage {
+  return {
+    blogId: article.id,
+    articleHash: hashPublicArticle(article),
+    packageHash: article.agentPackageHash,
+    manifest: {},
+    embeddingModel: config.embeddingModel,
+    embeddingDimensions: config.embeddingDimensions,
+    indexedAt: new Date("2026-08-23T00:00:00Z"),
+    chunks: [
+      {
+        id: "article:0:0",
+        sourceKind: "article",
+        sourcePath: "article.md",
+        heading: "授权边界",
+        anchor: "授权边界",
+        ordinal: 0,
+        content: "正文只说明执行前需要重新验证。",
+        embedding: Array.from({ length: 1024 }, () => 0.01),
+      },
+      {
+        id: "material:authority:0",
+        sourceKind: "code",
+        sourcePath: "agent/process/tools.py",
+        heading: "执行身份重验",
+        anchor: "授权边界",
+        ordinal: 1,
+        content: [
+          "def revalidate_executable(current_identity, approved_identity):",
+          "if current_identity != approved_identity:",
+          "    return KnownNotExecuted(code=\"executable_identity_changed\")",
+          "return Approved()",
+        ].join("\n"),
+        embedding: Array.from({ length: 1024 }, () => 0.01),
+      },
+    ],
+  };
+}
+
 describe("Blog Agent canary", () => {
   it("uses a parameterized read-only query for the one public article", async () => {
     const query = vi.fn().mockResolvedValue({ rows: [] });
@@ -142,6 +197,7 @@ describe("Blog Agent canary", () => {
     { argv: ["--question=为什么"] },
     { argv: ["--slug=a", "--slug=b", "--question=q"] },
     { argv: ["--slug=a", "--question=q", "--extra=x"] },
+    { argv: ["--slug=a", "--question=q", "--require-code"] },
   ])("requires exactly one explicit slug and question %#", ({ argv }) => {
     expect(() => parseCanaryArguments(argv)).toThrow();
   });
@@ -155,6 +211,21 @@ describe("Blog Agent canary", () => {
       slug: "agent-loop",
       question: "为什么不能复用批准？",
       requirePackage: true,
+      requireCode: false,
+    });
+  });
+
+  it("accepts package and code gates together", () => {
+    expect(parseCanaryArguments([
+      "--slug=agent-loop",
+      "--question=给出最小代码片段",
+      "--require-package",
+      "--require-code",
+    ])).toEqual({
+      slug: "agent-loop",
+      question: "给出最小代码片段",
+      requirePackage: true,
+      requireCode: true,
     });
   });
 
@@ -181,41 +252,118 @@ describe("Blog Agent canary", () => {
     expect(output).not.toContain("为什么批量写入");
     expect(output).not.toContain("DATABASE_URL");
     expect(output).toContain('"contextMode":"markdown"');
+    expect(output).toContain('"codeExcerpt":false');
+  });
+
+  it("requires a fenced code excerpt without printing the excerpt", async () => {
+    const article = packagedArticle();
+    const fixture = createDependencies({
+      article,
+      articlePackage: codePackage(article),
+      client: {
+        complete: vi.fn().mockResolvedValue({
+          content: JSON.stringify({
+            answer: [
+              "执行前重验身份：",
+              "```python",
+              "if current_identity != approved_identity:",
+              "    return KnownNotExecuted(code=\"executable_identity_changed\")",
+              "```",
+            ].join("\n"),
+            citationIds: ["material:authority:0"],
+            insufficientEvidence: false,
+          }),
+          inputTokens: 18,
+          outputTokens: 22,
+        }),
+      },
+    });
+
+    const code = await executeBlogAgentCanary([
+      "--slug=agent-loop",
+      "--question=给出最小代码片段",
+      "--require-package",
+      "--require-code",
+    ], fixture.dependencies);
+
+    expect(code).toBe(0);
+    const output = fixture.stdout.mock.calls.flat().join("\n");
+    expect(output).toContain('"codeExcerpt":true');
+    expect(output).not.toContain("KnownNotExecuted");
+  });
+
+  it("accepts CommonMark code syntax through the shared answer analyzer", async () => {
+    const article = packagedArticle();
+    const fixture = createDependencies({
+      article,
+      articlePackage: codePackage(article),
+      client: {
+        complete: vi.fn().mockResolvedValue({
+          content: JSON.stringify({
+            answer: [
+              "~~~python",
+              "if current_identity != approved_identity:",
+              "    return KnownNotExecuted(code=\"executable_identity_changed\")",
+              "~~~",
+            ].join("\n"),
+            citationIds: ["material:authority:0"],
+            insufficientEvidence: false,
+          }),
+          inputTokens: 18,
+          outputTokens: 22,
+        }),
+      },
+    });
+
+    const code = await executeBlogAgentCanary([
+      "--slug=agent-loop",
+      "--question=给出最小代码片段",
+      "--require-package",
+      "--require-code",
+    ], fixture.dependencies);
+
+    expect(code).toBe(0);
+    expect(JSON.parse(fixture.stdout.mock.calls[0][0])).toMatchObject({
+      result: "answered",
+      codeExcerpt: true,
+    });
+  });
+
+  it("fails the code gate when the answer contains no fenced code", async () => {
+    const article = packagedArticle();
+    const fixture = createDependencies({
+      article,
+      articlePackage: codePackage(article),
+      client: {
+        complete: vi.fn().mockResolvedValue({
+          content: JSON.stringify({
+            answer: "执行前会重新比较批准身份与当前身份。",
+            citationIds: ["material:authority:0"],
+            insufficientEvidence: false,
+          }),
+          inputTokens: 10,
+          outputTokens: 8,
+        }),
+      },
+    });
+
+    const code = await executeBlogAgentCanary([
+      "--slug=agent-loop",
+      "--question=给出最小代码片段",
+      "--require-package",
+      "--require-code",
+    ], fixture.dependencies);
+
+    expect(code).toBe(1);
+    expect(fixture.stdout).not.toHaveBeenCalled();
+    expect(fixture.stderr.mock.calls).toEqual([
+      ["Blog Agent canary failed: code-excerpt-missing"],
+    ]);
   });
 
   it("proves a ready current-article package was used when required", async () => {
-    const article = {
-      id: "7",
-      slug: "agent-loop",
-      title: "Agent Loop",
-      excerpt: "受控循环",
-      contentMarkdown: "# 授权边界\n正文没有 executable drift 的细节。",
-      status: "published",
-      visibility: "public",
-      agentContextRequired: true,
-      agentPackageHash: "b".repeat(64),
-      agentIndexStatus: "ready",
-      agentIndexedPackageHash: "b".repeat(64),
-    };
-    const articlePackage: ReadyArticlePackage = {
-      blogId: article.id,
-      articleHash: hashPublicArticle(article),
-      packageHash: article.agentPackageHash,
-      manifest: {},
-      embeddingModel: config.embeddingModel,
-      embeddingDimensions: config.embeddingDimensions,
-      indexedAt: new Date("2026-08-23T00:00:00Z"),
-      chunks: [{
-        id: "material:authority:0",
-        sourceKind: "code",
-        sourcePath: "agent/runtime/state.py",
-        heading: "权限租约",
-        anchor: "授权边界",
-        ordinal: 0,
-        content: "command fingerprint 漂移时旧 lease 不得复用。",
-        embedding: Array.from({ length: 1024 }, () => 0.01),
-      }],
-    };
+    const article = packagedArticle();
+    const articlePackage = codePackage(article);
     const fixture = createDependencies({
       article,
       articlePackage,
@@ -246,6 +394,93 @@ describe("Blog Agent canary", () => {
     });
     expect(fixture.stdout.mock.calls.flat().join("\n"))
       .toContain('"contextMode":"article-package"');
+  });
+
+  it("requires combined package and code gates to cite matching code evidence", async () => {
+    const article = packagedArticle();
+    const articlePackage = codePackage(article);
+    const fixture = createDependencies({
+      article,
+      articlePackage,
+      client: {
+        complete: vi.fn().mockResolvedValue({
+          content: JSON.stringify({
+            answer: [
+              "执行前重新比较身份：",
+              "```python",
+              "if current_identity != approved_identity:",
+              "    return KnownNotExecuted(code=\"executable_identity_changed\")",
+              "```",
+            ].join("\n"),
+            citationIds: ["material:authority:0"],
+            insufficientEvidence: false,
+          }),
+          inputTokens: 20,
+          outputTokens: 30,
+        }),
+      },
+    });
+
+    const code = await executeBlogAgentCanary([
+      "--slug=agent-loop",
+      "--question=给出执行身份重验的最小代码片段",
+      "--require-package",
+      "--require-code",
+    ], fixture.dependencies);
+
+    expect(code).toBe(0);
+    expect(JSON.parse(fixture.stdout.mock.calls[0][0])).toMatchObject({
+      contextMode: "article-package",
+      codeExcerpt: true,
+    });
+  });
+
+  it.each([
+    {
+      label: "article-only citation",
+      answer: "```python\nif current_identity != approved_identity:\n    return KnownNotExecuted()\n```",
+      citationIds: ["article:0:0"],
+    },
+    {
+      label: "unrelated code",
+      answer: "```python\nprint(\"unrelated hallucination\")\n```",
+      citationIds: ["material:authority:0"],
+    },
+    {
+      label: "trivial fence",
+      answer: "```text\n.\n```",
+      citationIds: ["material:authority:0"],
+    },
+  ])("rejects $label under the combined code gate", async ({ answer, citationIds }) => {
+    const article = packagedArticle();
+    const fixture = createDependencies({
+      article,
+      articlePackage: codePackage(article),
+      client: {
+        complete: vi.fn().mockResolvedValue({
+          content: JSON.stringify({
+            answer,
+            citationIds,
+            insufficientEvidence: false,
+          }),
+          inputTokens: 10,
+          outputTokens: 10,
+        }),
+      },
+    });
+
+    const code = await executeBlogAgentCanary([
+      "--slug=agent-loop",
+      "--question=给出执行身份重验的最小代码片段",
+      "--require-package",
+      "--require-code",
+    ], fixture.dependencies);
+
+    expect(code).toBe(1);
+    expect(fixture.stdout).not.toHaveBeenCalled();
+    expect(fixture.stderr.mock.calls).toEqual([
+      ["Blog Agent canary failed: code-evidence-missing"],
+    ]);
   });
 
   it("fails a required package canary instead of silently using Markdown", async () => {

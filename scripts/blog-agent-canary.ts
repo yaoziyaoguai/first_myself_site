@@ -3,13 +3,17 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 import {
+  analyzeAnswerCodeBlocks,
   answerFromArticle,
   BlogAgentInvalidAnswerError,
   type BlogAgentAnswerClient,
 } from "../src/lib/blog-agent/answer";
 import type { ArticleIndexRepository } from "../src/lib/blog-agent/articleIndexRepository";
 import { PostgresArticleIndexRepository } from "../src/lib/blog-agent/articleIndexRepository.postgres";
-import { buildArticleEvidence } from "../src/lib/blog-agent/articleMarkdown";
+import {
+  buildArticleEvidence,
+  type ArticleEvidence,
+} from "../src/lib/blog-agent/articleMarkdown";
 import { BlogScopedArticleRetriever } from "../src/lib/blog-agent/articleRetriever";
 import { readBlogAgentConfig, type BlogAgentConfig } from "../src/lib/blog-agent/config";
 import { DashScopeEmbeddingClient, type ArticleEmbeddingClient } from "../src/lib/blog-agent/embeddingClient";
@@ -21,7 +25,12 @@ import {
 import type { BlogAgentQueryPool } from "../src/lib/blog-agent/repository.postgres";
 import type { PublicMarkdownArticle } from "../src/lib/blog-agent/types";
 
-type CanaryArguments = { slug: string; question: string; requirePackage: boolean };
+type CanaryArguments = {
+  slug: string;
+  question: string;
+  requirePackage: boolean;
+  requireCode: boolean;
+};
 
 type CanaryArticleStore = {
   loadPublicMarkdownArticle(slug: string): Promise<Record<string, unknown> | null>;
@@ -90,6 +99,8 @@ export type BlogAgentCanaryDependencies = {
 type CanaryFailureCode =
   | "article-not-found"
   | "configuration-unavailable"
+  | "code-excerpt-missing"
+  | "code-evidence-missing"
   | "database-unavailable"
   | "evidence-empty"
   | "insufficient-evidence"
@@ -163,17 +174,21 @@ const defaultDependencies: BlogAgentCanaryDependencies = {
 };
 
 export function parseCanaryArguments(argv: string[]): CanaryArguments {
-  if (argv.length !== 2 && argv.length !== 3) {
+  if (argv.length < 2 || argv.length > 4) {
     throw new CanaryFailure("invalid-arguments");
   }
   const slugValues = argv.filter((value) => value.startsWith("--slug="));
   const questionValues = argv.filter((value) => value.startsWith("--question="));
   const packageFlags = argv.filter((value) => value === "--require-package");
+  const codeFlags = argv.filter((value) => value === "--require-code");
   if (
     slugValues.length !== 1 ||
     questionValues.length !== 1 ||
     packageFlags.length > 1 ||
-    slugValues.length + questionValues.length + packageFlags.length !== argv.length
+    codeFlags.length > 1 ||
+    (codeFlags.length === 1 && packageFlags.length !== 1) ||
+    slugValues.length + questionValues.length + packageFlags.length +
+      codeFlags.length !== argv.length
   ) {
     throw new CanaryFailure("invalid-arguments");
   }
@@ -185,7 +200,43 @@ export function parseCanaryArguments(argv: string[]): CanaryArguments {
   if (!question || question.length > 500) {
     throw new CanaryFailure("invalid-question");
   }
-  return { slug, question, requirePackage: packageFlags.length === 1 };
+  return {
+    slug,
+    question,
+    requirePackage: packageFlags.length === 1,
+    requireCode: codeFlags.length === 1,
+  };
+}
+
+function comparableCodeLine(value: string): string {
+  return value.normalize("NFKC").trim().replace(/\s+/g, " ");
+}
+
+function hasCitedCodeEvidence(
+  blocks: string[],
+  evidence: ArticleEvidence,
+  citationIds: string[],
+): boolean {
+  const citedIds = new Set(citationIds);
+  return evidence.sections.some((section) => {
+    if (section.sourceKind !== "code" || !citedIds.has(section.id)) return false;
+    const contentLines = new Set(
+      section.content.split(/\r?\n/).map(comparableCodeLine),
+    );
+    return blocks.some((block) => {
+      const matchedLines = new Set(
+        block
+          .split(/\r?\n/)
+          .map(comparableCodeLine)
+          .filter((line) =>
+            line.length >= 12 &&
+            /[\p{L}\p{N}_]/u.test(line) &&
+            contentLines.has(line)
+          ),
+      );
+      return [...matchedLines].reduce((total, line) => total + line.length, 0) >= 24;
+    });
+  });
 }
 
 function publicArticle(
@@ -300,6 +351,18 @@ async function runBlogAgentCanary(
     if (answer.insufficientEvidence) {
       throw new CanaryFailure("insufficient-evidence");
     }
+    const codeBlocks = analyzeAnswerCodeBlocks(answer.answer)
+      .filter((block) => block.trim().length > 0);
+    const codeExcerpt = codeBlocks.length > 0;
+    if (args.requireCode && !codeExcerpt) {
+      throw new CanaryFailure("code-excerpt-missing");
+    }
+    if (
+      args.requireCode &&
+      !hasCitedCodeEvidence(codeBlocks, evidence, answer.citationIds)
+    ) {
+      throw new CanaryFailure("code-evidence-missing");
+    }
     dependencies.stdout(JSON.stringify({
       queryId: dependencies.createQueryId(),
       result: "answered",
@@ -307,6 +370,7 @@ async function runBlogAgentCanary(
       inputTokens: answer.usage.inputTokens,
       outputTokens: answer.usage.outputTokens,
       contextMode: prepared ? "article-package" : "markdown",
+      codeExcerpt,
     }));
   } finally {
     await articleStore?.destroy();

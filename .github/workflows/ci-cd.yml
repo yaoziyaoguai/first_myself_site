@@ -175,11 +175,43 @@ jobs:
               fi
             fi
 
+            target_blog_agent_enabled="$BLOG_AGENT_ENABLED"
+            target_blog_agent_generation_enabled="$BLOG_AGENT_GENERATION_ENABLED"
+            # 候选版本通过内部 canary 前不得向匿名访客开放 Agent。
+            export BLOG_AGENT_ENABLED=false
+            export BLOG_AGENT_GENERATION_ENABLED=false
+
             compose=(docker compose --env-file .env.docker.prod -f docker/docker-compose.prod.yml)
             previous_image="$(docker inspect --format='{{.Image}}' first_myself_site_prod 2>/dev/null || true)"
             if [ -n "$previous_image" ]; then
               docker tag "$previous_image" first_myself_site:rollback
             fi
+
+            wait_for_local_health() {
+              for attempt in $(seq 1 24); do
+                if curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3000/api/health >/dev/null; then
+                  return 0
+                fi
+                sleep 5
+              done
+              return 1
+            }
+
+            verify_agent_disabled() {
+              status="$(curl --silent --show-error --max-time 5 \
+                --output /dev/null --write-out '%{http_code}' \
+                --header 'Content-Type: application/json' \
+                --data '{"question":"deployment safety probe"}' \
+                "http://127.0.0.1:3000/api/blog/$BLOG_AGENT_CANARY_SLUG/agent")"
+              [ "$status" = "404" ]
+            }
+
+            verify_runtime_agent_flags() {
+              "${compose[@]}" exec -T app node -e \
+                'process.exit(process.env.BLOG_AGENT_ENABLED === process.argv[1] && process.env.BLOG_AGENT_GENERATION_ENABLED === process.argv[2] ? 0 : 1)' \
+                "$target_blog_agent_enabled" \
+                "$target_blog_agent_generation_enabled"
+            }
 
             rollback() {
               if [ -z "$previous_image" ]; then
@@ -188,19 +220,32 @@ jobs:
               fi
 
               echo "Restoring previous application image"
-              docker tag first_myself_site:rollback first_myself_site:candidate
-              "${compose[@]}" up -d --no-deps --force-recreate app
+              if ! docker tag first_myself_site:rollback first_myself_site:candidate; then
+                return 1
+              fi
+              if ! "${compose[@]}" up -d --no-deps --force-recreate app; then
+                return 1
+              fi
+              if ! wait_for_local_health || ! verify_agent_disabled; then
+                echo "Rollback did not reach a healthy disabled-Agent state" >&2
+                "${compose[@]}" logs --tail=100 app >&2
+                return 1
+              fi
+              echo "Rollback health and disabled-Agent checks passed"
+              return 0
+            }
 
-              for attempt in $(seq 1 24); do
-                if curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3000/api/health >/dev/null; then
-                  echo "Rollback health check passed"
-                  return 0
-                fi
-                sleep 5
-              done
-
-              echo "Rollback health check failed" >&2
-              "${compose[@]}" logs --tail=100 app >&2
+            fail_closed_rollback() {
+              export BLOG_AGENT_ENABLED=false
+              export BLOG_AGENT_GENERATION_ENABLED=false
+              if rollback; then
+                return 0
+              fi
+              echo "Rollback failed; stopping the application to keep Agent fail closed" >&2
+              if docker stop first_myself_site_prod >/dev/null; then
+                return 0
+              fi
+              echo "Failed to stop the application after rollback failure" >&2
               return 1
             }
 
@@ -235,44 +280,64 @@ jobs:
             "${compose[@]}" run --rm --no-deps app npm run payload -- migrate
             # build 完成后再切换（停机时间 < 10秒）
             if ! "${compose[@]}" up -d; then
-              rollback || true
+              if ! fail_closed_rollback; then
+                echo "Unable to establish a fail-closed rollback state" >&2
+              fi
               exit 1
             fi
 
-            ready=0
-            for attempt in $(seq 1 24); do
-              if curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3000/api/health >/dev/null; then
-                ready=1
-                break
-              fi
-              sleep 5
-            done
-
-            if [ "$ready" -ne 1 ]; then
+            if ! wait_for_local_health || ! verify_agent_disabled; then
               "${compose[@]}" ps
               "${compose[@]}" logs --tail=100 app
-              rollback || true
+              if ! fail_closed_rollback; then
+                echo "Unable to establish a fail-closed rollback state" >&2
+              fi
               exit 1
             fi
 
             # 同时验证 Nginx、域名和 TLS，避免只检查到容器内部正常。
             if ! curl --fail --silent --show-error --max-time 10 \
               https://wangjinkun333.me/api/health >/dev/null; then
-              rollback || true
+              if ! fail_closed_rollback; then
+                echo "Unable to establish a fail-closed rollback state" >&2
+              fi
               exit 1
             fi
 
-            if [ "$BLOG_AGENT_GENERATION_ENABLED" = "true" ]; then
+            if [ "$target_blog_agent_generation_enabled" = "true" ]; then
               if ! "${compose[@]}" exec -T app npm run blog-agent:canary -- \
                 "--slug=$BLOG_AGENT_CANARY_SLUG" \
                 "--question=$BLOG_AGENT_CANARY_QUESTION" \
-                --require-package; then
-                # Canary 未通过时必须 fail closed，避免旧镜像沿用本次未验证的公开开关。
-                export BLOG_AGENT_ENABLED=false
-                export BLOG_AGENT_GENERATION_ENABLED=false
-                rollback || true
+                --require-package \
+                --require-code; then
+                if ! fail_closed_rollback; then
+                  echo "Unable to establish a fail-closed rollback state" >&2
+                fi
                 exit 1
               fi
+            fi
+
+            export BLOG_AGENT_ENABLED="$target_blog_agent_enabled"
+            export BLOG_AGENT_GENERATION_ENABLED="$target_blog_agent_generation_enabled"
+            if ! "${compose[@]}" up -d --no-deps --force-recreate app; then
+              if ! fail_closed_rollback; then
+                echo "Unable to establish a fail-closed rollback state" >&2
+              fi
+              exit 1
+            fi
+            if ! wait_for_local_health || ! verify_runtime_agent_flags; then
+              "${compose[@]}" logs --tail=100 app
+              if ! fail_closed_rollback; then
+                echo "Unable to establish a fail-closed rollback state" >&2
+              fi
+              exit 1
+            fi
+            if ! curl --fail --silent --show-error --max-time 10 \
+              https://wangjinkun333.me/api/health >/dev/null; then
+              if ! fail_closed_rollback; then
+                echo "Unable to establish a fail-closed rollback state" >&2
+              fi
+              exit 1
             fi
 
             "${compose[@]}" ps
