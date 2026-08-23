@@ -39,6 +39,8 @@ function createDependencies(options?: {
   article?: Record<string, unknown>;
   client?: BlogAgentAnswerClient;
   articlePackage?: ReadyArticlePackage | null;
+  readConfig?: () => BlogAgentConfig;
+  openArticleStore?: BlogAgentCanaryDependencies["openArticleStore"];
 }) {
   const loadPublicMarkdownArticle = vi.fn().mockResolvedValue(
     options?.article ?? {
@@ -67,8 +69,8 @@ function createDependencies(options?: {
   const stdout = vi.fn();
   const stderr = vi.fn();
   const dependencies: BlogAgentCanaryDependencies = {
-    readConfig: () => config,
-    openArticleStore: vi.fn().mockResolvedValue({
+    readConfig: options?.readConfig ?? (() => config),
+    openArticleStore: options?.openArticleStore ?? vi.fn().mockResolvedValue({
       loadPublicMarkdownArticle,
       getReadyPackage,
       destroy,
@@ -253,6 +255,9 @@ describe("Blog Agent canary", () => {
     expect(code).toBe(1);
     expect(fixture.client.complete).not.toHaveBeenCalled();
     expect(fixture.stdout).not.toHaveBeenCalled();
+    expect(fixture.stderr.mock.calls).toEqual([
+      ["Blog Agent canary failed: package-not-ready"],
+    ]);
   });
 
   it.each([
@@ -292,7 +297,7 @@ describe("Blog Agent canary", () => {
       providerFixture.dependencies,
     )).toBe(1);
     const errors = providerFixture.stderr.mock.calls.flat().join("\n");
-    expect(errors).toBe("Blog Agent canary failed");
+    expect(errors).toBe("Blog Agent canary failed: generation-unavailable");
     expect(errors).not.toContain("provider body");
 
     const insufficientFixture = createDependencies({
@@ -309,5 +314,55 @@ describe("Blog Agent canary", () => {
       insufficientFixture.dependencies,
     )).toBe(1);
     expect(insufficientFixture.stdout).not.toHaveBeenCalled();
+    expect(insufficientFixture.stderr.mock.calls).toEqual([
+      ["Blog Agent canary failed: insufficient-evidence"],
+    ]);
+  });
+
+  it("classifies configuration failures without leaking their message", async () => {
+    const fixture = createDependencies({
+      readConfig: () => {
+        throw new Error("raw config secret=do-not-print");
+      },
+    });
+
+    expect(await executeBlogAgentCanary(
+      ["--slug=doris-write-path", "--question=为什么？"],
+      fixture.dependencies,
+    )).toBe(1);
+    expect(fixture.stderr.mock.calls).toEqual([
+      ["Blog Agent canary failed: configuration-unavailable"],
+    ]);
+  });
+
+  it("classifies database failures without leaking connection details", async () => {
+    const fixture = createDependencies({
+      openArticleStore: vi.fn().mockRejectedValue(
+        new Error("postgres://private-user:private-password@private-host"),
+      ),
+    });
+
+    expect(await executeBlogAgentCanary(
+      ["--slug=doris-write-path", "--question=为什么？"],
+      fixture.dependencies,
+    )).toBe(1);
+    expect(fixture.stderr.mock.calls).toEqual([
+      ["Blog Agent canary failed: database-unavailable"],
+    ]);
+  });
+
+  it("uses one redacted fallback code for unexpected failures", async () => {
+    const fixture = createDependencies();
+    fixture.dependencies.createEmbeddingClient = () => {
+      throw new Error("unexpected internal secret=do-not-print");
+    };
+
+    expect(await executeBlogAgentCanary(
+      ["--slug=doris-write-path", "--question=为什么？"],
+      fixture.dependencies,
+    )).toBe(1);
+    expect(fixture.stderr.mock.calls).toEqual([
+      ["Blog Agent canary failed: internal"],
+    ]);
   });
 });

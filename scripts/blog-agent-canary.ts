@@ -79,14 +79,30 @@ export type BlogAgentCanaryDependencies = {
   stderr: (line: string) => void;
 };
 
-class CanaryFailure extends Error {}
+type CanaryFailureCode =
+  | "article-not-found"
+  | "configuration-unavailable"
+  | "database-unavailable"
+  | "evidence-empty"
+  | "insufficient-evidence"
+  | "invalid-arguments"
+  | "invalid-question"
+  | "invalid-slug"
+  | "package-not-ready"
+  | "generation-unavailable";
+
+class CanaryFailure extends Error {
+  constructor(readonly code: CanaryFailureCode) {
+    super(code);
+  }
+}
 
 const defaultDependencies: BlogAgentCanaryDependencies = {
   readConfig: readBlogAgentConfig,
   openArticleStore: async () => {
     const connectionString = process.env.DATABASE_URL?.trim();
     if (!connectionString) {
-      throw new CanaryFailure("DATABASE_URL is required");
+      throw new CanaryFailure("database-unavailable");
     }
     return new PostgresCanaryArticleStore(new Pool({
       connectionString,
@@ -117,7 +133,7 @@ const defaultDependencies: BlogAgentCanaryDependencies = {
 
 export function parseCanaryArguments(argv: string[]): CanaryArguments {
   if (argv.length !== 2 && argv.length !== 3) {
-    throw new CanaryFailure("Invalid canary arguments");
+    throw new CanaryFailure("invalid-arguments");
   }
   const slugValues = argv.filter((value) => value.startsWith("--slug="));
   const questionValues = argv.filter((value) => value.startsWith("--question="));
@@ -128,15 +144,15 @@ export function parseCanaryArguments(argv: string[]): CanaryArguments {
     packageFlags.length > 1 ||
     slugValues.length + questionValues.length + packageFlags.length !== argv.length
   ) {
-    throw new CanaryFailure("Invalid canary arguments");
+    throw new CanaryFailure("invalid-arguments");
   }
   const slug = slugValues[0].slice("--slug=".length).trim();
   const question = questionValues[0].slice("--question=".length).trim();
   if (!slug || slug.length > 128 || slug.includes("/") || slug.includes("\\")) {
-    throw new CanaryFailure("Invalid canary slug");
+    throw new CanaryFailure("invalid-slug");
   }
   if (!question || question.length > 500) {
-    throw new CanaryFailure("Invalid canary question");
+    throw new CanaryFailure("invalid-question");
   }
   return { slug, question, requirePackage: packageFlags.length === 1 };
 }
@@ -181,21 +197,35 @@ async function runBlogAgentCanary(
   dependencies: BlogAgentCanaryDependencies,
 ): Promise<void> {
   const args = parseCanaryArguments(argv);
-  const config = dependencies.readConfig();
+  let config: BlogAgentConfig;
+  try {
+    config = dependencies.readConfig();
+  } catch {
+    throw new CanaryFailure("configuration-unavailable");
+  }
   if (!config.generationConfigured) {
-    throw new CanaryFailure("Blog Agent provider is not configured");
+    throw new CanaryFailure("configuration-unavailable");
   }
 
   let articleStore: CanaryArticleStore | undefined;
   try {
-    articleStore = await dependencies.openArticleStore();
-    const rawArticle = await articleStore.loadPublicMarkdownArticle(args.slug);
+    try {
+      articleStore = await dependencies.openArticleStore();
+    } catch {
+      throw new CanaryFailure("database-unavailable");
+    }
+    let rawArticle: Record<string, unknown> | null;
+    try {
+      rawArticle = await articleStore.loadPublicMarkdownArticle(args.slug);
+    } catch {
+      throw new CanaryFailure("database-unavailable");
+    }
     if (!rawArticle || typeof rawArticle !== "object" || Array.isArray(rawArticle)) {
-      throw new CanaryFailure("Public Markdown article not found");
+      throw new CanaryFailure("article-not-found");
     }
     const article = publicArticle(rawArticle, args.slug);
     if (!article) {
-      throw new CanaryFailure("Public Markdown article not found");
+      throw new CanaryFailure("article-not-found");
     }
 
     const prepared = config.embeddingConfigured
@@ -207,7 +237,7 @@ async function runBlogAgentCanary(
       }).prepare(article)
       : null;
     if (args.requirePackage && !prepared) {
-      throw new CanaryFailure("Ready article package not found");
+      throw new CanaryFailure("package-not-ready");
     }
     const evidence = prepared
       ? await prepared.buildEvidence(args.question)
@@ -218,15 +248,20 @@ async function runBlogAgentCanary(
         question: args.question,
       });
     if (evidence.sections.length === 0) {
-      throw new CanaryFailure("Article has no usable evidence");
+      throw new CanaryFailure("evidence-empty");
     }
-    const answer = await answerFromArticle(
-      args.question,
-      evidence,
-      dependencies.createClient(config),
-    );
+    let answer;
+    try {
+      answer = await answerFromArticle(
+        args.question,
+        evidence,
+        dependencies.createClient(config),
+      );
+    } catch {
+      throw new CanaryFailure("generation-unavailable");
+    }
     if (answer.insufficientEvidence) {
-      throw new CanaryFailure("Canary evidence was insufficient");
+      throw new CanaryFailure("insufficient-evidence");
     }
     dependencies.stdout(JSON.stringify({
       queryId: dependencies.createQueryId(),
@@ -248,8 +283,9 @@ export async function executeBlogAgentCanary(
   try {
     await runBlogAgentCanary(argv, dependencies);
     return 0;
-  } catch {
-    dependencies.stderr("Blog Agent canary failed");
+  } catch (error) {
+    const failure = error instanceof CanaryFailure ? error.code : "internal";
+    dependencies.stderr(`Blog Agent canary failed: ${failure}`);
     return 1;
   }
 }
