@@ -36,10 +36,25 @@ describe("production migration deployment", () => {
     expect(workflow).toContain(
       "DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}",
     );
-    expect(workflow).toContain("envs: DASHSCOPE_API_KEY");
     expect(workflow).not.toContain("NEXT_PUBLIC_DASHSCOPE_API_KEY");
     expect(productionCompose).toContain(
       "DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}",
     );
+  });
+
+  it("injects the DeepSeek Flash configuration without exposing its key", () => {
+    expect(workflow).toContain(
+      "BLOG_AGENT_API_KEY: ${{ secrets.BLOG_AGENT_API_KEY }}",
+    );
+    expect(workflow).toContain(
+      "BLOG_AGENT_BASE_URL: ${{ vars.BLOG_AGENT_BASE_URL }}",
+    );
+    expect(workflow).toContain(
+      "BLOG_AGENT_MODEL: ${{ vars.BLOG_AGENT_MODEL }}",
+    );
+    expect(workflow).toContain(
+      "envs: BLOG_AGENT_API_KEY,BLOG_AGENT_BASE_URL,BLOG_AGENT_MODEL,DASHSCOPE_API_KEY",
+    );
+    expect(workflow).not.toContain("NEXT_PUBLIC_BLOG_AGENT_API_KEY");
   });
 });

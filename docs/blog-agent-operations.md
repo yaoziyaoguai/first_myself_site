@@ -4,9 +4,9 @@
 
 ## 上线前配置
 
-在模型供应商后台分别创建低额度、可随时吊销的生成与向量化 API Key，并为它们配置消费上限和告警。不要复用个人主 Key，不要把 Key 粘贴到 Issue、PR、日志或 Git。生成模型的真实值写入阿里云服务器仓库根目录、权限受限且已被 Git 忽略的 `.env.docker.prod`。
+在模型供应商后台分别创建低额度、可随时吊销的生成与向量化 API Key，并为它们配置消费上限和告警。不要复用个人主 Key，不要把 Key 粘贴到 Issue、PR、日志或 Git。
 
-百炼向量化 Key 使用仓库级 GitHub Actions Secret `DASHSCOPE_API_KEY`。自动部署会通过 SSH 进程环境把它传给 Docker Compose；Key 不进入镜像构建参数、客户端 bundle、Git 历史或服务器仓库文件。手工部署时必须在服务器 `.env.docker.prod` 中提供同名服务端变量。
+自动部署使用仓库级 GitHub Actions Secrets `BLOG_AGENT_API_KEY`、`DASHSCOPE_API_KEY`，以及 Repository Variables `BLOG_AGENT_BASE_URL=https://api.deepseek.com`、`BLOG_AGENT_MODEL=deepseek-v4-flash`。工作流通过 SSH 进程环境把它们传给 Docker Compose；Key 不进入镜像构建参数、客户端 bundle、Git 历史或服务器仓库文件。手工部署时必须在服务器 `.env.docker.prod` 中提供这些同名服务端变量。
 
 首次部署保持：
 

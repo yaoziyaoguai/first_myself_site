@@ -15,7 +15,7 @@ describe("OpenAICompatibleBlogAgentClient", () => {
     const client = new OpenAICompatibleBlogAgentClient({
       baseUrl: "https://api.deepseek.com/",
       apiKey: "secret-key",
-      model: "deepseek-chat",
+      model: "deepseek-v4-flash",
       fetcher,
     });
 
@@ -32,7 +32,7 @@ describe("OpenAICompatibleBlogAgentClient", () => {
       expect.objectContaining({ Authorization: "Bearer secret-key" }),
     );
     expect(JSON.parse(String(request?.body))).toMatchObject({
-      model: "deepseek-chat",
+      model: "deepseek-v4-flash",
       temperature: 0,
       max_tokens: 600,
       response_format: { type: "json_object" },

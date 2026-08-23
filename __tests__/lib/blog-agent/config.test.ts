@@ -18,7 +18,7 @@ describe("readBlogAgentConfig", () => {
       BLOG_AGENT_GENERATION_ENABLED: "1",
       BLOG_AGENT_BASE_URL: " https://api.deepseek.com ",
       BLOG_AGENT_API_KEY: " server-secret ",
-      BLOG_AGENT_MODEL: " deepseek-chat ",
+      BLOG_AGENT_MODEL: " deepseek-v4-flash ",
     });
 
     expect(config).toMatchObject({
@@ -27,7 +27,7 @@ describe("readBlogAgentConfig", () => {
       generationConfigured: true,
       baseUrl: "https://api.deepseek.com",
       apiKey: "server-secret",
-      model: "deepseek-chat",
+      model: "deepseek-v4-flash",
     });
   });
 
