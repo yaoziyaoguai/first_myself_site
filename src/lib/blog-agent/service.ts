@@ -1,5 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
-import { answerFromArticle, type BlogAgentAnswerClient } from "./answer";
+import {
+  analyzeAnswerCodeBlocks,
+  answerFromArticle,
+  questionRequestsCode,
+  type BlogAgentAnswerClient,
+} from "./answer";
 import { buildArticleEvidence, type ArticleEvidence } from "./articleMarkdown";
 import type { ArticleSection } from "./articleMarkdown";
 import { hashPublicArticle } from "./articlePackage";
@@ -129,7 +134,11 @@ export class BlogAgentService {
         ...cacheKey,
         now: this.now(),
       });
-      if (cached) {
+      const cachedMeetsCodeRequest = !questionRequestsCode(input.question) || (
+        cached?.insufficientEvidence === false &&
+        analyzeAnswerCodeBlocks(cached.answer).some((block) => block.trim())
+      );
+      if (cached && cachedMeetsCodeRequest) {
         const cachedSections = prepared?.sections ?? (evidence ??= fallbackEvidence()).sections;
         const cachedCitations = citationsFromSections(
           input.article,

@@ -49,8 +49,15 @@ export const BLOG_AGENT_SYSTEM_PROMPT = [
 const MAX_PUBLIC_CODE_BLOCKS = 2;
 const MAX_PUBLIC_CODE_BLOCK_CHARACTERS = 1_200;
 const MAX_PUBLIC_CODE_TOTAL_CHARACTERS = 1_600;
+const MAX_AUTOMATIC_CODE_EXCERPT_CHARACTERS = 360;
+const MAX_AUTOMATIC_CODE_EXCERPT_LINES = 6;
 const MAX_PROTECTED_VERBATIM_CHARACTERS = 600;
 const PROTECTED_MATCH_WINDOW_CHARACTERS = 48;
+
+export function questionRequestsCode(question: string): boolean {
+  const normalized = question.normalize("NFKC").toLocaleLowerCase();
+  return /代码|源码|code\b|source\s+code|snippet\b/u.test(normalized);
+}
 
 function safeTokenCount(value: number): number {
   return Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0;
@@ -204,6 +211,69 @@ function reproducesProtectedMaterial(
     MAX_PROTECTED_VERBATIM_CHARACTERS;
 }
 
+function automaticCodeExcerpt(
+  evidence: ArticleEvidence,
+): { citationId: string; content: string } | null {
+  for (const section of evidence.sections) {
+    if (section.sourceKind !== "code") continue;
+    const lines = section.content.replace(/\r\n?/g, "\n").split("\n");
+    const nonBlankLines = lines.filter((line) => line.trim().length > 0);
+    if (nonBlankLines.length < 3) continue;
+
+    const firstCodeLine = lines.findIndex((line) =>
+      /[{}()[\]=;:]|^\s*(?:async\s+)?(?:function|class|def|const|let|var|if|for|while|return|import|from|export|type|interface|func|package)\b/u
+        .test(line)
+    );
+    const start = firstCodeLine >= 0
+      ? firstCodeLine
+      : lines.findIndex((line) => line.trim().length > 0);
+    const maximumNonBlankLines = Math.min(
+      MAX_AUTOMATIC_CODE_EXCERPT_LINES,
+      Math.max(1, Math.floor(nonBlankLines.length / 2)),
+    );
+    const selected: string[] = [];
+    let selectedNonBlankLines = 0;
+    for (let index = start; index < lines.length; index += 1) {
+      const line = lines[index];
+      const nextLength = [...selected, line].join("\n").length;
+      if (nextLength > MAX_AUTOMATIC_CODE_EXCERPT_CHARACTERS) break;
+      selected.push(line);
+      if (line.trim()) selectedNonBlankLines += 1;
+      if (selectedNonBlankLines >= maximumNonBlankLines) break;
+    }
+    const content = selected.join("\n").trimEnd();
+    if (
+      comparableText(content).length < 24 ||
+      comparableText(content) === comparableText(section.content)
+    ) {
+      continue;
+    }
+    return { citationId: section.id, content };
+  }
+  return null;
+}
+
+function addRequestedCodeExcerpt(
+  question: string,
+  evidence: ArticleEvidence,
+  answer: GroundedArticleAnswer,
+): GroundedArticleAnswer {
+  if (
+    answer.insufficientEvidence ||
+    !questionRequestsCode(question) ||
+    analyzeAnswerCodeBlocks(answer.answer).some((block) => block.trim())
+  ) {
+    return answer;
+  }
+  const excerpt = automaticCodeExcerpt(evidence);
+  if (!excerpt) return answer;
+  return {
+    ...answer,
+    answer: `${answer.answer}\n\n文章中的相关实现片段：\n\n\`\`\`\n${excerpt.content}\n\`\`\``,
+    citationIds: [...new Set([...answer.citationIds, excerpt.citationId])],
+  };
+}
+
 export async function answerFromArticle(
   question: string,
   evidence: ArticleEvidence,
@@ -238,9 +308,10 @@ export async function answerFromArticle(
     });
     usage.inputTokens += safeTokenCount(response.inputTokens);
     usage.outputTokens += safeTokenCount(response.outputTokens);
-    const answer = parseGroundedAnswer(response, knownIds);
-    if (!answer) continue;
-    answer.usage = usage;
+    const parsedAnswer = parseGroundedAnswer(response, knownIds);
+    if (!parsedAnswer) continue;
+    parsedAnswer.usage = usage;
+    const answer = addRequestedCodeExcerpt(question, evidence, parsedAnswer);
     if (
       !answer.insufficientEvidence &&
       (

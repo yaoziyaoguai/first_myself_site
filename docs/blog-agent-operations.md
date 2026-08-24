@@ -78,7 +78,7 @@ server {
 4. Skill 创建 `draft + private`，再调用 admin/editor-only 的 `/api/blog/<id>/agent-index`。只有状态 `ready`、expected/indexed hash 相同且 `chunkCount > 0` 才算成功。
 5. 确认索引 ready 后，在两个 Agent 开关仍关闭时公开这篇文章；Payload hook 会拒绝绕过 ready gate。随后运行 package canary，只有通过后才开启访客 Agent。
 
-source snapshot 和 embeddings 只存 PostgreSQL 私有 `blog_agent` 表，不会被匿名 raw-data API、plan、inspect 或日志完整返回。文章 Agent 可以在回答中展示最多两个有界代码块；服务端按 CommonMark AST 统计 backtick、tilde、缩进和未闭合 fence 等实际可渲染 code node，单块最多 1,200 字符、合计最多 1,600 字符。完整补充 source 不允许返回；回答在一个或多个补充 source 中累计复刻达到 600 字符时也会降级为证据不足。访客问题只会对当前 Blog 的最多 128 个 chunks 做有界内存排名；SQL 不形成全站向量/FTS 查询。
+source snapshot 和 embeddings 只存 PostgreSQL 私有 `blog_agent` 表，不会被匿名 raw-data API、plan、inspect 或日志完整返回。文章 Agent 可以在回答中展示最多两个有界代码块；服务端按 CommonMark AST 统计 backtick、tilde、缩进和未闭合 fence 等实际可渲染 code node，单块最多 1,200 字符、合计最多 1,600 字符。明确要求代码、当前证据包含 `sourceKind=code`、但模型只返回解释时，服务端会从本次排名中的代码证据追加一个最多 360 字符、6 行且不超过该 source 非空行数一半的短摘录，并补上该证据引用；不足 3 个非空行或无法形成 24 字符实质摘录的 source 不会自动展示。完整补充 source 不允许返回；回答在一个或多个补充 source 中累计复刻达到 600 字符时也会降级为证据不足。访客问题只会对当前 Blog 的最多 128 个 chunks 做有界内存排名；SQL 不形成全站向量/FTS 查询。
 
 多轮追问仍以当前 Blog 为唯一边界。浏览器按文章 slug 在当前标签页保存最近 8 轮已完成对话；每次请求最多携带最近 3 轮，单个旧回答最多 1,200 字符，总请求体仍不得超过 8 KiB。客户端历史可能被访客篡改，因此服务端只使用旧问题辅助当前文章内检索，并明确要求模型将历史视为不可信输入、只用于解析指代；事实和引用必须重新来自本次选中的当前文章证据。历史不会以原文写入访问日志或独立会话表，回答缓存只保留包含历史的不可逆哈希，也不会跨文章加载。
 

@@ -170,6 +170,70 @@ describe("BlogAgentService", () => {
     expect(fixture.client.complete).not.toHaveBeenCalled();
   });
 
+  it("regenerates a prose-only cached answer for a code question", async () => {
+    const codeEvidence = {
+      title: article.title,
+      excerpt: article.excerpt,
+      outline: [{
+        id: "material:edit:0",
+        headingPath: ["精确编辑 · src/edit.py"],
+        anchor: "写入路径",
+      }],
+      sections: [{
+        id: "material:edit:0",
+        heading: "精确编辑 · src/edit.py",
+        headingPath: ["精确编辑 · src/edit.py"],
+        anchor: "写入路径",
+        ordinal: 0,
+        content: [
+          "def edit_file(path, old, new):",
+          "    matches = read(path).count(old)",
+          "    if matches != 1:",
+          "        raise ValueError(\"old must be unique\")",
+          "    write(path, read(path).replace(old, new))",
+          "    return path",
+        ].join("\n"),
+        protectedMaterial: true,
+        sourceKind: "code" as const,
+      }],
+      totalCharacters: 180,
+    };
+    const fixture = createFixture({
+      cached: {
+        answer: "缓存只解释了流程，没有代码。",
+        citationIds: ["material:edit:0"],
+        insufficientEvidence: false,
+      },
+      modelContent: JSON.stringify({
+        answer: "精确编辑要求 old 唯一。",
+        citationIds: ["material:edit:0"],
+        insufficientEvidence: false,
+      }),
+      articleRetriever: {
+        prepare: vi.fn().mockResolvedValue({
+          contextHash: "code-context-hash",
+          sections: codeEvidence.sections,
+          buildEvidence: vi.fn().mockResolvedValue(codeEvidence),
+        }),
+      } as unknown as BlogScopedArticleRetriever,
+    });
+
+    const response = await fixture.service.execute({
+      article,
+      question: "给出 edit_file 的代码",
+      identityHash: "identity-hash",
+    });
+
+    expect(fixture.client.complete).toHaveBeenCalledOnce();
+    expect(response.body.answer).toContain("```\n");
+    expect(response.body.answer).toContain("def edit_file");
+    expect(response.body.citations).toEqual([{
+      id: "material:edit:0",
+      heading: "精确编辑 · src/edit.py",
+      url: "/blog/doris-write-path#写入路径",
+    }]);
+  });
+
   it("serves a package cache hit without calling query embeddings", async () => {
     const embed = vi.fn(async () => [[1, 0, 0]]);
     const packageArticle = {
