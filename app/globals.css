@@ -400,8 +400,16 @@ body:has(.blog-agent-root) footer > .site-shell {
 
 .blog-agent-transcript {
   display: grid;
+  min-width: 0;
   gap: 1.15rem;
   margin-top: 1rem;
+}
+
+.blog-agent-turn,
+.blog-agent-result,
+.blog-agent-answer,
+.blog-agent-citations {
+  min-width: 0;
 }
 
 .blog-agent-turn + .blog-agent-turn {
@@ -430,6 +438,7 @@ body:has(.blog-agent-root) footer > .site-shell {
 }
 
 .blog-agent-user-message p {
+  min-width: 0;
   max-width: calc(100% - 2.15rem);
   border-radius: 1rem 0.3rem 1rem 1rem;
   background: color-mix(in srgb, var(--primary) 10%, var(--background));
@@ -437,6 +446,7 @@ body:has(.blog-agent-root) footer > .site-shell {
   color: var(--foreground);
   font-size: 0.8rem;
   line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
 .blog-agent-pending-turn {
@@ -651,6 +661,8 @@ body:has(.blog-agent-root) footer > .site-shell {
 
 .blog-agent-citations button {
   display: flex;
+  width: 100%;
+  min-width: 0;
   min-height: 2.75rem;
   align-items: center;
   justify-content: space-between;
