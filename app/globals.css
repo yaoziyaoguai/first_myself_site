@@ -323,6 +323,10 @@ body:has(.blog-agent-root) footer > .site-shell {
   box-shadow: 0 1.5rem 4rem rgba(24, 31, 54, 0.24);
 }
 
+.blog-agent-resize-handle {
+  display: none;
+}
+
 .blog-agent-panel-header {
   display: flex;
   align-items: flex-start;
@@ -858,8 +862,38 @@ body:has(.blog-agent-root) footer > .site-shell {
     right: 1.25rem;
     bottom: 5.5rem;
     left: auto;
-    width: min(26rem, calc(100vw - 2.5rem));
-    max-height: min(76vh, 44rem);
+    width: var(--blog-agent-panel-width, min(26rem, calc(100vw - 2.5rem)));
+    height: var(--blog-agent-panel-height, auto);
+    max-width: min(50rem, calc(100vw - 2.5rem));
+    max-height: min(52rem, calc(100svh - 6.5rem));
+  }
+
+  .blog-agent-resize-handle {
+    position: absolute;
+    z-index: 2;
+    top: 0.45rem;
+    left: 0.45rem;
+    display: grid;
+    width: 2.25rem;
+    height: 2.25rem;
+    place-items: center;
+    border: 1px solid transparent;
+    border-radius: 0.75rem;
+    color: color-mix(in srgb, var(--muted-foreground) 72%, transparent);
+    cursor: nwse-resize;
+    touch-action: none;
+    transition: background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out;
+  }
+
+  .blog-agent-resize-handle:hover,
+  .blog-agent-resize-handle:focus-visible {
+    border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+    background: color-mix(in srgb, var(--primary) 7%, var(--background));
+    color: var(--primary);
+  }
+
+  .blog-agent-panel-header {
+    padding-left: 3.4rem;
   }
 
   .site-shell:has(.blog-agent-panel) > article {

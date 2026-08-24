@@ -7,7 +7,12 @@ import {
   useRef,
   useState,
 } from "react";
-import { Send, Sparkles, X } from "lucide-react";
+import type {
+  CSSProperties,
+  KeyboardEvent as ReactKeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+} from "react";
+import { MoveDiagonal2, Send, Sparkles, X } from "lucide-react";
 import type {
   BlogAgentCitation,
   BlogAgentConversationTurn,
@@ -21,6 +26,22 @@ type AgentPhase = "idle" | "loading" | "limited" | "failed";
 type AgentTurn = {
   question: string;
   response: BlogAgentResponse;
+};
+
+type PanelSize = {
+  width: number;
+  height: number;
+};
+
+type PanelResizeStart = PanelSize & {
+  pointerId: number;
+  clientX: number;
+  clientY: number;
+};
+
+type PanelStyle = CSSProperties & {
+  "--blog-agent-panel-width": string;
+  "--blog-agent-panel-height": string;
 };
 
 type AgentState = {
@@ -46,6 +67,14 @@ const MAX_CONTEXT_ANSWER_LENGTH = 1_200;
 const MAX_STORED_ANSWER_LENGTH = 6_000;
 const MAX_STORED_HISTORY_CHARACTERS = 48_000;
 const MAX_REQUEST_BODY_BYTES = 8 * 1024;
+const PANEL_SIZE_STORAGE_KEY = "blog-agent-panel-size:v1";
+const DESKTOP_MEDIA_QUERY = "(min-width: 80rem)";
+const MIN_PANEL_WIDTH = 360;
+const MIN_PANEL_HEIGHT = 352;
+const MAX_PANEL_WIDTH = 800;
+const MAX_PANEL_HEIGHT = 832;
+const PANEL_VIEWPORT_GUTTER = 40;
+const PANEL_BOTTOM_CLEARANCE = 104;
 
 const INITIAL_STATE: AgentState = {
   isOpen: false,
@@ -186,6 +215,52 @@ function historyStorageKey(articleSlug: string): string {
   return `blog-agent-history:v1:${articleSlug}`;
 }
 
+function normalizePanelSize(size: PanelSize): PanelSize {
+  return {
+    width: Math.round(Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, size.width))),
+    height: Math.round(Math.min(MAX_PANEL_HEIGHT, Math.max(MIN_PANEL_HEIGHT, size.height))),
+  };
+}
+
+function clampPanelSize(size: PanelSize): PanelSize {
+  const normalized = normalizePanelSize(size);
+  const maxWidth = Math.max(
+    MIN_PANEL_WIDTH,
+    Math.min(MAX_PANEL_WIDTH, window.innerWidth - PANEL_VIEWPORT_GUTTER),
+  );
+  const maxHeight = Math.max(
+    MIN_PANEL_HEIGHT,
+    Math.min(MAX_PANEL_HEIGHT, window.innerHeight - PANEL_BOTTOM_CLEARANCE),
+  );
+  return {
+    width: Math.min(maxWidth, normalized.width),
+    height: Math.min(maxHeight, normalized.height),
+  };
+}
+
+function readStoredPanelSize(): PanelSize | null {
+  try {
+    const value: unknown = JSON.parse(
+      sessionStorage.getItem(PANEL_SIZE_STORAGE_KEY) ?? "null",
+    );
+    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+    const record = value as Record<string, unknown>;
+    if (
+      typeof record.width !== "number" ||
+      typeof record.height !== "number" ||
+      !Number.isFinite(record.width) ||
+      !Number.isFinite(record.height) ||
+      record.width <= 0 ||
+      record.height <= 0
+    ) {
+      return null;
+    }
+    return normalizePanelSize({ width: record.width, height: record.height });
+  } catch {
+    return null;
+  }
+}
+
 function readStoredTurns(articleSlug: string): AgentTurn[] {
   try {
     const serialized = sessionStorage.getItem(historyStorageKey(articleSlug));
@@ -274,19 +349,55 @@ export function BlogAgent({
     }),
   );
   const [draft, setDraft] = useState("");
+  const [desktopLayout, setDesktopLayout] = useState(false);
+  const [panelSize, setPanelSize] = useState<PanelSize | null>(() => (
+    typeof window === "undefined" ? null : readStoredPanelSize()
+  ));
   const triggerRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
   const controllerRef = useRef<AbortController | null>(null);
+  const resizeStartRef = useRef<PanelResizeStart | null>(null);
   const requestSequence = useRef(0);
   const loadingRef = useRef(false);
   const storageKey = historyStorageKey(articleSlug);
+
+  useEffect(() => {
+    const media = window.matchMedia?.(DESKTOP_MEDIA_QUERY);
+    const update = () => {
+      const nextDesktopLayout = media?.matches ?? window.innerWidth >= 1_280;
+      if (!nextDesktopLayout) resizeStartRef.current = null;
+      setDesktopLayout(nextDesktopLayout);
+    };
+    update();
+    media?.addEventListener?.("change", update);
+    return () => media?.removeEventListener?.("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (!panelSize) return;
+    try {
+      sessionStorage.setItem(PANEL_SIZE_STORAGE_KEY, JSON.stringify(panelSize));
+    } catch {
+      // 浏览器禁用或配额不足时仅降级为当前页面内尺寸，不影响问答。
+    }
+  }, [panelSize]);
+
+  useEffect(() => {
+    const cancelResize = () => {
+      resizeStartRef.current = null;
+    };
+    window.addEventListener("blur", cancelResize);
+    return () => window.removeEventListener("blur", cancelResize);
+  }, []);
 
   const close = useCallback(() => {
     controllerRef.current?.abort();
     controllerRef.current = null;
     requestSequence.current += 1;
     loadingRef.current = false;
+    resizeStartRef.current = null;
     dispatch({ type: "close" });
     queueMicrotask(() => triggerRef.current?.focus());
   }, []);
@@ -413,17 +524,87 @@ export function BlogAgent({
     close();
   };
 
+  const beginResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!desktopLayout || event.button !== 0 || !panelRef.current) return;
+    event.currentTarget.focus();
+    const bounds = panelRef.current.getBoundingClientRect();
+    resizeStartRef.current = {
+      pointerId: event.pointerId,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      width: bounds.width,
+      height: bounds.height,
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+  };
+
+  const resizeFromPointer = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const start = resizeStartRef.current;
+    if (!start || event.pointerId !== start.pointerId) return;
+    setPanelSize(clampPanelSize({
+      width: start.width - (event.clientX - start.clientX),
+      height: start.height - (event.clientY - start.clientY),
+    }));
+  };
+
+  const finishResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.pointerId !== resizeStartRef.current?.pointerId) return;
+    resizeStartRef.current = null;
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const resizeWithKeyboard = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
+    if (!desktopLayout || !panelRef.current || resizeStartRef.current) return;
+    const step = event.shiftKey ? 32 : 12;
+    const bounds = panelRef.current.getBoundingClientRect();
+    const next = { width: bounds.width, height: bounds.height };
+    if (event.key === "ArrowLeft") next.width += step;
+    else if (event.key === "ArrowRight") next.width -= step;
+    else if (event.key === "ArrowUp") next.height += step;
+    else if (event.key === "ArrowDown") next.height -= step;
+    else return;
+    event.preventDefault();
+    setPanelSize(clampPanelSize(next));
+  };
+
   const loading = state.phase === "loading";
+  const panelStyle: PanelStyle | undefined = panelSize
+    ? {
+        "--blog-agent-panel-width": `${panelSize.width}px`,
+        "--blog-agent-panel-height": `${panelSize.height}px`,
+      }
+    : undefined;
 
   return (
     <div className="blog-agent-root">
       {state.isOpen && (
         <section
+          ref={panelRef}
           className="blog-agent-panel"
           role="dialog"
           aria-label="文章问答"
           aria-modal="false"
+          style={panelStyle}
         >
+          {desktopLayout && (
+            <button
+              type="button"
+              className="blog-agent-resize-handle"
+              aria-label="调整文章 Agent 对话框大小"
+              title="拖动或使用方向键调整大小"
+              onPointerDown={beginResize}
+              onPointerMove={resizeFromPointer}
+              onPointerUp={finishResize}
+              onPointerCancel={finishResize}
+              onLostPointerCapture={finishResize}
+              onKeyDown={resizeWithKeyboard}
+            >
+              <MoveDiagonal2 aria-hidden="true" size={15} />
+            </button>
+          )}
           <header className="blog-agent-panel-header">
             <div>
               <p className="blog-agent-kicker">
