@@ -221,6 +221,82 @@ describe("answerFromArticle", () => {
     expect(result.citationIds).toEqual(["section:0:写入路径"]);
   });
 
+  it("adds a bounded article-code excerpt when a code answer contains prose only", async () => {
+    const codeSection = {
+      ...evidence.sections[0],
+      id: "material:authority:0",
+      heading: "执行身份校验 · src/authority.py",
+      content: [
+        "def revalidate_executable(current_identity, approved_identity):",
+        "    if current_identity != approved_identity:",
+        "        return KnownNotExecuted(code=\"executable_identity_changed\")",
+        "    audit_runtime_identity(current_identity)",
+        "    persist_revalidation_result(current_identity)",
+        "    return Approved()",
+        "",
+        "def execute_approved_command(command):",
+        "    return subprocess.run(command, check=True)",
+      ].join("\n"),
+      protectedMaterial: true,
+      sourceKind: "code" as const,
+    };
+    const result = await answerFromArticle(
+      "给我看看这篇文章的关键代码，并解释它在做什么。",
+      {
+        ...evidence,
+        sections: [codeSection],
+      },
+      clientWith({
+        content: JSON.stringify({
+          answer: "执行前会重新比较批准身份与当前身份。",
+          citationIds: [codeSection.id],
+          insufficientEvidence: false,
+        }),
+        inputTokens: 12,
+        outputTokens: 8,
+      }),
+    );
+
+    expect(result.insufficientEvidence).toBe(false);
+    expect(result.answer).toContain("```\n");
+    expect(result.answer).toContain("if current_identity != approved_identity:");
+    expect(result.answer).not.toContain("execute_approved_command");
+    expect(result.answer).not.toContain(codeSection.content);
+    expect(result.citationIds).toEqual([codeSection.id]);
+  });
+
+  it("does not expose an entire tiny protected source as an automatic excerpt", async () => {
+    const completeTinySource = [
+      "def allow():",
+      "    return True",
+    ].join("\n");
+    const result = await answerFromArticle(
+      "给出代码",
+      {
+        ...evidence,
+        sections: [{
+          ...evidence.sections[0],
+          id: "material:tiny:0",
+          content: completeTinySource,
+          protectedMaterial: true,
+          sourceKind: "code",
+        }],
+      },
+      clientWith({
+        content: JSON.stringify({
+          answer: "实现很短。",
+          citationIds: ["material:tiny:0"],
+          insufficientEvidence: false,
+        }),
+        inputTokens: 4,
+        outputTokens: 3,
+      }),
+    );
+
+    expect(result.answer).toBe("实现很短。");
+    expect(result.answer).not.toContain(completeTinySource);
+  });
+
   it("rejects code blocks that exceed the public excerpt budget", async () => {
     const result = await answerFromArticle(
       "输出实现代码",

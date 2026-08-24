@@ -329,7 +329,7 @@ describe("Blog Agent canary", () => {
     });
   });
 
-  it("fails the code gate when the answer contains no fenced code", async () => {
+  it("adds a grounded code excerpt when the model returns prose for a code question", async () => {
     const article = packagedArticle();
     const fixture = createDependencies({
       article,
@@ -354,11 +354,12 @@ describe("Blog Agent canary", () => {
       "--require-code",
     ], fixture.dependencies);
 
-    expect(code).toBe(1);
-    expect(fixture.stdout).not.toHaveBeenCalled();
-    expect(fixture.stderr.mock.calls).toEqual([
-      ["Blog Agent canary failed: code-excerpt-missing"],
-    ]);
+    expect(code).toBe(0);
+    expect(JSON.parse(fixture.stdout.mock.calls[0][0])).toMatchObject({
+      result: "answered",
+      codeExcerpt: true,
+    });
+    expect(fixture.stderr).not.toHaveBeenCalled();
   });
 
   it("proves a ready current-article package was used when required", async () => {
