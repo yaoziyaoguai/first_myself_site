@@ -76,6 +76,16 @@ describe("BlogAgent", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it("renders the selected reading robot as a decorative part of the trigger", () => {
+    renderAgent();
+    const trigger = screen.getByRole("button", { name: "打开文章 Agent" });
+    const mascot = trigger.querySelector('[data-blog-agent-mascot="reading-robot"]');
+
+    expect(trigger).toHaveTextContent("问问这篇文章");
+    expect(mascot).toBeInTheDocument();
+    expect(mascot).toHaveAttribute("aria-hidden", "true");
+  });
+
   it("sends only the selected question to the encoded current-article endpoint", async () => {
     renderAgent();
     const user = await openAgent();

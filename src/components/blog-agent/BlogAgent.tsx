@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Bot, Send, Sparkles, X } from "lucide-react";
+import { Send, Sparkles, X } from "lucide-react";
 import type {
   BlogAgentCitation,
   BlogAgentConversationTurn,
@@ -60,6 +60,31 @@ const SUGGESTED_QUESTIONS = [
   "核心实现是什么？",
   "作者得出了什么结论？",
 ] as const;
+
+function ReadingRobotIcon() {
+  return (
+    <svg
+      className="blog-agent-reading-robot"
+      data-blog-agent-mascot="reading-robot"
+      aria-hidden="true"
+      focusable="false"
+      viewBox="0 0 40 40"
+    >
+      <path className="blog-agent-reading-robot__antenna" d="M20 6V3.5" />
+      <circle className="blog-agent-reading-robot__signal" cx="20" cy="2.5" r="1.7" />
+      <path
+        className="blog-agent-reading-robot__page"
+        d="M9.5 7.5h17.8l5.2 5.2v16.8a3 3 0 0 1-3 3h-19a3 3 0 0 1-3-3v-19a3 3 0 0 1 3-3Z"
+      />
+      <path className="blog-agent-reading-robot__fold" d="M27.3 7.5v5.2h5.2" />
+      <g className="blog-agent-reading-robot__eyes">
+        <rect x="12.5" y="17" width="5.5" height="4.5" rx="1.6" />
+        <rect x="22" y="17" width="5.5" height="4.5" rx="1.6" />
+      </g>
+      <path className="blog-agent-reading-robot__bookmark" d="M17 29v6l3-1.9 3 1.9v-6" />
+    </svg>
+  );
+}
 
 function reducer(state: AgentState, action: AgentAction): AgentState {
   switch (action.type) {
@@ -592,8 +617,7 @@ export function BlogAgent({
         onClick={state.isOpen ? undefined : () => dispatch({ type: "open" })}
       >
         <span className="blog-agent-trigger-icon">
-          <Bot aria-hidden="true" size={22} />
-          <Sparkles aria-hidden="true" size={11} />
+          <ReadingRobotIcon />
         </span>
         <span>问问这篇文章</span>
       </button>
