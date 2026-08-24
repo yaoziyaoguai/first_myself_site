@@ -122,6 +122,63 @@ describe("answerFromArticle", () => {
     });
   });
 
+  it("repairs a premature insufficient-evidence response for a code-backed question", async () => {
+    const codeSection = {
+      ...evidence.sections[0],
+      id: "material:local-process:0",
+      heading: "local_process 工具与执行前重验 · agent/process/tools.py",
+      content: [
+        "identity = admission.resolve_executable(executable)",
+        "if isinstance(identity, KnownNotExecuted):",
+        "    return KnownNotExecuted(code=\"executable_identity_changed\")",
+        "if identity.identity_digest != binding[\"executable_digest\"]:",
+        "    return KnownNotExecuted(code=\"executable_identity_changed\")",
+      ].join("\n"),
+      protectedMaterial: true,
+      sourceKind: "code" as const,
+    };
+    const responses: BlogAgentModelResponse[] = [
+      {
+        content: JSON.stringify({
+          answer: "",
+          citationIds: [],
+          insufficientEvidence: true,
+        }),
+        inputTokens: 30,
+        outputTokens: 4,
+      },
+      {
+        content: JSON.stringify({
+          answer: [
+            "执行前会重新解析 executable，并与批准时保存的 digest 比较。",
+            "```python",
+            "if identity.identity_digest != binding[\"executable_digest\"]:",
+            "    return KnownNotExecuted(code=\"executable_identity_changed\")",
+            "```",
+          ].join("\n"),
+          citationIds: [codeSection.id],
+          insufficientEvidence: false,
+        }),
+        inputTokens: 32,
+        outputTokens: 18,
+      },
+    ];
+    const client: BlogAgentAnswerClient = {
+      complete: async () => responses.shift()!,
+    };
+
+    const result = await answerFromArticle(
+      "local_process 执行命令前如何重新验证？请给最小代码。",
+      { ...evidence, sections: [codeSection] },
+      client,
+    );
+
+    expect(result.insufficientEvidence).toBe(false);
+    expect(result.answer).toContain("identity.identity_digest");
+    expect(result.citationIds).toEqual([codeSection.id]);
+    expect(result.usage).toEqual({ inputTokens: 62, outputTokens: 22 });
+  });
+
   it("labels article evidence as untrusted data in the model prompt", async () => {
     let receivedSystem = "";
     const client: BlogAgentAnswerClient = {
@@ -321,6 +378,61 @@ describe("answerFromArticle", () => {
 
     expect(result.insufficientEvidence).toBe(true);
     expect(result.answer).toBe("");
+  });
+
+  it("repairs one oversized code answer without relaxing the public excerpt budget", async () => {
+    const codeSection = {
+      ...evidence.sections[0],
+      id: "material:bounded-retry:0",
+      content: [
+        "def execute(identity, binding):",
+        "    if identity.identity_digest != binding[\"executable_digest\"]:",
+        "        return KnownNotExecuted(code=\"executable_identity_changed\")",
+        "    return run_local_process()",
+      ].join("\n"),
+      protectedMaterial: true,
+      sourceKind: "code" as const,
+    };
+    const responses: BlogAgentModelResponse[] = [
+      {
+        content: JSON.stringify({
+          answer: `\`\`\`python\n${"x".repeat(1_201)}\n\`\`\``,
+          citationIds: [codeSection.id],
+          insufficientEvidence: false,
+        }),
+        inputTokens: 30,
+        outputTokens: 300,
+      },
+      {
+        content: JSON.stringify({
+          answer: [
+            "只需比较批准时绑定的 digest：",
+            "```python",
+            "if identity.identity_digest != binding[\"executable_digest\"]:",
+            "    return KnownNotExecuted(code=\"executable_identity_changed\")",
+            "```",
+          ].join("\n"),
+          citationIds: [codeSection.id],
+          insufficientEvidence: false,
+        }),
+        inputTokens: 32,
+        outputTokens: 18,
+      },
+    ];
+    const client: BlogAgentAnswerClient = {
+      complete: async () => responses.shift()!,
+    };
+
+    const result = await answerFromArticle(
+      "执行前怎么重验？请给最小代码。",
+      { ...evidence, sections: [codeSection] },
+      client,
+    );
+
+    expect(result.insufficientEvidence).toBe(false);
+    expect(result.answer).toContain("identity.identity_digest");
+    expect(result.answer).not.toContain("x".repeat(1_201));
+    expect(result.usage).toEqual({ inputTokens: 62, outputTokens: 318 });
   });
 
   it.each([

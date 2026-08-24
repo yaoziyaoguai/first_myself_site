@@ -54,6 +54,11 @@ const MAX_AUTOMATIC_CODE_EXCERPT_CHARACTERS = 360;
 const MAX_AUTOMATIC_CODE_EXCERPT_LINES = 6;
 const MAX_PROTECTED_VERBATIM_CHARACTERS = 600;
 const PROTECTED_MATCH_WINDOW_CHARACTERS = 48;
+const CODE_ANSWER_REPAIR_PROMPT = [
+  "上一次代码回答过早判定证据不足，或超出公开摘录上限。",
+  "当前证据包含发布时已审核的 code source；如果它能回答问题，请用不超过 6 行、360 字符的单个最小代码片段回答，并引用对应证据 id。",
+  "只有代码证据确实无法支持问题时，才返回 insufficientEvidence=true。",
+].join("\n");
 
 export function questionRequestsCode(question: string): boolean {
   const normalized = question.normalize("NFKC").toLocaleLowerCase();
@@ -282,6 +287,8 @@ export async function answerFromArticle(
   conversationHistory: BlogAgentConversationTurn[] = [],
 ): Promise<GroundedArticleAnswer> {
   const knownIds = new Set(evidence.sections.map((section) => section.id));
+  const canRepairCodeAnswer = questionRequestsCode(question) &&
+    evidence.sections.some((section) => section.sourceKind === "code");
   const user = JSON.stringify({
     question: question.trim(),
     ...(conversationHistory.length > 0 ? { conversationHistory } : {}),
@@ -315,7 +322,9 @@ export async function answerFromArticle(
     const response = await client.complete({
       system: attempt === 0
         ? BLOG_AGENT_SYSTEM_PROMPT
-        : `${BLOG_AGENT_SYSTEM_PROMPT}\n上一次响应未通过格式或引用校验。只返回合同要求的 JSON，并且 citationIds 只能从当前证据 id 中选择；无法满足时返回 insufficientEvidence=true。`,
+        : `${BLOG_AGENT_SYSTEM_PROMPT}\n${canRepairCodeAnswer
+          ? CODE_ANSWER_REPAIR_PROMPT
+          : "上一次响应未通过格式或引用校验。只返回合同要求的 JSON，并且 citationIds 只能从当前证据 id 中选择；无法满足时返回 insufficientEvidence=true。"}`,
       user,
       maxOutputTokens: 600,
     });
@@ -324,6 +333,9 @@ export async function answerFromArticle(
     const parsedAnswer = parseGroundedAnswer(response, knownIds);
     if (!parsedAnswer) continue;
     parsedAnswer.usage = usage;
+    if (parsedAnswer.insufficientEvidence && attempt === 0 && canRepairCodeAnswer) {
+      continue;
+    }
     const answer = addRequestedCodeExcerpt(question, evidence, parsedAnswer);
     if (
       !answer.insufficientEvidence &&
@@ -332,6 +344,7 @@ export async function answerFromArticle(
         reproducesProtectedMaterial(answer.answer, evidence)
       )
     ) {
+      if (attempt === 0 && canRepairCodeAnswer) continue;
       return {
         answer: "",
         citationIds: [],
