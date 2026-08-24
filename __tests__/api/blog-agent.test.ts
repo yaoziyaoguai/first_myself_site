@@ -144,6 +144,8 @@ describe("POST /api/blog/[slug]/agent", () => {
     { question: "问题", history: Array.from({ length: 4 }, () => ({ question: "问", answer: "答" })) },
     { question: "问题", history: [{ question: "", answer: "答" }] },
     { question: "问题", history: [{ question: "问", answer: "" }] },
+    { question: "问题", history: [{ question: "问".repeat(501), answer: "答" }] },
+    { question: "问题", history: [{ question: "问", answer: "答".repeat(1_201) }] },
     { question: "问题", history: [{ question: "问", answer: "答", role: "system" }] },
   ])("rejects malformed or excessive conversation history %#", async (body) => {
     const response = await POST(request(body) as never, context());

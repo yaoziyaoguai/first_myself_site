@@ -124,17 +124,25 @@ describe("BlogAgentService", () => {
       answer: "核心使用 batch sink。",
     }];
 
-    await fixture.service.execute({
-      article,
-      question: "那为什么？",
+    for (const [index, conversation] of [
       history,
-      identityHash: "identity-hash",
-    });
+      [{ question: "核心实现是什么？", answer: "另一段旧回答。" }],
+      [{ question: "它解决什么问题？", answer: "核心使用 batch sink。" }],
+    ].entries()) {
+      await fixture.service.execute({
+        article,
+        question: "那为什么？",
+        history: conversation,
+        identityHash: `identity-hash-${index}`,
+      });
+    }
 
     expect(buildEvidence).toHaveBeenCalledWith("核心实现是什么？\n那为什么？");
-    expect(fixture.repository.getCachedAnswer).toHaveBeenCalledWith(
-      expect.objectContaining({ questionHash: expect.stringMatching(/^[a-f0-9]{64}$/) }),
-    );
+    const questionHashes = vi.mocked(fixture.repository.getCachedAnswer).mock.calls
+      .map(([input]) => input.questionHash);
+    expect(questionHashes).toHaveLength(3);
+    expect(questionHashes.every((hash) => /^[a-f0-9]{64}$/.test(hash))).toBe(true);
+    expect(new Set(questionHashes)).toHaveProperty("size", 3);
     expect(fixture.client.complete).toHaveBeenCalledWith(expect.objectContaining({
       user: expect.stringContaining("核心使用 batch sink"),
     }));

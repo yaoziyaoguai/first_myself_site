@@ -171,8 +171,49 @@ describe("BlogAgent", () => {
     });
   });
 
-  it("clears history only through the explicit clear action", async () => {
+  it("bounds multibyte history to 1200 characters per answer and an 8 KiB request", async () => {
+    vi.mocked(fetch).mockImplementation(async () => jsonResponse({
+      ...answerBody,
+      answer: "答".repeat(2_000),
+    }));
     renderAgent();
+    const user = await openAgent();
+
+    for (const question of ["问题一", "问题二", "问题三", "问题四"]) {
+      const input = screen.getByRole("textbox", { name: "向文章提问" });
+      await user.type(input, question);
+      await user.click(screen.getByRole("button", { name: "发送问题" }));
+      await waitFor(() => expect(input).toHaveValue(""));
+    }
+
+    const serialized = String(vi.mocked(fetch).mock.calls[3][1]?.body);
+    const lastRequest = JSON.parse(serialized);
+    expect(new TextEncoder().encode(serialized).byteLength).toBeLessThanOrEqual(8 * 1024);
+    expect(lastRequest.history).toEqual([
+      { question: "问题二", answer: "答".repeat(1_200) },
+      { question: "问题三", answer: "答".repeat(1_200) },
+    ]);
+  });
+
+  it("discards an oversized stored transcript instead of restoring it", async () => {
+    sessionStorage.setItem(
+      "blog-agent-history:v1:doris-write-path",
+      JSON.stringify(Array.from({ length: 9 }, (_, index) => ({
+        question: `旧问题${index}`,
+        response: answerBody,
+      }))),
+    );
+
+    renderAgent();
+    await openAgent();
+
+    expect(screen.queryByText("旧问题0")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "核心实现是什么？" }))
+      .toBeInTheDocument();
+  });
+
+  it("clears history only through the explicit clear action", async () => {
+    const view = renderAgent();
     const user = await openAgent();
     await user.click(screen.getByRole("button", { name: "核心实现是什么？" }));
     await screen.findByText("批量写入可以减少小批次开销。");
@@ -183,6 +224,15 @@ describe("BlogAgent", () => {
       .not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "核心实现是什么？" }))
       .toBeInTheDocument();
+    await waitFor(() => expect(sessionStorage.getItem(
+      "blog-agent-history:v1:doris-write-path",
+    )).toBeNull());
+
+    view.unmount();
+    renderAgent();
+    await openAgent(user);
+    expect(screen.queryByText("批量写入可以减少小批次开销。"))
+      .not.toBeInTheDocument();
   });
 
   it("aborts an old request on close and ignores its late response", async () => {
