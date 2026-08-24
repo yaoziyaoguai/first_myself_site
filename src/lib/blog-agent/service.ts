@@ -5,7 +5,11 @@ import type { ArticleSection } from "./articleMarkdown";
 import { hashPublicArticle } from "./articlePackage";
 import type { BlogScopedArticleRetriever, PreparedArticleContext } from "./articleRetriever";
 import type { BlogAgentRepository, CachedGroundedAnswer } from "./repository";
-import type { BlogAgentResponse, PublicMarkdownArticle } from "./types";
+import type {
+  BlogAgentConversationTurn,
+  BlogAgentResponse,
+  PublicMarkdownArticle,
+} from "./types";
 import type { GenerationUsagePolicy } from "./usagePolicy";
 
 type ServiceResult = {
@@ -76,9 +80,15 @@ export class BlogAgentService {
   async execute(input: {
     article: PublicMarkdownArticle;
     question: string;
+    history?: BlogAgentConversationTurn[];
     identityHash: string;
   }): Promise<ServiceResult> {
     const queryId = this.createQueryId();
+    const history = input.history ?? [];
+    const retrievalQuestion = [
+      ...history.map((turn) => turn.question),
+      input.question,
+    ].join("\n");
     let prepared: PreparedArticleContext | null = null;
     try {
       prepared = await this.dependencies.articleRetriever?.prepare(input.article) ?? null;
@@ -95,14 +105,23 @@ export class BlogAgentService {
       title: input.article.title,
       excerpt: input.article.excerpt,
       markdown: input.article.contentMarkdown,
-      question: input.question,
+      question: retrievalQuestion,
     });
     let evidence: ArticleEvidence | undefined;
     const contextHash = prepared?.contextHash ?? hashPublicArticle(input.article);
+    const cacheQuestion = history.length === 0
+      ? normalizedQuestion(input.question)
+      : JSON.stringify({
+          question: normalizedQuestion(input.question),
+          history: history.map((turn) => ({
+            question: normalizedQuestion(turn.question),
+            answer: turn.answer.normalize("NFKC").trim(),
+          })),
+        });
     const cacheKey = {
       articleHash: sha256(`${hashPublicArticle(input.article)}\0${contextHash}`),
       modelCacheKey: this.dependencies.modelCacheKey,
-      questionHash: sha256(normalizedQuestion(input.question)),
+      questionHash: sha256(cacheQuestion),
     };
 
     try {
@@ -136,7 +155,7 @@ export class BlogAgentService {
         input.identityHash,
         async () => {
           evidence = prepared
-            ? await prepared.buildEvidence(input.question)
+            ? await prepared.buildEvidence(retrievalQuestion)
             : fallbackEvidence();
           if (evidence.sections.length === 0 && prepared) {
             evidence = fallbackEvidence();
@@ -145,6 +164,7 @@ export class BlogAgentService {
             input.question,
             evidence,
             this.dependencies.client,
+            history,
           );
           return { value: answer, usage: answer.usage };
         },

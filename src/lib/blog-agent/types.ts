@@ -21,6 +21,11 @@ export type BlogAgentResponse = {
   };
 };
 
+export type BlogAgentConversationTurn = {
+  question: string;
+  answer: string;
+};
+
 export type PublicMarkdownArticle = {
   id: string;
   slug: string;

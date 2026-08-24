@@ -23,11 +23,14 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-function renderAgent() {
+function renderAgent(
+  articleSlug = "doris-write-path",
+  articleTitle = "Doris 写入实践",
+) {
   return render(
     <BlogAgent
-      articleSlug="doris-write-path"
-      articleTitle="Doris 写入实践"
+      articleSlug={articleSlug}
+      articleTitle={articleTitle}
     />,
   );
 }
@@ -40,6 +43,7 @@ async function openAgent(user = userEvent.setup()) {
 describe("BlogAgent", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    sessionStorage.clear();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(answerBody)));
   });
 
@@ -85,11 +89,100 @@ describe("BlogAgent", () => {
     await user.click(submit);
 
     expect(submit).toBeDisabled();
+    expect(screen.getByRole("status", { name: "文章 Agent 正在思考" }))
+      .toHaveTextContent("正在检索当前文章与代码依据");
     await user.click(submit);
     expect(fetch).toHaveBeenCalledOnce();
 
     resolveRequest?.(jsonResponse(answerBody));
     await screen.findByText("批量写入可以减少小批次开销。");
+  });
+
+  it("keeps completed conversation history when the panel is closed and reopened", async () => {
+    renderAgent();
+    const user = await openAgent();
+    await user.click(screen.getByRole("button", { name: "核心实现是什么？" }));
+    await screen.findByText("批量写入可以减少小批次开销。");
+
+    await user.click(screen.getByRole("button", { name: "关闭文章 Agent" }));
+    await openAgent(user);
+
+    expect(screen.getByText("核心实现是什么？")).toBeInTheDocument();
+    expect(screen.getByText("批量写入可以减少小批次开销。")).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it("restores the current article conversation after a remount in the same tab", async () => {
+    const firstView = renderAgent();
+    const user = await openAgent();
+    await user.click(screen.getByRole("button", { name: "作者得出了什么结论？" }));
+    await screen.findByText("批量写入可以减少小批次开销。");
+    firstView.unmount();
+
+    renderAgent();
+    await openAgent(user);
+
+    expect(screen.getByText("作者得出了什么结论？")).toBeInTheDocument();
+    expect(screen.getByText("批量写入可以减少小批次开销。")).toBeInTheDocument();
+  });
+
+  it("does not leak saved conversation into another article", async () => {
+    const firstView = renderAgent();
+    const user = await openAgent();
+    await user.click(screen.getByRole("button", { name: "核心实现是什么？" }));
+    await screen.findByText("批量写入可以减少小批次开销。");
+    firstView.unmount();
+
+    renderAgent("another-article", "另一篇文章");
+    await openAgent(user);
+
+    expect(screen.queryByText("批量写入可以减少小批次开销。"))
+      .not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "核心实现是什么？" }))
+      .toBeInTheDocument();
+  });
+
+  it("sends only the latest three completed turns with a follow-up", async () => {
+    vi.mocked(fetch).mockImplementation(async () => jsonResponse(answerBody));
+    renderAgent();
+    const user = await openAgent();
+    const questions = ["问题一", "问题二", "问题三", "问题四", "问题五"];
+
+    for (let index = 0; index < questions.length; index += 1) {
+      const input = screen.getByRole("textbox", { name: "向文章提问" });
+      await user.type(input, questions[index]);
+      await user.click(screen.getByRole("button", { name: "发送问题" }));
+      await waitFor(() => {
+        expect(fetch).toHaveBeenCalledTimes(index + 1);
+        expect(input).toHaveValue("");
+      });
+    }
+
+    const lastRequest = JSON.parse(String(
+      vi.mocked(fetch).mock.calls[4][1]?.body,
+    ));
+    expect(lastRequest).toEqual({
+      question: "问题五",
+      history: [
+        { question: "问题二", answer: "批量写入可以减少小批次开销。" },
+        { question: "问题三", answer: "批量写入可以减少小批次开销。" },
+        { question: "问题四", answer: "批量写入可以减少小批次开销。" },
+      ],
+    });
+  });
+
+  it("clears history only through the explicit clear action", async () => {
+    renderAgent();
+    const user = await openAgent();
+    await user.click(screen.getByRole("button", { name: "核心实现是什么？" }));
+    await screen.findByText("批量写入可以减少小批次开销。");
+
+    await user.click(screen.getByRole("button", { name: "清空对话" }));
+
+    expect(screen.queryByText("批量写入可以减少小批次开销。"))
+      .not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "核心实现是什么？" }))
+      .toBeInTheDocument();
   });
 
   it("aborts an old request on close and ignores its late response", async () => {

@@ -3,12 +3,17 @@ import { getBlogAgentRuntime } from "@/lib/blog-agent/runtime";
 import { createBlogAgentUnavailableResponse } from "@/lib/blog-agent/service";
 import { getPayloadAPI } from "@/lib/payload";
 import { deriveRequestIdentity } from "@/lib/requestIdentity";
-import type { PublicMarkdownArticle } from "@/lib/blog-agent/types";
+import type {
+  BlogAgentConversationTurn,
+  PublicMarkdownArticle,
+} from "@/lib/blog-agent/types";
 
 export const dynamic = "force-dynamic";
 
 const MAX_BODY_BYTES = 8 * 1024;
 const MAX_QUESTION_LENGTH = 500;
+const MAX_HISTORY_TURNS = 3;
+const MAX_HISTORY_ANSWER_LENGTH = 1_200;
 const MAX_SLUG_LENGTH = 128;
 
 type RouteContext = { params: Promise<{ identifier: string }> };
@@ -85,6 +90,37 @@ function decodeSlug(value: string): string | null {
   } catch {
     return null;
   }
+}
+
+function parseHistory(value: unknown): BlogAgentConversationTurn[] | null {
+  if (!Array.isArray(value) || value.length > MAX_HISTORY_TURNS) return null;
+  const history: BlogAgentConversationTurn[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+    const record = item as Record<string, unknown>;
+    const keys = Object.keys(record);
+    if (
+      keys.length !== 2 ||
+      !keys.includes("question") ||
+      !keys.includes("answer") ||
+      typeof record.question !== "string" ||
+      typeof record.answer !== "string"
+    ) {
+      return null;
+    }
+    const question = record.question.trim();
+    const answer = record.answer.trim();
+    if (
+      !question ||
+      question.length > MAX_QUESTION_LENGTH ||
+      !answer ||
+      answer.length > MAX_HISTORY_ANSWER_LENGTH
+    ) {
+      return null;
+    }
+    history.push({ question, answer });
+  }
+  return history;
 }
 
 async function findPublicMarkdownArticle(
@@ -168,7 +204,11 @@ export async function POST(request: Request, { params }: RouteContext) {
       );
     }
     const keys = Object.keys(body.value);
-    if (keys.length !== 1 || keys[0] !== "question") {
+    if (
+      !keys.includes("question") ||
+      keys.length > 2 ||
+      keys.some((key) => key !== "question" && key !== "history")
+    ) {
       return errorResponse("Invalid request body", 400);
     }
     const question = typeof body.value.question === "string"
@@ -177,6 +217,10 @@ export async function POST(request: Request, { params }: RouteContext) {
     if (!question || question.length > MAX_QUESTION_LENGTH) {
       return errorResponse("Question must contain 1 to 500 characters", 400);
     }
+    const history = body.value.history === undefined
+      ? []
+      : parseHistory(body.value.history);
+    if (!history) return errorResponse("Invalid conversation history", 400);
 
     const { identifier: rawSlug } = await params;
     const slug = decodeSlug(rawSlug);
@@ -188,6 +232,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     const result = await runtime.service.execute({
       article,
       question,
+      history,
       identityHash: identity.rateLimitKey,
     });
     return NextResponse.json(result.body, { status: result.status });

@@ -214,6 +214,7 @@ export default async function BlogPostPage({ params }: PageProps) {
       </article>
       {showBlogAgent && (
         <BlogAgent
+          key={String(post.slug)}
           articleSlug={String(post.slug)}
           articleTitle={String(post.title)}
         />
