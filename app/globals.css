@@ -252,59 +252,59 @@ body:has(.blog-agent-root) footer > .site-shell {
   place-items: center;
 }
 
-.blog-agent-reading-robot {
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  transition: transform 180ms ease-out;
+.blog-agent-trigger-orb {
+  position: relative;
+  display: block;
+  width: 2.05rem;
+  height: 2.05rem;
+  border: 1px solid color-mix(in srgb, var(--primary) 32%, transparent);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 39% 24%, rgba(255, 255, 255, 0.96) 0 3%, rgba(216, 225, 255, 0.68) 4%, transparent 16%),
+    radial-gradient(circle at 50% 48%, #18264f 0%, #080b15 46%, #020307 72%);
+  box-shadow:
+    inset -0.22rem -0.24rem 0.55rem rgba(0, 0, 0, 0.72),
+    inset 0.12rem 0.12rem 0.38rem color-mix(in srgb, var(--primary) 28%, white),
+    0 0 0.55rem color-mix(in srgb, var(--primary) 24%, transparent);
+  isolation: isolate;
+  transition: box-shadow 180ms ease-out, transform 180ms ease-out;
 }
 
-.blog-agent-reading-robot__antenna {
-  fill: none;
-  stroke: var(--foreground);
-  stroke-linecap: round;
-  stroke-width: 1.7;
-  transform-box: fill-box;
-  transform-origin: bottom;
-  transition: transform 180ms ease-out;
+.blog-agent-trigger-orb::before {
+  position: absolute;
+  z-index: 1;
+  top: 46%;
+  right: -0.17rem;
+  left: -0.17rem;
+  height: 0.5rem;
+  border-top: 2px solid color-mix(in srgb, var(--primary) 82%, white);
+  border-radius: 50%;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 5%, transparent), color-mix(in srgb, var(--primary) 58%, transparent) 52%, color-mix(in srgb, var(--primary) 7%, transparent));
+  box-shadow: 0 -0.03rem 0.35rem color-mix(in srgb, var(--primary) 78%, transparent), 0 0.08rem 0.28rem color-mix(in srgb, var(--primary) 46%, transparent);
+  content: "";
+  transform: rotate(-3deg);
 }
 
-.blog-agent-reading-robot__signal,
-.blog-agent-reading-robot__eyes,
-.blog-agent-reading-robot__bookmark {
-  fill: var(--primary);
+.blog-agent-trigger-orb::after {
+  position: absolute;
+  top: 0.24rem;
+  left: 0.47rem;
+  width: 0.48rem;
+  height: 0.22rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 0 0.28rem rgba(220, 229, 255, 0.7);
+  content: "";
+  filter: blur(0.02rem);
+  transform: rotate(-24deg);
 }
 
-.blog-agent-reading-robot__page {
-  fill: var(--card);
-  stroke: var(--primary);
-  stroke-linejoin: round;
-  stroke-width: 1.8;
-}
-
-.blog-agent-reading-robot__fold {
-  fill: var(--accent);
-  stroke: var(--primary);
-  stroke-linejoin: round;
-  stroke-width: 1.5;
-}
-
-.blog-agent-reading-robot__eyes {
-  transform-box: fill-box;
-  transform-origin: center;
-  transition: transform 180ms ease-out;
-}
-
-.blog-agent-trigger:hover .blog-agent-reading-robot {
-  transform: translateY(-0.06rem);
-}
-
-.blog-agent-trigger:hover .blog-agent-reading-robot__antenna {
-  transform: rotate(8deg);
-}
-
-.blog-agent-trigger:hover .blog-agent-reading-robot__eyes {
-  transform: translateX(0.05rem);
+.blog-agent-trigger:hover .blog-agent-trigger-orb {
+  box-shadow:
+    inset -0.22rem -0.24rem 0.55rem rgba(0, 0, 0, 0.72),
+    inset 0.12rem 0.12rem 0.38rem color-mix(in srgb, var(--primary) 32%, white),
+    0 0 0.8rem color-mix(in srgb, var(--primary) 42%, transparent);
+  transform: translateY(-0.06rem) scale(1.03);
 }
 
 .blog-agent-panel {

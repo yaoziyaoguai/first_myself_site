@@ -63,7 +63,7 @@ describe("BlogAgent", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(answerBody)));
   });
 
-  it("starts as an accessible floating robot and opens the current article panel", async () => {
+  it("starts as an accessible floating article Agent and opens the current article panel", async () => {
     renderAgent();
     expect(screen.getByRole("button", { name: "打开文章 Agent" })).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -76,14 +76,15 @@ describe("BlogAgent", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("renders the selected reading robot as a decorative part of the trigger", () => {
+  it("renders the selected Orb as a decorative part of the trigger", () => {
     renderAgent();
     const trigger = screen.getByRole("button", { name: "打开文章 Agent" });
-    const mascot = trigger.querySelector('[data-blog-agent-mascot="reading-robot"]');
+    const mascot = trigger.querySelector('[data-blog-agent-mascot="orb"]');
 
     expect(trigger).toHaveTextContent("问问这篇文章");
     expect(mascot).toBeInTheDocument();
     expect(mascot).toHaveAttribute("aria-hidden", "true");
+    expect(trigger.querySelector("svg")).not.toBeInTheDocument();
   });
 
   it("sends only the selected question to the encoded current-article endpoint", async () => {
@@ -322,7 +323,7 @@ describe("BlogAgent", () => {
     expect(signal?.aborted).toBe(true);
   });
 
-  it("closes on Escape and restores focus to the robot", async () => {
+  it("closes on Escape and restores focus to the Agent trigger", async () => {
     renderAgent();
     await openAgent();
     fireEvent.keyDown(document, { key: "Escape" });
