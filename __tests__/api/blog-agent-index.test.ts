@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/payload", () => ({ getPayloadAPI: vi.fn() }));
 vi.mock("@/lib/blog-agent/runtime", () => ({ getBlogAgentRuntime: vi.fn() }));
 
-import { GET, POST } from "@/app/api/blog/[identifier]/agent-index/route";
+import { GET, POST, PUT } from "@/app/api/blog/[identifier]/agent-index/route";
 import { getPayloadAPI } from "@/lib/payload";
 import { getBlogAgentRuntime } from "@/lib/blog-agent/runtime";
 import { ArticlePackageValidationError } from "@/lib/blog-agent/articlePackage";
@@ -13,6 +13,7 @@ const auth = vi.fn();
 const findByID = vi.fn();
 const update = vi.fn();
 const index = vi.fn();
+const refreshPublished = vi.fn();
 const getSummary = vi.fn();
 
 const validBody = {
@@ -29,6 +30,14 @@ const validBody = {
 function request(body: unknown, headers: Record<string, string> = {}): Request {
   return new Request("https://example.com/api/blog/42/agent-index", {
     method: "POST",
+    headers: { "content-type": "application/json", authorization: "Bearer token", ...headers },
+    body: typeof body === "string" ? body : JSON.stringify(body),
+  });
+}
+
+function putRequest(body: unknown, headers: Record<string, string> = {}): Request {
+  return new Request("https://example.com/api/blog/42/agent-index", {
+    method: "PUT",
     headers: { "content-type": "application/json", authorization: "Bearer token", ...headers },
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
@@ -51,6 +60,16 @@ function privateArticle() {
   };
 }
 
+function publishedArticle() {
+  return {
+    ...privateArticle(),
+    status: "published",
+    visibility: "public",
+    agentIndexStatus: "ready",
+    agentIndexedPackageHash: "a".repeat(64),
+  };
+}
+
 describe("/api/blog/[id]/agent-index", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -66,8 +85,15 @@ describe("/api/blog/[id]/agent-index", () => {
       indexedAt: new Date("2026-08-23T00:00:00.000Z"),
     });
     getSummary.mockResolvedValue(null);
+    refreshPublished.mockResolvedValue({
+      packageHash: "d".repeat(64),
+      chunkCount: 3,
+      embeddingModel: "qwen3.7-text-embedding",
+      embeddingDimensions: 1024,
+      indexedAt: new Date("2026-08-24T00:00:00.000Z"),
+    });
     vi.mocked(getBlogAgentRuntime).mockReturnValue({
-      indexer: { index, getSummary },
+      indexer: { index, refreshPublished, getSummary },
     } as never);
   });
 
@@ -223,5 +249,76 @@ describe("/api/blog/[id]/agent-index", () => {
     expect(response.status).toBe(200);
     expect(body).toMatchObject({ indexStatus: "pending", chunkCount: 3 });
     expect(JSON.stringify(body)).not.toMatch(/content|embedding\s*:/i);
+  });
+
+  it("atomically refreshes a published article package while the old package remains live", async () => {
+    const nextPackage = { ...validBody, packageHash: "d".repeat(64) };
+    findByID.mockResolvedValueOnce(publishedArticle());
+
+    const response = await PUT(putRequest({
+      previousPackageHash: "a".repeat(64),
+      package: nextPackage,
+    }), context);
+
+    expect(response.status).toBe(200);
+    expect(refreshPublished).toHaveBeenCalledWith({
+      article: {
+        id: "42",
+        slug: "agent-loop",
+        title: "Agent Loop",
+        excerpt: "循环",
+        contentMarkdown: "主要内容",
+      },
+      previousPackageHash: "a".repeat(64),
+      packagePayload: nextPackage,
+    });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("refuses stale or non-public refreshes before embedding", async () => {
+    const nextPackage = { ...validBody, packageHash: "d".repeat(64) };
+    findByID
+      .mockResolvedValueOnce(publishedArticle())
+      .mockResolvedValueOnce(privateArticle());
+
+    const stale = await PUT(putRequest({
+      previousPackageHash: "b".repeat(64),
+      package: nextPackage,
+    }), context);
+    const privateResponse = await PUT(putRequest({
+      previousPackageHash: "a".repeat(64),
+      package: nextPackage,
+    }), context);
+
+    expect(stale.status).toBe(409);
+    expect(privateResponse.status).toBe(409);
+    expect(refreshPublished).not.toHaveBeenCalled();
+  });
+
+  it("keeps the published package ready when refresh generation fails", async () => {
+    findByID.mockResolvedValueOnce(publishedArticle());
+    refreshPublished.mockRejectedValueOnce(new Error("provider body: secret-debug"));
+
+    const response = await PUT(putRequest({
+      previousPackageHash: "a".repeat(64),
+      package: { ...validBody, packageHash: "d".repeat(64) },
+    }), context);
+
+    expect(response.status).toBe(503);
+    expect(await response.text()).not.toContain("secret-debug");
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 when the published article lookup dependency fails", async () => {
+    findByID.mockRejectedValueOnce(new Error("database unavailable"));
+
+    const response = await PUT(putRequest({
+      previousPackageHash: "a".repeat(64),
+      package: { ...validBody, packageHash: "d".repeat(64) },
+    }), context);
+
+    expect(response.status).toBe(503);
+    expect(await response.text()).not.toContain("database unavailable");
+    expect(refreshPublished).not.toHaveBeenCalled();
   });
 });

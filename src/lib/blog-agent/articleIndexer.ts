@@ -1,6 +1,7 @@
 import type {
   ArticleIndexRepository,
   ArticlePackageSummary,
+  ReadyArticlePackage,
 } from "./articleIndexRepository";
 import {
   buildArticlePackageChunks,
@@ -32,6 +33,29 @@ export class ArticleIndexer {
     article: PublicMarkdownArticle;
     packagePayload: unknown;
   }): Promise<ArticleIndexingSummary> {
+    const readyPackage = await this.preparePackage(input);
+    await this.dependencies.repository.replacePackage(readyPackage);
+    return this.summary(readyPackage);
+  }
+
+  async refreshPublished(input: {
+    article: PublicMarkdownArticle;
+    previousPackageHash: string;
+    packagePayload: unknown;
+  }): Promise<ArticleIndexingSummary> {
+    const readyPackage = await this.preparePackage(input);
+    await this.dependencies.repository.replacePublishedPackage({
+      ...readyPackage,
+      article: input.article,
+      previousPackageHash: input.previousPackageHash,
+    });
+    return this.summary(readyPackage);
+  }
+
+  private async preparePackage(input: {
+    article: PublicMarkdownArticle;
+    packagePayload: unknown;
+  }): Promise<ReadyArticlePackage> {
     const packageSnapshot = validateArticlePackagePayload(input.packagePayload, {
       markdown: input.article.contentMarkdown,
     });
@@ -49,7 +73,7 @@ export class ArticleIndexer {
       throw new Error("article package embedding count does not match chunks");
     }
     const indexedAt = this.now();
-    await this.dependencies.repository.replacePackage({
+    return {
       blogId: input.article.id,
       articleHash: hashPublicArticle(input.article),
       packageHash: packageSnapshot.packageHash,
@@ -61,13 +85,16 @@ export class ArticleIndexer {
         ...chunk,
         embedding: vectors[index],
       })),
-    });
+    };
+  }
+
+  private summary(readyPackage: ReadyArticlePackage): ArticleIndexingSummary {
     return {
-      packageHash: packageSnapshot.packageHash,
-      chunkCount: chunks.length,
-      embeddingModel: this.dependencies.embeddingModel,
-      embeddingDimensions: this.dependencies.embeddingDimensions,
-      indexedAt,
+      packageHash: readyPackage.packageHash,
+      chunkCount: readyPackage.chunks.length,
+      embeddingModel: readyPackage.embeddingModel,
+      embeddingDimensions: readyPackage.embeddingDimensions,
+      indexedAt: readyPackage.indexedAt,
     };
   }
 

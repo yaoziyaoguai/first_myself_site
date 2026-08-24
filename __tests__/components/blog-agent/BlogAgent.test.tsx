@@ -16,6 +16,22 @@ const answerBody = {
   usage: { cached: false },
 };
 
+const githubAnswerBody = {
+  ...answerBody,
+  citations: [{
+    ...answerBody.citations[0],
+    heading: "Agent 主循环 · src/loop.py",
+    github: {
+      repository: "https://github.com/yaoziyaoguai/my-first-agent",
+      commit: "a".repeat(40),
+      path: "src/loop.py",
+      lineStart: 12,
+      lineEnd: 27,
+      url: `https://github.com/yaoziyaoguai/my-first-agent/blob/${"a".repeat(40)}/src/loop.py#L12-L27`,
+    },
+  }],
+};
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -320,6 +336,48 @@ describe("BlogAgent", () => {
     expect(heading.scrollIntoView).toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     heading.remove();
+  });
+
+  it("offers a pinned GitHub line-range link without replacing the article citation", async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(githubAnswerBody));
+    renderAgent();
+    const user = await openAgent();
+    await user.click(screen.getByRole("button", { name: "核心实现是什么？" }));
+
+    const sourceLink = await screen.findByRole("link", {
+      name: "在 GitHub 查看 src/loop.py 第 12 到 27 行",
+    });
+    expect(sourceLink).toHaveAttribute(
+      "href",
+      `https://github.com/yaoziyaoguai/my-first-agent/blob/${"a".repeat(40)}/src/loop.py#L12-L27`,
+    );
+    expect(sourceLink).toHaveAttribute("target", "_blank");
+    expect(sourceLink).toHaveAttribute("rel", expect.stringContaining("noopener"));
+    expect(screen.getByText("依据与源码")).toBeInTheDocument();
+    expect(screen.getByRole("button", {
+      name: "查看引用：Agent 主循环 · src/loop.py",
+    })).toBeInTheDocument();
+  });
+
+  it("rejects a tampered GitHub URL instead of rendering an untrusted link", async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({
+      ...githubAnswerBody,
+      citations: [{
+        ...githubAnswerBody.citations[0],
+        github: {
+          ...githubAnswerBody.citations[0].github,
+          url: "https://evil.example/steal",
+        },
+      }],
+    }));
+    renderAgent();
+    const user = await openAgent();
+    await user.click(screen.getByRole("button", { name: "核心实现是什么？" }));
+
+    expect(await screen.findByText("暂时无法回答，请稍后重试。"))
+      .toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /在 GitHub 查看/ }))
+      .not.toBeInTheDocument();
   });
 
   it("closes and scrolls to the article top for a top-section citation", async () => {

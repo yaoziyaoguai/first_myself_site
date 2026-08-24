@@ -1,7 +1,10 @@
+import type { GitHubSource } from "./githubSource";
+
 export type BlogAgentCitation = {
   id: string;
   heading: string;
   url: string;
+  github?: GitHubSource;
 };
 
 export type BlogAgentResponseReason =

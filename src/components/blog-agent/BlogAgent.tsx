@@ -9,10 +9,12 @@ import {
 } from "react";
 import { Bot, Send, Sparkles, X } from "lucide-react";
 import type {
+  BlogAgentCitation,
   BlogAgentConversationTurn,
   BlogAgentResponse,
 } from "@/lib/blog-agent/types";
 import { SafeAgentMarkdown } from "./SafeAgentMarkdown";
+import { buildGitHubSource } from "@/lib/blog-agent/githubSource";
 
 type AgentPhase = "idle" | "loading" | "limited" | "failed";
 
@@ -100,6 +102,13 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
 
+function parseGithubCitation(value: unknown): BlogAgentCitation["github"] | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const item = value as Record<string, unknown>;
+  const source = buildGitHubSource(item);
+  return source && item.url === source.url ? source : null;
+}
+
 function parseResponse(value: unknown, articleSlug: string): BlogAgentResponse | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
@@ -128,7 +137,16 @@ function parseResponse(value: unknown, articleSlug: string): BlogAgentResponse |
     ) {
       return [];
     }
-    return [{ id: item.id, heading: item.heading, url: item.url }];
+    const github = item.github === undefined
+      ? undefined
+      : parseGithubCitation(item.github);
+    if (item.github !== undefined && !github) return [];
+    return [{
+      id: item.id,
+      heading: item.heading,
+      url: item.url,
+      ...(github ? { github } : {}),
+    }];
   });
   if (citations.length !== record.citations.length) return null;
   const usageRecord = record.usage as Record<string, unknown>;
@@ -464,17 +482,35 @@ export function BlogAgent({
                         <SafeAgentMarkdown content={turn.response.answer} />
                         {turn.response.citations.length > 0 && (
                           <div className="blog-agent-citations">
-                            <p>原文依据</p>
+                            <p>
+                              {turn.response.citations.some((citation) => citation.github)
+                                ? "依据与源码"
+                                : "原文依据"}
+                            </p>
                             {turn.response.citations.map((citation) => (
-                              <button
-                                type="button"
-                                key={citation.id}
-                                aria-label={`查看引用：${citation.heading}`}
-                                onClick={() => selectCitation(citation.url)}
-                              >
-                                <span>{citation.heading}</span>
-                                <span aria-hidden="true">↗</span>
-                              </button>
+                              <div className="blog-agent-citation" key={citation.id}>
+                                <button
+                                  type="button"
+                                  aria-label={`查看引用：${citation.heading}`}
+                                  onClick={() => selectCitation(citation.url)}
+                                >
+                                  <span>{citation.heading}</span>
+                                  <span aria-hidden="true">↗</span>
+                                </button>
+                                {citation.github && (
+                                  <a
+                                    href={citation.github.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    aria-label={`在 GitHub 查看 ${citation.github.path} 第 ${citation.github.lineStart} 到 ${citation.github.lineEnd} 行`}
+                                  >
+                                    <span>GitHub · {citation.github.path}</span>
+                                    <span>
+                                      L{citation.github.lineStart}–L{citation.github.lineEnd} ↗
+                                    </span>
+                                  </a>
+                                )}
+                              </div>
                             ))}
                           </div>
                         )}
