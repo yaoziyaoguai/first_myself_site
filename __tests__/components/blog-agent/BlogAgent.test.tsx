@@ -56,9 +56,81 @@ async function openAgent(user = userEvent.setup()) {
   return user;
 }
 
+function setViewport({
+  desktop,
+  width = 1_440,
+  height = 900,
+}: {
+  desktop: boolean;
+  width?: number;
+  height?: number;
+}) {
+  let desktopMatches = desktop;
+  const desktopListeners = new Set<(event: MediaQueryListEvent) => void>();
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: width });
+  Object.defineProperty(window, "innerHeight", { configurable: true, value: height });
+  vi.stubGlobal("matchMedia", vi.fn((query: string) => {
+    const isDesktopQuery = query === "(min-width: 80rem)";
+    return {
+      get matches() {
+        return isDesktopQuery ? desktopMatches : false;
+      },
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn((
+        type: string,
+        listener: (event: MediaQueryListEvent) => void,
+      ) => {
+        if (isDesktopQuery && type === "change") desktopListeners.add(listener);
+      }),
+      removeEventListener: vi.fn((
+        type: string,
+        listener: (event: MediaQueryListEvent) => void,
+      ) => {
+        if (isDesktopQuery && type === "change") desktopListeners.delete(listener);
+      }),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    };
+  }));
+
+  return {
+    setDesktop(next: boolean, nextWidth: number, nextHeight: number) {
+      desktopMatches = next;
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        value: nextWidth,
+      });
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: nextHeight,
+      });
+      const event = { matches: next, media: "(min-width: 80rem)" } as MediaQueryListEvent;
+      desktopListeners.forEach((listener) => listener(event));
+      window.dispatchEvent(new Event("resize"));
+    },
+  };
+}
+
+function setPanelRect(panel: HTMLElement, width: number, height: number) {
+  vi.spyOn(panel, "getBoundingClientRect").mockReturnValue({
+    width,
+    height,
+    top: 100,
+    right: 1_420,
+    bottom: 100 + height,
+    left: 1_420 - width,
+    x: 1_420 - width,
+    y: 100,
+    toJSON: () => undefined,
+  });
+}
+
 describe("BlogAgent", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     sessionStorage.clear();
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(answerBody)));
   });
@@ -74,6 +146,330 @@ describe("BlogAgent", () => {
     expect(screen.getByText("正在阅读《Doris 写入实践》")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "这篇文章解决了什么问题？" })).toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("resizes the desktop panel from its top-left handle", async () => {
+    setViewport({ desktop: true });
+    renderAgent();
+    await openAgent();
+    const panel = screen.getByRole("dialog", { name: "文章问答" });
+    setPanelRect(panel, 416, 600);
+    const handle = await screen.findByRole("button", {
+      name: "调整文章 Agent 对话框大小",
+    });
+
+    expect(fireEvent.pointerDown(handle, {
+      button: 0,
+      pointerId: 7,
+      clientX: 200,
+      clientY: 200,
+    })).toBe(false);
+    fireEvent.pointerMove(handle, {
+      pointerId: 7,
+      clientX: 140,
+      clientY: 120,
+    });
+    fireEvent.pointerUp(handle, { pointerId: 7 });
+
+    expect(panel.style.getPropertyValue("--blog-agent-panel-width")).toBe("476px");
+    expect(panel.style.getPropertyValue("--blog-agent-panel-height")).toBe("680px");
+  });
+
+  it("persists a resized panel for the current tab", async () => {
+    setViewport({ desktop: true });
+    renderAgent();
+    await openAgent();
+    const panel = screen.getByRole("dialog", { name: "文章问答" });
+    setPanelRect(panel, 416, 600);
+    const handle = await screen.findByRole("button", {
+      name: "调整文章 Agent 对话框大小",
+    });
+
+    fireEvent.pointerDown(handle, {
+      button: 0,
+      pointerId: 8,
+      clientX: 200,
+      clientY: 200,
+    });
+    fireEvent.pointerMove(handle, {
+      pointerId: 8,
+      clientX: 100,
+      clientY: 150,
+    });
+    fireEvent.pointerUp(handle, { pointerId: 8 });
+
+    await waitFor(() => expect(JSON.parse(String(
+      sessionStorage.getItem("blog-agent-panel-size:v1"),
+    ))).toEqual({ width: 516, height: 650 }));
+  });
+
+  it("restores the saved panel size in the current tab", async () => {
+    setViewport({ desktop: true });
+    sessionStorage.setItem(
+      "blog-agent-panel-size:v1",
+      JSON.stringify({ width: 520, height: 640 }),
+    );
+    renderAgent();
+    await openAgent();
+
+    const panel = screen.getByRole("dialog", { name: "文章问答" });
+    expect(panel.style.getPropertyValue("--blog-agent-panel-width")).toBe("520px");
+    expect(panel.style.getPropertyValue("--blog-agent-panel-height")).toBe("640px");
+  });
+
+  it.each([
+    "{not-json",
+    JSON.stringify({ width: "wide", height: -1 }),
+  ])("ignores an invalid stored panel size", async (storedSize) => {
+    setViewport({ desktop: true });
+    sessionStorage.setItem("blog-agent-panel-size:v1", storedSize);
+    renderAgent();
+    await openAgent();
+
+    const panel = screen.getByRole("dialog", { name: "文章问答" });
+    expect(panel.style.getPropertyValue("--blog-agent-panel-width")).toBe("");
+    expect(panel.style.getPropertyValue("--blog-agent-panel-height")).toBe("");
+    expect(screen.getByRole("button", {
+      name: "调整文章 Agent 对话框大小",
+    })).toBeInTheDocument();
+  });
+
+  it("keeps resizing usable when sessionStorage is unavailable", async () => {
+    setViewport({ desktop: true });
+    const getItem = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("storage disabled");
+    });
+    renderAgent();
+    await openAgent();
+    getItem.mockRestore();
+
+    const panel = screen.getByRole("dialog", { name: "文章问答" });
+    setPanelRect(panel, 416, 600);
+    const handle = await screen.findByRole("button", {
+      name: "调整文章 Agent 对话框大小",
+    });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("storage disabled");
+    });
+
+    fireEvent.pointerDown(handle, {
+      button: 0,
+      pointerId: 13,
+      clientX: 200,
+      clientY: 200,
+    });
+    fireEvent.pointerMove(handle, {
+      pointerId: 13,
+      clientX: 140,
+      clientY: 120,
+    });
+
+    expect(panel.style.getPropertyValue("--blog-agent-panel-width")).toBe("476px");
+    expect(panel.style.getPropertyValue("--blog-agent-panel-height")).toBe("680px");
+  });
+
+  it("clamps desktop resizing to usable viewport bounds", async () => {
+    setViewport({ desktop: true, width: 1_280, height: 720 });
+    renderAgent();
+    await openAgent();
+    const panel = screen.getByRole("dialog", { name: "文章问答" });
+    setPanelRect(panel, 416, 500);
+    const handle = await screen.findByRole("button", {
+      name: "调整文章 Agent 对话框大小",
+    });
+
+    fireEvent.pointerDown(handle, {
+      button: 0,
+      pointerId: 9,
+      clientX: 200,
+      clientY: 200,
+    });
+    fireEvent.pointerMove(handle, {
+      pointerId: 9,
+      clientX: -2_000,
+      clientY: -2_000,
+    });
+
+    expect(panel.style.getPropertyValue("--blog-agent-panel-width")).toBe("800px");
+    expect(panel.style.getPropertyValue("--blog-agent-panel-height")).toBe("616px");
+  });
+
+  it("clamps desktop resizing to the minimum usable size", async () => {
+    setViewport({ desktop: true });
+    renderAgent();
+    await openAgent();
+    const panel = screen.getByRole("dialog", { name: "文章问答" });
+    setPanelRect(panel, 520, 640);
+    const handle = await screen.findByRole("button", {
+      name: "调整文章 Agent 对话框大小",
+    });
+
+    fireEvent.pointerDown(handle, {
+      button: 0,
+      pointerId: 10,
+      clientX: 100,
+      clientY: 100,
+    });
+    fireEvent.pointerMove(handle, {
+      pointerId: 10,
+      clientX: 2_000,
+      clientY: 2_000,
+    });
+
+    expect(panel.style.getPropertyValue("--blog-agent-panel-width")).toBe("360px");
+    expect(panel.style.getPropertyValue("--blog-agent-panel-height")).toBe("352px");
+  });
+
+  it("supports keyboard resizing on the desktop handle", async () => {
+    setViewport({ desktop: true });
+    sessionStorage.setItem(
+      "blog-agent-panel-size:v1",
+      JSON.stringify({ width: 520, height: 640 }),
+    );
+    renderAgent();
+    await openAgent();
+    const panel = screen.getByRole("dialog", { name: "文章问答" });
+    setPanelRect(panel, 520, 640);
+    const handle = await screen.findByRole("button", {
+      name: "调整文章 Agent 对话框大小",
+    });
+    const user = userEvent.setup();
+
+    await user.click(handle);
+    expect(handle).toHaveFocus();
+    await user.keyboard("{ArrowLeft}");
+    setPanelRect(panel, 532, 640);
+    await user.keyboard("{Shift>}{ArrowUp}{/Shift}");
+
+    expect(panel.style.getPropertyValue("--blog-agent-panel-width")).toBe("532px");
+    expect(panel.style.getPropertyValue("--blog-agent-panel-height")).toBe("672px");
+  });
+
+  it("does not expose the resize control on mobile", async () => {
+    setViewport({ desktop: false, width: 390, height: 844 });
+    sessionStorage.setItem(
+      "blog-agent-panel-size:v1",
+      JSON.stringify({ width: 520, height: 640 }),
+    );
+    renderAgent();
+    await openAgent();
+
+    expect(screen.queryByRole("button", {
+      name: "调整文章 Agent 对话框大小",
+    })).not.toBeInTheDocument();
+  });
+
+  it("preserves the saved desktop size across mobile layout transitions", async () => {
+    const viewport = setViewport({ desktop: true });
+    sessionStorage.setItem(
+      "blog-agent-panel-size:v1",
+      JSON.stringify({ width: 520, height: 640 }),
+    );
+    renderAgent();
+    await openAgent();
+    const panel = screen.getByRole("dialog", { name: "文章问答" });
+
+    act(() => viewport.setDesktop(false, 390, 844));
+    await waitFor(() => expect(screen.queryByRole("button", {
+      name: "调整文章 Agent 对话框大小",
+    })).not.toBeInTheDocument());
+    expect(JSON.parse(String(
+      sessionStorage.getItem("blog-agent-panel-size:v1"),
+    ))).toEqual({ width: 520, height: 640 });
+
+    act(() => viewport.setDesktop(true, 1_440, 900));
+    await screen.findByRole("button", { name: "调整文章 Agent 对话框大小" });
+    expect(panel.style.getPropertyValue("--blog-agent-panel-width")).toBe("520px");
+    expect(panel.style.getPropertyValue("--blog-agent-panel-height")).toBe("640px");
+  });
+
+  it("ends an interrupted resize when the dialog closes", async () => {
+    setViewport({ desktop: true });
+    renderAgent();
+    const user = await openAgent();
+    let panel = screen.getByRole("dialog", { name: "文章问答" });
+    setPanelRect(panel, 416, 600);
+    const handle = await screen.findByRole("button", {
+      name: "调整文章 Agent 对话框大小",
+    });
+
+    fireEvent.pointerDown(handle, {
+      button: 0,
+      pointerId: 11,
+      clientX: 200,
+      clientY: 200,
+    });
+    fireEvent.pointerMove(handle, {
+      pointerId: 11,
+      clientX: 140,
+      clientY: 120,
+    });
+    await user.keyboard("{Escape}");
+
+    await openAgent(user);
+    panel = screen.getByRole("dialog", { name: "文章问答" });
+    fireEvent.pointerMove(window, {
+      pointerId: 11,
+      clientX: 100,
+      clientY: 100,
+    });
+
+    expect(panel.style.getPropertyValue("--blog-agent-panel-width")).toBe("476px");
+    expect(panel.style.getPropertyValue("--blog-agent-panel-height")).toBe("680px");
+  });
+
+  it("ends resizing when the browser cancels the pointer", async () => {
+    setViewport({ desktop: true });
+    renderAgent();
+    await openAgent();
+    const panel = screen.getByRole("dialog", { name: "文章问答" });
+    setPanelRect(panel, 416, 600);
+    const handle = await screen.findByRole("button", {
+      name: "调整文章 Agent 对话框大小",
+    });
+
+    fireEvent.pointerDown(handle, {
+      button: 0,
+      pointerId: 14,
+      clientX: 200,
+      clientY: 200,
+    });
+    fireEvent.pointerMove(handle, {
+      pointerId: 14,
+      clientX: 140,
+      clientY: 120,
+    });
+    fireEvent.pointerCancel(handle, { pointerId: 14 });
+    fireEvent.pointerMove(handle, {
+      pointerId: 14,
+      clientX: 100,
+      clientY: 100,
+    });
+
+    expect(panel.style.getPropertyValue("--blog-agent-panel-width")).toBe("476px");
+    expect(panel.style.getPropertyValue("--blog-agent-panel-height")).toBe("680px");
+  });
+
+  it("ignores keyboard resizing while a pointer resize is active", async () => {
+    setViewport({ desktop: true });
+    renderAgent();
+    await openAgent();
+    const panel = screen.getByRole("dialog", { name: "文章问答" });
+    setPanelRect(panel, 416, 600);
+    const handle = await screen.findByRole("button", {
+      name: "调整文章 Agent 对话框大小",
+    });
+
+    fireEvent.pointerDown(handle, {
+      button: 0,
+      pointerId: 12,
+      clientX: 200,
+      clientY: 200,
+    });
+    fireEvent.keyDown(handle, { key: "ArrowLeft" });
+
+    expect(panel.style.getPropertyValue("--blog-agent-panel-width")).toBe("");
+    expect(panel.style.getPropertyValue("--blog-agent-panel-height")).toBe("");
   });
 
   it("renders the selected Orb as a decorative part of the trigger", () => {
