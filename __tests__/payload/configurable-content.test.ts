@@ -16,6 +16,7 @@ import * as configurableContentSchemaMigration from "@/payload/migrations/202608
 import * as pageViewsSchemaMigration from "@/payload/migrations/20260810_110000_add_page_views";
 import * as blogAgentRuntimeMigration from "@/payload/migrations/20260821_000000_add_blog_agent_runtime";
 import * as blogAgentArticlePackageMigration from "@/payload/migrations/20260823_000000_add_blog_agent_article_packages";
+import * as blogAgentGithubSourceMigration from "@/payload/migrations/20260824_000000_add_blog_agent_github_sources";
 import {
   CONFIGURABLE_CONTENT_VERSION,
   backfillConfigurableContent,
@@ -52,6 +53,11 @@ describe("configurable portfolio content", () => {
         name: "20260823_000000_add_blog_agent_article_packages",
         up: blogAgentArticlePackageMigration.up,
         down: blogAgentArticlePackageMigration.down,
+      },
+      {
+        name: "20260824_000000_add_blog_agent_github_sources",
+        up: blogAgentGithubSourceMigration.up,
+        down: blogAgentGithubSourceMigration.down,
       },
     ]);
   });

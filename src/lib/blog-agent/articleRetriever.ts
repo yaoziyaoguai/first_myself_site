@@ -65,6 +65,10 @@ function articleSections(articlePackage: ReadyArticlePackage): Array<ArticleSect
       protectedMaterial: chunk.sourceKind !== "article",
       sourceKind: chunk.sourceKind,
       sourcePath: chunk.sourcePath,
+      sourceRepository: chunk.sourceRepository,
+      sourceCommit: chunk.sourceCommit,
+      sourceLineStart: chunk.sourceLineStart,
+      sourceLineEnd: chunk.sourceLineEnd,
       embedding: chunk.embedding,
     };
   });

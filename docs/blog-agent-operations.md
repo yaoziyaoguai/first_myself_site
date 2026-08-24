@@ -68,15 +68,17 @@ server {
 
 ## 文章包的离线发布边界
 
-增强模式只用于新 slug，不更新或覆盖现有文章。执行全局 `publish-site-article` Skill 的 Agent 必须阅读文章与候选材料，自主选择最多 10 个 Git-tracked、clean-at-HEAD、可公开 source，并为主动排除的高相关候选记录理由。选入 source 代表允许 Agent 向匿名访客展示与问题直接相关的短代码、文档或数据摘录；只适合内部检索或概括的材料不得选入。脚本会限制单个 20 KiB、合计 120 KiB、最多 128 chunks，并在发送 embedding 前对 path、symlink、Git 状态、hash 和常见凭据模式 fail closed。
+增强文章首次创建只用于新 slug，不更新或覆盖现有文章正文；已发布文章只有在用户明确授权时，才可用 `refresh-agent-package --confirm-published-refresh` 原子刷新 Agent package。执行全局 `publish-site-article` Skill 的 Agent 必须阅读文章与候选材料，自主选择最多 10 个 Git-tracked、clean-at-HEAD、可公开 source，并为主动排除的高相关候选记录理由。选入 source 代表允许 Agent 向匿名访客展示与问题直接相关的短代码、文档或数据摘录；只适合内部检索或概括的材料不得选入。来源项目是公开 GitHub 仓库时，sidecar 可声明规范仓库根地址；执行 Agent 必须先匿名确认公开性，脚本再校验它与当前 Git remote 一致。服务端把仓库、固定 commit、path 和由 source snapshot 计算的 chunk 行号绑定成 GitHub 外链，不接受模型生成的 URL。脚本会限制单个 20 KiB、合计 120 KiB、最多 128 chunks，并在发送 embedding 前对 path、symlink、Git 状态、hash 和常见凭据模式 fail closed。
 
 推荐顺序：
 
 1. 在来源项目中提交 Markdown、`<article>.agent.json` 和 selected sources。
-2. 运行 `plan --package-manifest ...`，检查 commit、hash、大小和 exclusions；plan 不输出 source 内容。
+2. 运行 `plan --package-manifest ...`，检查公开仓库、commit、hash、大小和 exclusions；plan 不输出 source 内容。
 3. 网站新版本已经部署、两个公网开关仍为 `false` 时，运行 `draft --package-manifest ...`。
 4. Skill 创建 `draft + private`，再调用 admin/editor-only 的 `/api/blog/<id>/agent-index`。只有状态 `ready`、expected/indexed hash 相同且 `chunkCount > 0` 才算成功。
 5. 确认索引 ready 后，在两个 Agent 开关仍关闭时公开这篇文章；Payload hook 会拒绝绕过 ready gate。随后运行 package canary，只有通过后才开启访客 Agent。
+
+现有公开文章需要补充或更新 GitHub 元数据时，先提交 Markdown、sidecar 与 selected sources，再运行 `plan`。随后执行带显式确认参数的 `refresh-agent-package`；新包完成校验和 embedding 后，服务端锁定 Blog 行并重新核对正文、公开状态和旧 hash，在同一事务内切换新包。任何冲突或失败都保留旧包为 `ready`，不会临时关闭文章 Agent；切换成功后也暂时保留旧版本，避免已经读取旧 hash 的并发请求失去上下文，后续只能通过独立的安全清理任务回收。
 
 source snapshot 和 embeddings 只存 PostgreSQL 私有 `blog_agent` 表，不会被匿名 raw-data API、plan、inspect 或日志完整返回。文章 Agent 可以在回答中展示最多两个有界代码块；服务端按 CommonMark AST 统计 backtick、tilde、缩进和未闭合 fence 等实际可渲染 code node，单块最多 1,200 字符、合计最多 1,600 字符。明确要求代码、当前证据包含 `sourceKind=code`、但模型只返回解释时，服务端会从本次排名中的代码证据追加一个最多 360 字符、6 行且不超过该 source 非空行数一半的短摘录，并补上该证据引用；不足 3 个非空行或无法形成 24 字符实质摘录的 source 不会自动展示。完整补充 source 不允许返回；回答在一个或多个补充 source 中累计复刻达到 600 字符时也会降级为证据不足。访客问题只会对当前 Blog 的最多 128 个 chunks 做有界内存排名；SQL 不形成全站向量/FTS 查询。
 
@@ -112,7 +114,7 @@ Canary 成功后，按下面顺序执行，每次只重建 app 容器：
 
 1. 设置 `BLOG_AGENT_GENERATION_ENABLED=true`，`BLOG_AGENT_ENABLED=false`，重建 app；确认直接访问 API 仍为 `404`。
 2. 复核模型供应商消费上限、PostgreSQL runtime 表、应用配额和 Nginx 限流。
-3. 用公开测试文章验证正常问题、需要 package source 的深问题、要求最小代码片段的问题、完整文件导出拒绝、证据不足、文章/source 内 prompt injection、跨文章诱导和模型生成外链；代码回答必须包含 code block、引用对应的 `code` source，且摘录行能在该 source 中核对，回答引用只能跳到当前文章标题。
+3. 用公开测试文章验证正常问题、需要 package source 的深问题、要求最小代码片段的问题、完整文件导出拒绝、证据不足、文章/source 内 prompt injection、跨文章诱导和模型生成外链；代码回答必须包含 code block、引用对应的 `code` source，且摘录行能在该 source 中核对。绑定公开仓库的新文章还必须出现服务端生成的固定 commit GitHub 行号链接；未绑定仓库的旧包只能显示文章内引用。
 4. 验证 private/draft/RichText-only 文章均无机器人且 API 为 `404`。
 5. 验证桌面侧栏、移动端底部面板、键盘 Escape、焦点恢复和 reduced motion；确认关闭后重开、同标签页刷新会恢复当前文章历史，显式清空后历史消失，切换到另一篇文章不会带入旧对话。
 6. 检查域名 TLS、`/api/health`、浏览器控制台和模型费用。

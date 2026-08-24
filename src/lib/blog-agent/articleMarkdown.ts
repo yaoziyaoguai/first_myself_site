@@ -11,6 +11,11 @@ export type ArticleSection = {
   content: string;
   protectedMaterial?: boolean;
   sourceKind?: ArticleChunkSourceKind;
+  sourcePath?: string;
+  sourceRepository?: string;
+  sourceCommit?: string;
+  sourceLineStart?: number;
+  sourceLineEnd?: number;
 };
 
 export type ParsedArticleMarkdown = {

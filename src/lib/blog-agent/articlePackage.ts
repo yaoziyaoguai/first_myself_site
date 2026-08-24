@@ -5,6 +5,7 @@ import type {
   ArticleChunkSourceKind,
 } from "./articleIndexRepository";
 import type { PublicMarkdownArticle } from "./types";
+import { canonicalGitHubRepository } from "./githubSource";
 
 const SOURCE_KINDS = new Set<ArticleChunkSourceKind>([
   "code",
@@ -50,6 +51,7 @@ type ArticlePackageExclusion = {
 export type ValidatedArticlePackage = {
   version: 1;
   packageHash: string;
+  sourceRepository?: string;
   sourceCommit: string;
   mainSha256: string;
   manifestPath: string;
@@ -58,6 +60,7 @@ export type ValidatedArticlePackage = {
   canaryQuestion: string;
   manifest: {
     version: 1;
+    sourceRepository?: string;
     sourceCommit: string;
     mainSha256: string;
     manifestPath: string;
@@ -122,7 +125,17 @@ function publicSafe(content: string, path: string): void {
   }
 }
 
+function publicGitHubRepository(value: unknown): string | undefined {
+  if (value === undefined) return undefined;
+  const canonical = canonicalGitHubRepository(value);
+  if (!canonical) {
+    throw new ArticlePackageValidationError("sourceRepository 只允许规范的公开 GitHub 仓库地址");
+  }
+  return canonical;
+}
+
 function canonicalPackage(value: {
+  sourceRepository?: string;
   sourceCommit: string;
   mainSha256: string;
   manifestPath: string;
@@ -132,6 +145,9 @@ function canonicalPackage(value: {
 }) {
   return {
     version: 1 as const,
+    ...(value.sourceRepository
+      ? { sourceRepository: value.sourceRepository }
+      : {}),
     sourceCommit: value.sourceCommit,
     mainSha256: value.mainSha256,
     manifestPath: value.manifestPath,
@@ -159,6 +175,7 @@ export function validateArticlePackagePayload(
   exactKeys(value, [
     "version",
     "packageHash",
+    "sourceRepository",
     "sourceCommit",
     "mainSha256",
     "manifestPath",
@@ -170,6 +187,7 @@ export function validateArticlePackagePayload(
   if (typeof value.packageHash !== "string" || !SHA256_RE.test(value.packageHash)) {
     throw new ArticlePackageValidationError("packageHash 必须是 SHA-256");
   }
+  const sourceRepository = publicGitHubRepository(value.sourceRepository);
   if (typeof value.sourceCommit !== "string" || !COMMIT_RE.test(value.sourceCommit)) {
     throw new ArticlePackageValidationError("sourceCommit 必须是完整 Git commit");
   }
@@ -238,6 +256,7 @@ export function validateArticlePackagePayload(
     };
   });
   const canonical = canonicalPackage({
+    sourceRepository,
     sourceCommit: value.sourceCommit,
     mainSha256: value.mainSha256,
     manifestPath,
@@ -264,22 +283,42 @@ export function validateArticlePackagePayload(
   };
 }
 
-function splitContent(content: string, maximum: number, overlap: number): string[] {
-  const normalized = content.replace(/\r\n?/g, "\n").trim();
-  if (!normalized) return [];
-  const chunks: string[] = [];
-  let start = 0;
-  while (start < normalized.length) {
-    let end = Math.min(start + maximum, normalized.length);
-    if (end < normalized.length) {
+type ContentSlice = {
+  content: string;
+  lineStart: number;
+  lineEnd: number;
+};
+
+function splitContent(content: string, maximum: number, overlap: number): ContentSlice[] {
+  const normalized = content.replace(/\r\n?/g, "\n");
+  const firstContent = normalized.search(/\S/);
+  if (firstContent < 0) return [];
+  const contentEnd = normalized.search(/\s*$/);
+  const chunks: ContentSlice[] = [];
+  let start = firstContent;
+  while (start < contentEnd) {
+    let end = Math.min(start + maximum, contentEnd);
+    if (end < contentEnd) {
       const paragraph = normalized.lastIndexOf("\n\n", end);
       const line = normalized.lastIndexOf("\n", end);
       const boundary = Math.max(paragraph, line);
       if (boundary > start + Math.floor(maximum * 0.55)) end = boundary;
     }
-    const chunk = normalized.slice(start, end).trim();
-    if (chunk) chunks.push(chunk);
-    if (end >= normalized.length) break;
+    const raw = normalized.slice(start, end);
+    const leading = raw.length - raw.trimStart().length;
+    const trailing = raw.length - raw.trimEnd().length;
+    const sliceStart = start + leading;
+    const sliceEnd = end - trailing;
+    const chunk = normalized.slice(sliceStart, sliceEnd);
+    if (chunk) {
+      const lineStart = normalized.slice(0, sliceStart).split("\n").length;
+      chunks.push({
+        content: chunk,
+        lineStart,
+        lineEnd: lineStart + (chunk.match(/\n/g)?.length ?? 0),
+      });
+    }
+    if (end >= contentEnd) break;
     start = Math.max(start + 1, end - overlap);
   }
   return chunks;
@@ -298,7 +337,7 @@ export function buildArticlePackageChunks(input: {
   const renderedAnchors = new Set(articleSections.map((section) => section.anchor));
   for (const section of articleSections) {
     splitContent(section.content, ARTICLE_CHUNK_CHARACTERS, ARTICLE_CHUNK_OVERLAP)
-      .forEach((content, piece) => {
+      .forEach((slice, piece) => {
         chunks.push({
           id: `article:${section.ordinal}:${piece}`,
           sourceKind: "article",
@@ -306,7 +345,7 @@ export function buildArticlePackageChunks(input: {
           heading: section.heading || input.title,
           anchor: section.anchor,
           ordinal: chunks.length,
-          content,
+          content: slice.content,
         });
       });
   }
@@ -318,15 +357,21 @@ export function buildArticlePackageChunks(input: {
       );
     }
     splitContent(source.content, MATERIAL_CHUNK_CHARACTERS, MATERIAL_CHUNK_OVERLAP)
-      .forEach((content, piece) => {
+      .forEach((slice, piece) => {
         chunks.push({
           id: `material:${source.sha256.slice(0, 16)}:${piece}`,
           sourceKind: source.kind,
           sourcePath: source.path,
+          ...(input.package.sourceRepository
+            ? { sourceRepository: input.package.sourceRepository }
+            : {}),
+          sourceCommit: input.package.sourceCommit,
+          sourceLineStart: slice.lineStart,
+          sourceLineEnd: slice.lineEnd,
           heading: source.label,
           anchor: sourceAnchor,
           ordinal: chunks.length,
-          content,
+          content: slice.content,
         });
       });
   }

@@ -195,6 +195,11 @@ describe("BlogAgentService", () => {
         ].join("\n"),
         protectedMaterial: true,
         sourceKind: "code" as const,
+        sourcePath: "src/edit.py",
+        sourceRepository: "https://github.com/yaoziyaoguai/doris-lab",
+        sourceCommit: "c".repeat(40),
+        sourceLineStart: 41,
+        sourceLineEnd: 46,
       }],
       totalCharacters: 180,
     };
@@ -231,6 +236,14 @@ describe("BlogAgentService", () => {
       id: "material:edit:0",
       heading: "精确编辑 · src/edit.py",
       url: "/blog/doris-write-path#写入路径",
+      github: {
+        repository: "https://github.com/yaoziyaoguai/doris-lab",
+        commit: "c".repeat(40),
+        path: "src/edit.py",
+        lineStart: 41,
+        lineEnd: 46,
+        url: `https://github.com/yaoziyaoguai/doris-lab/blob/${"c".repeat(40)}/src/edit.py#L41-L46`,
+      },
     }]);
   });
 

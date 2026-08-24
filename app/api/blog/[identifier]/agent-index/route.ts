@@ -66,6 +66,27 @@ async function findPrivatePackageArticle(
   }
 }
 
+async function findPublishedPackageArticle(
+  payload: AuthenticatedPayload,
+  id: string,
+): Promise<
+  | { ok: true; article: Record<string, unknown> }
+  | { ok: false }
+> {
+  try {
+    const article = await payload.findByID({
+      collection: "blog",
+      id,
+      depth: 0,
+      overrideAccess: true,
+      showHiddenFields: true,
+    }) as unknown as Record<string, unknown>;
+    return { ok: true, article };
+  } catch {
+    return { ok: false };
+  }
+}
+
 function publicMarkdownArticle(value: Record<string, unknown>): PublicMarkdownArticle | null {
   if (
     typeof value.id !== "number" && typeof value.id !== "string" ||
@@ -134,6 +155,28 @@ function requestBoundaryError(request: Request): NextResponse | null {
   return mediaType === "application/json"
     ? null
     : jsonError("Content-Type must be application/json", 415);
+}
+
+function publishedRefreshBody(value: unknown): {
+  previousPackageHash: string;
+  packagePayload: Record<string, unknown>;
+} | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (
+    Object.keys(record).some((key) => key !== "previousPackageHash" && key !== "package") ||
+    typeof record.previousPackageHash !== "string" ||
+    !/^[a-f0-9]{64}$/.test(record.previousPackageHash) ||
+    !record.package ||
+    typeof record.package !== "object" ||
+    Array.isArray(record.package)
+  ) {
+    return null;
+  }
+  return {
+    previousPackageHash: record.previousPackageHash,
+    packagePayload: record.package as Record<string, unknown>,
+  };
 }
 
 export async function POST(request: Request, { params }: RouteContext) {
@@ -213,6 +256,58 @@ export async function POST(request: Request, { params }: RouteContext) {
         agentIndexedAt: null,
       },
     }).catch(() => undefined);
+    return error instanceof ArticlePackageValidationError
+      ? jsonError("Article package validation failed", 422)
+      : jsonError("Article package indexing unavailable", 503);
+  }
+}
+
+export async function PUT(request: Request, { params }: RouteContext) {
+  const boundaryError = requestBoundaryError(request);
+  if (boundaryError) return boundaryError;
+  const { payload, denied } = await authenticate(request);
+  if (denied) return denied;
+  const id = validId((await params).identifier);
+  if (!id) return jsonError("Invalid article", 400);
+  const body = await readLimitedJson(request);
+  if (!body.ok) {
+    return jsonError(body.tooLarge ? "Request body too large" : "Invalid JSON body", body.tooLarge ? 413 : 400);
+  }
+  const refresh = publishedRefreshBody(body.value);
+  if (!refresh) return jsonError("Invalid published package refresh", 400);
+
+  const lookup = await findPublishedPackageArticle(payload, id);
+  if (!lookup.ok) return jsonError("Article lookup unavailable", 503);
+  const articleRecord = lookup.article;
+  const article = articleRecord && publicMarkdownArticle(articleRecord);
+  const nextPackageHash = refresh.packagePayload.packageHash;
+  if (
+    !articleRecord ||
+    !article ||
+    articleRecord.status !== "published" ||
+    articleRecord.visibility !== "public" ||
+    articleRecord.agentContextRequired !== true ||
+    articleRecord.agentIndexStatus !== "ready" ||
+    articleRecord.agentPackageHash !== refresh.previousPackageHash ||
+    articleRecord.agentIndexedPackageHash !== refresh.previousPackageHash ||
+    typeof nextPackageHash !== "string" ||
+    nextPackageHash === refresh.previousPackageHash
+  ) {
+    return jsonError("Article package state conflict", 409);
+  }
+  const indexer = getBlogAgentRuntime().indexer;
+  if (!indexer) return jsonError("Embedding provider is not configured", 503);
+  try {
+    const summary = await indexer.refreshPublished({
+      article,
+      previousPackageHash: refresh.previousPackageHash,
+      packagePayload: refresh.packagePayload,
+    });
+    return NextResponse.json({ ok: true, ...summary, indexedAt: summary.indexedAt.toISOString() });
+  } catch (error) {
+    if (error instanceof ArticlePackageIndexConflictError) {
+      return jsonError("Article package state conflict", 409);
+    }
     return error instanceof ArticlePackageValidationError
       ? jsonError("Article package validation failed", 422)
       : jsonError("Article package indexing unavailable", 503);

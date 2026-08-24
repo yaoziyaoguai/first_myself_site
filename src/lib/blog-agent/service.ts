@@ -16,6 +16,7 @@ import type {
   PublicMarkdownArticle,
 } from "./types";
 import type { GenerationUsagePolicy } from "./usagePolicy";
+import { buildGitHubSource } from "./githubSource";
 
 type ServiceResult = {
   status: 200 | 429 | 503;
@@ -51,11 +52,23 @@ function citationsFromSections(
     const section = sections.get(id);
     if (!section) return [];
     const baseUrl = `/blog/${encodeURIComponent(article.slug)}`;
+    const github = githubSourceFromSection(section);
     return [{
       id,
       heading: section.heading,
       url: section.anchor === "top" ? baseUrl : `${baseUrl}#${section.anchor}`,
+      ...(github ? { github } : {}),
     }];
+  });
+}
+
+function githubSourceFromSection(section: ArticleSection) {
+  return buildGitHubSource({
+    repository: section.sourceRepository,
+    commit: section.sourceCommit,
+    path: section.sourcePath,
+    lineStart: section.sourceLineStart,
+    lineEnd: section.sourceLineEnd,
   });
 }
 

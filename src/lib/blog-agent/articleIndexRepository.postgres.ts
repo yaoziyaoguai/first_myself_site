@@ -4,9 +4,10 @@ import type {
   ArticleChunkSourceKind,
   ArticleIndexRepository,
   ArticlePackageSummary,
+  PublishedArticlePackageReplacement,
   ReadyArticlePackage,
 } from "./articleIndexRepository";
-import type { BlogAgentQueryPool } from "./repository.postgres";
+import type { BlogAgentQueryClient, BlogAgentQueryPool } from "./repository.postgres";
 
 const SOURCE_KINDS = new Set<ArticleChunkSourceKind>([
   "article",
@@ -43,6 +44,14 @@ function parseChunk(row: QueryResultRow, dimensions: number): ArticleChunkRecord
   const sourceKind = row.source_kind;
   const ordinal = integer(row.ordinal);
   const embedding = finiteVector(row.embedding, dimensions);
+  const sourceRepository = row.source_repository;
+  const sourceCommit = row.source_commit;
+  const sourceLineStart = row.source_line_start === null || row.source_line_start === undefined
+    ? undefined
+    : integer(row.source_line_start);
+  const sourceLineEnd = row.source_line_end === null || row.source_line_end === undefined
+    ? undefined
+    : integer(row.source_line_end);
   if (
     typeof row.chunk_id !== "string" ||
     typeof sourceKind !== "string" ||
@@ -52,7 +61,17 @@ function parseChunk(row: QueryResultRow, dimensions: number): ArticleChunkRecord
     typeof row.anchor !== "string" ||
     ordinal === null ||
     typeof row.content !== "string" ||
-    !embedding
+    !embedding ||
+    !(sourceRepository === null || sourceRepository === undefined || typeof sourceRepository === "string") ||
+    !(sourceCommit === null || sourceCommit === undefined || typeof sourceCommit === "string") ||
+    sourceLineStart === null ||
+    sourceLineEnd === null ||
+    ((sourceLineStart === undefined) !== (sourceLineEnd === undefined)) ||
+    (sourceLineStart !== undefined && (
+      sourceLineStart < 1 ||
+      sourceLineEnd === undefined ||
+      sourceLineEnd < sourceLineStart
+    ))
   ) {
     return null;
   }
@@ -60,6 +79,11 @@ function parseChunk(row: QueryResultRow, dimensions: number): ArticleChunkRecord
     id: row.chunk_id,
     sourceKind: sourceKind as ArticleChunkSourceKind,
     sourcePath: row.source_path,
+    ...(typeof sourceRepository === "string" ? { sourceRepository } : {}),
+    ...(typeof sourceCommit === "string" ? { sourceCommit } : {}),
+    ...(sourceLineStart !== undefined && sourceLineEnd !== undefined
+      ? { sourceLineStart, sourceLineEnd }
+      : {}),
     heading: row.heading,
     anchor: row.anchor,
     ordinal,
@@ -86,6 +110,85 @@ function validatePackage(input: ReadyArticlePackage): void {
   }
 }
 
+async function writePackage(
+  client: BlogAgentQueryClient,
+  input: ReadyArticlePackage,
+): Promise<void> {
+  await client.query(
+    `INSERT INTO "blog_agent"."article_packages"
+       ("blog_id", "package_hash", "article_hash", "manifest_json",
+        "embedding_model", "embedding_dimensions", "chunk_count", "indexed_at")
+     VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8)
+     ON CONFLICT ("blog_id", "package_hash") DO UPDATE SET
+       "article_hash" = EXCLUDED."article_hash",
+       "manifest_json" = EXCLUDED."manifest_json",
+       "embedding_model" = EXCLUDED."embedding_model",
+       "embedding_dimensions" = EXCLUDED."embedding_dimensions",
+       "chunk_count" = EXCLUDED."chunk_count",
+       "indexed_at" = EXCLUDED."indexed_at"`,
+    [
+      input.blogId,
+      input.packageHash,
+      input.articleHash,
+      JSON.stringify(input.manifest),
+      input.embeddingModel,
+      input.embeddingDimensions,
+      input.chunks.length,
+      input.indexedAt,
+    ],
+  );
+  await client.query(
+    `DELETE FROM "blog_agent"."article_chunks"
+      WHERE "blog_id" = $1 AND "package_hash" = $2`,
+    [input.blogId, input.packageHash],
+  );
+  for (const chunk of input.chunks) {
+    await client.query(
+      `INSERT INTO "blog_agent"."article_chunks"
+         ("blog_id", "package_hash", "chunk_id", "source_kind", "source_path",
+          "source_repository", "source_commit", "source_line_start", "source_line_end",
+          "heading", "anchor", "ordinal", "content", "embedding")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14::real[])`,
+      [
+        input.blogId,
+        input.packageHash,
+        chunk.id,
+        chunk.sourceKind,
+        chunk.sourcePath,
+        chunk.sourceRepository ?? null,
+        chunk.sourceCommit ?? null,
+        chunk.sourceLineStart ?? null,
+        chunk.sourceLineEnd ?? null,
+        chunk.heading,
+        chunk.anchor,
+        chunk.ordinal,
+        chunk.content,
+        chunk.embedding,
+      ],
+    );
+  }
+}
+
+function matchesPublishedSnapshot(
+  row: QueryResultRow | undefined,
+  input: PublishedArticlePackageReplacement,
+): boolean {
+  return Boolean(
+    row &&
+    normalizedBlogId(row.id) === input.blogId &&
+    row.slug === input.article.slug &&
+    row.title === input.article.title &&
+    row.excerpt === input.article.excerpt &&
+    row.content_markdown === input.article.contentMarkdown &&
+    row.status === "published" &&
+    row.visibility === "public" &&
+    row.agent_context_required === true &&
+    row.agent_package_hash === input.previousPackageHash &&
+    row.agent_index_status === "ready" &&
+    row.agent_indexed_package_hash === input.previousPackageHash,
+  );
+}
+
 export class PostgresArticleIndexRepository implements ArticleIndexRepository {
   constructor(private readonly pool: BlogAgentQueryPool) {}
 
@@ -97,7 +200,8 @@ export class PostgresArticleIndexRepository implements ArticleIndexRepository {
          p."blog_id", p."article_hash", p."package_hash", p."manifest_json",
          p."embedding_model", p."embedding_dimensions", p."indexed_at",
          c."chunk_id", c."source_kind", c."source_path", c."heading",
-         c."anchor", c."ordinal", c."content", c."embedding"
+         c."source_repository", c."source_commit", c."source_line_start",
+         c."source_line_end", c."anchor", c."ordinal", c."content", c."embedding"
        FROM "blog_agent"."article_packages" p
        LEFT JOIN "blog_agent"."article_chunks" c
          ON c."blog_id" = p."blog_id" AND c."package_hash" = p."package_hash"
@@ -199,54 +303,44 @@ export class PostgresArticleIndexRepository implements ArticleIndexRepository {
           WHERE "blog_id" = $1 AND "package_hash" <> $2`,
         [input.blogId, input.packageHash],
       );
-      await client.query(
-        `INSERT INTO "blog_agent"."article_packages"
-           ("blog_id", "package_hash", "article_hash", "manifest_json",
-            "embedding_model", "embedding_dimensions", "chunk_count", "indexed_at")
-         VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8)
-         ON CONFLICT ("blog_id", "package_hash") DO UPDATE SET
-           "article_hash" = EXCLUDED."article_hash",
-           "manifest_json" = EXCLUDED."manifest_json",
-           "embedding_model" = EXCLUDED."embedding_model",
-           "embedding_dimensions" = EXCLUDED."embedding_dimensions",
-           "chunk_count" = EXCLUDED."chunk_count",
-           "indexed_at" = EXCLUDED."indexed_at"`,
-        [
-          input.blogId,
-          input.packageHash,
-          input.articleHash,
-          JSON.stringify(input.manifest),
-          input.embeddingModel,
-          input.embeddingDimensions,
-          input.chunks.length,
-          input.indexedAt,
-        ],
+      await writePackage(client, input);
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async replacePublishedPackage(input: PublishedArticlePackageReplacement): Promise<void> {
+    validatePackage(input);
+    const client = await this.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const article = await client.query(
+        `SELECT "id", "slug", "title", "excerpt", "content_markdown",
+                "status", "visibility", "agent_context_required",
+                "agent_package_hash", "agent_index_status", "agent_indexed_package_hash"
+           FROM "blog"
+          WHERE "id" = $1
+          FOR UPDATE`,
+        [input.blogId],
       );
-      await client.query(
-        `DELETE FROM "blog_agent"."article_chunks"
-          WHERE "blog_id" = $1 AND "package_hash" = $2`,
-        [input.blogId, input.packageHash],
-      );
-      for (const chunk of input.chunks) {
-        await client.query(
-          `INSERT INTO "blog_agent"."article_chunks"
-             ("blog_id", "package_hash", "chunk_id", "source_kind", "source_path",
-              "heading", "anchor", "ordinal", "content", "embedding")
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::real[])`,
-          [
-            input.blogId,
-            input.packageHash,
-            chunk.id,
-            chunk.sourceKind,
-            chunk.sourcePath,
-            chunk.heading,
-            chunk.anchor,
-            chunk.ordinal,
-            chunk.content,
-            chunk.embedding,
-          ],
-        );
+      if (!matchesPublishedSnapshot(article.rows[0], input)) {
+        throw new ArticlePackageIndexConflictError();
       }
+      await writePackage(client, input);
+      await client.query(
+        `UPDATE "blog"
+            SET "agent_package_hash" = $2,
+                "agent_index_status" = 'ready',
+                "agent_indexed_package_hash" = $2,
+                "agent_indexed_at" = $3,
+                "updated_at" = NOW()
+          WHERE "id" = $1`,
+        [input.blogId, input.packageHash, input.indexedAt],
+      );
       await client.query("COMMIT");
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined);

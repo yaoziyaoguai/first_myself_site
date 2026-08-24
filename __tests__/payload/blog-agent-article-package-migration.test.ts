@@ -6,7 +6,9 @@ import { migrations } from "@/payload/migrations";
 
 describe("Blog Agent article package migration", () => {
   it("is registered after the Phase 1 runtime migration", () => {
-    expect(migrations.at(-1)).toEqual({
+    expect(migrations.find((migration) =>
+      migration.name === "20260823_000000_add_blog_agent_article_packages"
+    )).toEqual({
       name: "20260823_000000_add_blog_agent_article_packages",
       up: articlePackageMigration.up,
       down: articlePackageMigration.down,

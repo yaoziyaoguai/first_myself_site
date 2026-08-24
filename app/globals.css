@@ -659,7 +659,13 @@ body:has(.blog-agent-root) footer > .site-shell {
   text-transform: uppercase;
 }
 
-.blog-agent-citations button {
+.blog-agent-citation {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.blog-agent-citation button,
+.blog-agent-citation a {
   display: flex;
   width: 100%;
   min-width: 0;
@@ -674,6 +680,26 @@ body:has(.blog-agent-root) footer > .site-shell {
   color: var(--primary);
   font-size: 0.76rem;
   text-align: left;
+}
+
+.blog-agent-citation a {
+  min-height: 2.45rem;
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+  background: color-mix(in srgb, var(--primary) 5%, var(--background));
+  font-family: var(--font-system-mono);
+  font-size: 0.7rem;
+  text-decoration: none;
+}
+
+.blog-agent-citation a span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.blog-agent-citation a span:last-child {
+  flex: none;
 }
 
 .blog-agent-form {

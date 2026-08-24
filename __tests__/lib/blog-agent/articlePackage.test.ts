@@ -24,6 +24,12 @@ const VALID_PAYLOAD = {
   canaryQuestion: "主循环如何限制步数？",
 } as const;
 
+const GITHUB_PAYLOAD = {
+  ...VALID_PAYLOAD,
+  packageHash: "60c9fbd0d45121f8870b73cf32f5b3c0be5c098011e786d9f94a727d8fc82215",
+  sourceRepository: "https://github.com/yaoziyaoguai/my-first-agent",
+} as const;
+
 describe("article package validation", () => {
   it("accepts a canonical immutable snapshot with a hand-checked package hash", () => {
     const result = validateArticlePackagePayload(VALID_PAYLOAD, {
@@ -33,6 +39,33 @@ describe("article package validation", () => {
     expect(result.packageHash).toBe("a217e0d45262e2832249ff7cd7de7972f2d818ebd8fc1616fdcf6a7b0275a492");
     expect(result.sources[0]).toMatchObject({ path: "src/loop.py", kind: "code" });
     expect(JSON.stringify(result.manifest)).not.toContain("while step");
+  });
+
+  it("binds a canonical public GitHub repository into the immutable snapshot", () => {
+    const result = validateArticlePackagePayload(GITHUB_PAYLOAD, {
+      markdown: "主要内容",
+    });
+
+    expect(result.sourceRepository).toBe(
+      "https://github.com/yaoziyaoguai/my-first-agent",
+    );
+    expect(result.manifest).toMatchObject({
+      sourceRepository: "https://github.com/yaoziyaoguai/my-first-agent",
+      sourceCommit: "a".repeat(40),
+    });
+  });
+
+  it.each([
+    "http://github.com/owner/repo",
+    "https://gitlab.com/owner/repo",
+    "https://token@github.com/owner/repo",
+    "https://github.com/owner/repo/issues",
+    "https://github.com/owner/repo?token=secret",
+  ])("rejects an unsafe source repository URL: %s", (sourceRepository) => {
+    expect(() => validateArticlePackagePayload({
+      ...GITHUB_PAYLOAD,
+      sourceRepository,
+    }, { markdown: "主要内容" })).toThrow(ArticlePackageValidationError);
   });
 
   it.each([
@@ -93,7 +126,7 @@ describe("article package validation", () => {
 
 describe("article package chunking", () => {
   it("creates stable article and material chunks with bounded content", () => {
-    const validated = validateArticlePackagePayload(VALID_PAYLOAD, {
+    const validated = validateArticlePackagePayload(GITHUB_PAYLOAD, {
       markdown: "主要内容",
     });
     const chunks = buildArticlePackageChunks({
@@ -109,11 +142,66 @@ describe("article package chunking", () => {
       anchor: "核心实现",
       ordinal: 0,
     });
-    expect(chunks.some((chunk) =>
-      chunk.sourceKind === "code" && chunk.sourcePath === "src/loop.py"
-    )).toBe(true);
+    expect(chunks.find((chunk) => chunk.sourceKind === "code")).toMatchObject({
+      sourcePath: "src/loop.py",
+      sourceRepository: "https://github.com/yaoziyaoguai/my-first-agent",
+      sourceCommit: "a".repeat(40),
+      sourceLineStart: 1,
+      sourceLineEnd: 2,
+    });
     expect(chunks.every((chunk) => chunk.content.length <= 1_700)).toBe(true);
     expect(new Set(chunks.map((chunk) => chunk.id)).size).toBe(chunks.length);
+  });
+
+  it("maps every multi-chunk CRLF source slice to its exact GitHub line range", () => {
+    const markdown = "# 核心实现\n正文";
+    const content = "\r\n\r\n" + Array.from(
+      { length: 14 },
+      (_, index) => `unique_line_${String(index + 1).padStart(2, "0")}_${String(index).repeat(280)}`,
+    ).join("\r\n") + "\r\n\r\n";
+    const source = {
+      path: "src/long_loop.py",
+      kind: "code" as const,
+      label: "长主循环",
+      sectionAnchor: "核心实现",
+      sha256: createHash("sha256").update(content).digest("hex"),
+      content,
+    };
+    const canonical = {
+      version: 1 as const,
+      sourceRepository: "https://github.com/yaoziyaoguai/my-first-agent",
+      sourceCommit: "a".repeat(40),
+      mainSha256: createHash("sha256").update(markdown).digest("hex"),
+      manifestPath: "docs/agent-loop.agent.json",
+      sources: [source],
+      excluded: [],
+      canaryQuestion: "主循环如何工作？",
+    };
+    const validated = validateArticlePackagePayload({
+      ...canonical,
+      packageHash: createHash("sha256")
+        .update(JSON.stringify(canonical))
+        .digest("hex"),
+    }, { markdown });
+
+    const materialChunks = buildArticlePackageChunks({
+      title: "Agent Loop",
+      markdown,
+      package: validated,
+    }).filter((chunk) => chunk.sourceKind === "code");
+    const normalized = content.replace(/\r\n?/g, "\n");
+
+    expect(materialChunks.length).toBeGreaterThan(1);
+    for (const chunk of materialChunks) {
+      const position = normalized.indexOf(chunk.content);
+      expect(position).toBeGreaterThanOrEqual(0);
+      const expectedStart = normalized.slice(0, position).split("\n").length;
+      const expectedEnd = expectedStart + (chunk.content.match(/\n/g)?.length ?? 0);
+      expect(chunk).toMatchObject({
+        sourceLineStart: expectedStart,
+        sourceLineEnd: expectedEnd,
+      });
+    }
   });
 
   it("rejects a material citation anchor that is absent from the article", () => {

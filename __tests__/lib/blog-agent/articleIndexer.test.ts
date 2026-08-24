@@ -3,8 +3,10 @@ import { ArticleIndexer } from "@/lib/blog-agent/articleIndexer";
 import type { ArticleIndexRepository } from "@/lib/blog-agent/articleIndexRepository";
 
 const replacePackage = vi.fn();
+const replacePublishedPackage = vi.fn();
 const repository = {
   replacePackage,
+  replacePublishedPackage,
   getReadyPackage: vi.fn(),
   getPackageSummary: vi.fn(),
 } as unknown as ArticleIndexRepository;
@@ -85,5 +87,41 @@ describe("ArticleIndexer", () => {
       packagePayload: payload,
     })).rejects.toThrow("embedding count");
     expect(replacePackage).not.toHaveBeenCalled();
+  });
+
+  it("refreshes a published package through the repository's atomic swap", async () => {
+    replacePublishedPackage.mockReset().mockResolvedValue(undefined);
+    const embed = vi.fn(async (texts: string[]) => texts.map(() => [1, 0, 0]));
+    const indexer = new ArticleIndexer({
+      repository,
+      embeddings: { embed },
+      embeddingModel: "qwen3.7-text-embedding",
+      embeddingDimensions: 3,
+      now: () => new Date("2026-08-24T00:00:00.000Z"),
+    });
+    const article = {
+      id: "42",
+      slug: "agent-loop",
+      title: "Agent Loop",
+      excerpt: "一个受控循环",
+      contentMarkdown: "主要内容",
+    };
+
+    const summary = await indexer.refreshPublished({
+      article,
+      previousPackageHash: "f".repeat(64),
+      packagePayload: payload,
+    });
+
+    expect(replacePublishedPackage).toHaveBeenCalledWith(expect.objectContaining({
+      article,
+      previousPackageHash: "f".repeat(64),
+      packageHash: payload.packageHash,
+      indexedAt: new Date("2026-08-24T00:00:00.000Z"),
+    }));
+    expect(summary).toEqual(expect.objectContaining({
+      packageHash: payload.packageHash,
+      chunkCount: expect.any(Number),
+    }));
   });
 });
