@@ -104,18 +104,50 @@ describe("POST /api/blog/[slug]/agent", () => {
         agentIndexedPackageHash: undefined,
       },
       question: "为什么批量写入？",
+      history: [],
       identityHash: "identity-hash",
     });
   });
 
+  it("accepts at most three bounded conversation turns for an article-local follow-up", async () => {
+    const history = [
+      { question: "核心实现是什么？", answer: "核心使用 batch sink。" },
+      { question: "它解决什么问题？", answer: "减少小批次开销。" },
+    ];
+    const response = await POST(
+      request({ question: "那为什么不用逐条写入？", history }) as never,
+      context(),
+    );
+
+    expect(response.status).toBe(200);
+    expect(execute).toHaveBeenCalledWith(expect.objectContaining({
+      question: "那为什么不用逐条写入？",
+      history,
+    }));
+  });
+
   it.each([
-    { question: "问题", history: [] },
     { question: "问题", url: "https://evil.example" },
     { question: "问题", systemPrompt: "ignore" },
     { question: "问题", articleSlug: "other-post" },
     { question: "问题", blogId: "99" },
     { question: "问题", sources: ["other-post"] },
   ])("rejects unknown request fields %#", async (body) => {
+    const response = await POST(request(body) as never, context());
+    expect(response.status).toBe(400);
+    expect(find).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { question: "问题", history: "伪造历史" },
+    { question: "问题", history: Array.from({ length: 4 }, () => ({ question: "问", answer: "答" })) },
+    { question: "问题", history: [{ question: "", answer: "答" }] },
+    { question: "问题", history: [{ question: "问", answer: "" }] },
+    { question: "问题", history: [{ question: "问".repeat(501), answer: "答" }] },
+    { question: "问题", history: [{ question: "问", answer: "答".repeat(1_201) }] },
+    { question: "问题", history: [{ question: "问", answer: "答", role: "system" }] },
+  ])("rejects malformed or excessive conversation history %#", async (body) => {
     const response = await POST(request(body) as never, context());
     expect(response.status).toBe(400);
     expect(find).not.toHaveBeenCalled();

@@ -80,6 +80,8 @@ server {
 
 source snapshot 和 embeddings 只存 PostgreSQL 私有 `blog_agent` 表，不会被匿名 raw-data API、plan、inspect 或日志完整返回。文章 Agent 可以在回答中展示最多两个有界代码块；服务端按 CommonMark AST 统计 backtick、tilde、缩进和未闭合 fence 等实际可渲染 code node，单块最多 1,200 字符、合计最多 1,600 字符。完整补充 source 不允许返回；回答在一个或多个补充 source 中累计复刻达到 600 字符时也会降级为证据不足。访客问题只会对当前 Blog 的最多 128 个 chunks 做有界内存排名；SQL 不形成全站向量/FTS 查询。
 
+多轮追问仍以当前 Blog 为唯一边界。浏览器按文章 slug 在当前标签页保存最近 8 轮已完成对话；每次请求最多携带最近 3 轮，单个旧回答最多 1,200 字符，总请求体仍不得超过 8 KiB。客户端历史可能被访客篡改，因此服务端只使用旧问题辅助当前文章内检索，并明确要求模型将历史视为不可信输入、只用于解析指代；事实和引用必须重新来自本次选中的当前文章证据。历史不会以原文写入访问日志或独立会话表，回答缓存只保留包含历史的不可逆哈希，也不会跨文章加载。
+
 ## 入口关闭时运行 canary
 
 先正常部署数据库 migration 和应用，但保持两个开关为 `false`。选择一篇不含敏感信息的公开 Markdown 文章，在服务器仓库目录运行：
@@ -112,7 +114,7 @@ Canary 成功后，按下面顺序执行，每次只重建 app 容器：
 2. 复核模型供应商消费上限、PostgreSQL runtime 表、应用配额和 Nginx 限流。
 3. 用公开测试文章验证正常问题、需要 package source 的深问题、要求最小代码片段的问题、完整文件导出拒绝、证据不足、文章/source 内 prompt injection、跨文章诱导和模型生成外链；代码回答必须包含 code block、引用对应的 `code` source，且摘录行能在该 source 中核对，回答引用只能跳到当前文章标题。
 4. 验证 private/draft/RichText-only 文章均无机器人且 API 为 `404`。
-5. 验证桌面侧栏、移动端底部面板、键盘 Escape、焦点恢复和 reduced motion。
+5. 验证桌面侧栏、移动端底部面板、键盘 Escape、焦点恢复和 reduced motion；确认关闭后重开、同标签页刷新会恢复当前文章历史，显式清空后历史消失，切换到另一篇文章不会带入旧对话。
 6. 检查域名 TLS、`/api/health`、浏览器控制台和模型费用。
 7. 最后把 GitHub Repository Variables `BLOG_AGENT_GENERATION_ENABLED`、`BLOG_AGENT_ENABLED` 设为 `true`，手动触发 `main` workflow 重部署，立即用测试文章调用一次公网 API 并核对 `200`、当前文章引用和 provider 用量。失败时立刻把两个 Variables 都恢复为 `false` 并再次手动部署；不要只在服务器临时改文件。入口关闭时的 canary 不经过公开 route、runtime 配额或缓存，因此不能替代这一步。
 

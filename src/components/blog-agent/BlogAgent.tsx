@@ -7,37 +7,49 @@ import {
   useRef,
   useState,
 } from "react";
-import { Bot, Loader2, Send, Sparkles, X } from "lucide-react";
-import type { BlogAgentResponse } from "@/lib/blog-agent/types";
+import { Bot, Send, Sparkles, X } from "lucide-react";
+import type {
+  BlogAgentConversationTurn,
+  BlogAgentResponse,
+} from "@/lib/blog-agent/types";
 import { SafeAgentMarkdown } from "./SafeAgentMarkdown";
 
-type AgentPhase =
-  | "closed"
-  | "idle"
-  | "loading"
-  | "answered"
-  | "insufficient"
-  | "limited"
-  | "failed";
+type AgentPhase = "idle" | "loading" | "limited" | "failed";
+
+type AgentTurn = {
+  question: string;
+  response: BlogAgentResponse;
+};
 
 type AgentState = {
+  isOpen: boolean;
   phase: AgentPhase;
-  response: BlogAgentResponse | null;
+  turns: AgentTurn[];
+  pendingQuestion: string;
   lastQuestion: string;
 };
 
 type AgentAction =
   | { type: "open" }
   | { type: "close" }
+  | { type: "clear" }
   | { type: "loading"; question: string }
-  | { type: "answered"; response: BlogAgentResponse }
-  | { type: "insufficient"; response: BlogAgentResponse }
+  | { type: "completed"; question: string; response: BlogAgentResponse }
   | { type: "limited" }
   | { type: "failed" };
 
+const MAX_STORED_TURNS = 8;
+const MAX_CONTEXT_TURNS = 3;
+const MAX_CONTEXT_ANSWER_LENGTH = 1_200;
+const MAX_STORED_ANSWER_LENGTH = 6_000;
+const MAX_STORED_HISTORY_CHARACTERS = 48_000;
+const MAX_REQUEST_BODY_BYTES = 8 * 1024;
+
 const INITIAL_STATE: AgentState = {
-  phase: "closed",
-  response: null,
+  isOpen: false,
+  phase: "idle",
+  turns: [],
+  pendingQuestion: "",
   lastQuestion: "",
 };
 
@@ -50,23 +62,37 @@ const SUGGESTED_QUESTIONS = [
 function reducer(state: AgentState, action: AgentAction): AgentState {
   switch (action.type) {
     case "open":
-      return { ...INITIAL_STATE, phase: "idle" };
+      return { ...state, isOpen: true };
     case "close":
-      return INITIAL_STATE;
+      return {
+        ...state,
+        isOpen: false,
+        phase: "idle",
+        pendingQuestion: "",
+      };
+    case "clear":
+      return { ...INITIAL_STATE, isOpen: state.isOpen };
     case "loading":
       return {
+        ...state,
         phase: "loading",
-        response: null,
+        pendingQuestion: action.question,
         lastQuestion: action.question,
       };
-    case "answered":
-      return { ...state, phase: "answered", response: action.response };
-    case "insufficient":
-      return { ...state, phase: "insufficient", response: action.response };
+    case "completed":
+      return {
+        ...state,
+        phase: "idle",
+        pendingQuestion: "",
+        turns: [...state.turns, {
+          question: action.question,
+          response: action.response,
+        }].slice(-MAX_STORED_TURNS),
+      };
     case "limited":
-      return { ...state, phase: "limited", response: null };
+      return { ...state, phase: "limited", pendingQuestion: "" };
     case "failed":
-      return { ...state, phase: "failed", response: null };
+      return { ...state, phase: "failed", pendingQuestion: "" };
   }
 }
 
@@ -128,6 +154,82 @@ function parseResponse(value: unknown, articleSlug: string): BlogAgentResponse |
   };
 }
 
+function historyStorageKey(articleSlug: string): string {
+  return `blog-agent-history:v1:${articleSlug}`;
+}
+
+function readStoredTurns(articleSlug: string): AgentTurn[] {
+  try {
+    const serialized = sessionStorage.getItem(historyStorageKey(articleSlug));
+    if (!serialized || serialized.length > MAX_STORED_HISTORY_CHARACTERS) return [];
+    const value: unknown = JSON.parse(serialized);
+    if (!Array.isArray(value) || value.length > MAX_STORED_TURNS) return [];
+    const turns: AgentTurn[] = [];
+    for (const item of value) {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+      const record = item as Record<string, unknown>;
+      const question = typeof record.question === "string"
+        ? record.question.trim()
+        : "";
+      const response = parseResponse(record.response, articleSlug);
+      if (
+        !question ||
+        question.length > 500 ||
+        !response ||
+        (response.answer?.length ?? 0) > MAX_STORED_ANSWER_LENGTH ||
+        (!response.answer && !response.insufficientEvidence)
+      ) {
+        return [];
+      }
+      turns.push({ question, response });
+    }
+    return turns;
+  } catch {
+    return [];
+  }
+}
+
+function conversationContext(turns: AgentTurn[]): BlogAgentConversationTurn[] {
+  return turns
+    .flatMap((turn) => turn.response.answer
+      ? [{
+          question: turn.question,
+          answer: turn.response.answer.slice(0, MAX_CONTEXT_ANSWER_LENGTH),
+        }]
+      : [])
+    .slice(-MAX_CONTEXT_TURNS);
+}
+
+function requestBody(question: string, turns: AgentTurn[]): string {
+  const history = conversationContext(turns);
+  while (history.length > 0) {
+    const serialized = JSON.stringify({ question, history });
+    if (new TextEncoder().encode(serialized).byteLength <= MAX_REQUEST_BODY_BYTES) {
+      return serialized;
+    }
+    history.shift();
+  }
+  return JSON.stringify({ question });
+}
+
+function ThinkingOrb() {
+  return (
+    <div
+      className="blog-agent-thinking"
+      role="status"
+      aria-label="文章 Agent 正在思考"
+    >
+      <span className="blog-agent-orb" aria-hidden="true">
+        <span />
+      </span>
+      <span className="blog-agent-thinking-copy">
+        <strong>正在思考</strong>
+        <span>正在检索当前文章与代码依据…</span>
+      </span>
+    </div>
+  );
+}
+
 export function BlogAgent({
   articleSlug,
   articleTitle,
@@ -135,36 +237,64 @@ export function BlogAgent({
   articleSlug: string;
   articleTitle: string;
 }) {
-  const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+  const [state, dispatch] = useReducer(
+    reducer,
+    articleSlug,
+    (slug): AgentState => ({
+      ...INITIAL_STATE,
+      turns: typeof window === "undefined" ? [] : readStoredTurns(slug),
+    }),
+  );
   const [draft, setDraft] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<AbortController | null>(null);
   const requestSequence = useRef(0);
   const loadingRef = useRef(false);
+  const storageKey = historyStorageKey(articleSlug);
 
   const close = useCallback(() => {
     controllerRef.current?.abort();
     controllerRef.current = null;
     requestSequence.current += 1;
     loadingRef.current = false;
-    setDraft("");
     dispatch({ type: "close" });
     queueMicrotask(() => triggerRef.current?.focus());
   }, []);
 
   useEffect(() => {
-    if (state.phase === "idle") inputRef.current?.focus();
-  }, [state.phase]);
+    try {
+      if (state.turns.length === 0) {
+        sessionStorage.removeItem(storageKey);
+        return;
+      }
+      const serialized = JSON.stringify(state.turns);
+      if (serialized.length <= MAX_STORED_HISTORY_CHARACTERS) {
+        sessionStorage.setItem(storageKey, serialized);
+      }
+    } catch {
+      // 浏览器禁用或配额不足时仅降级为当前页面内历史，不影响问答。
+    }
+  }, [state.turns, storageKey]);
 
   useEffect(() => {
-    if (state.phase === "closed") return;
+    if (state.isOpen && state.phase !== "loading") inputRef.current?.focus();
+  }, [state.isOpen, state.phase]);
+
+  useEffect(() => {
+    if (!state.isOpen || !bodyRef.current) return;
+    bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+  }, [state.isOpen, state.phase, state.turns.length]);
+
+  useEffect(() => {
+    if (!state.isOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") close();
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [close, state.phase]);
+  }, [close, state.isOpen]);
 
   useEffect(() => () => {
     controllerRef.current?.abort();
@@ -189,7 +319,7 @@ export function BlogAgent({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question }),
+          body: requestBody(question, state.turns),
           signal: controller.signal,
         },
       );
@@ -205,15 +335,12 @@ export function BlogAgent({
       const body = await response.json();
       if (sequence !== requestSequence.current) return;
       const parsed = parseResponse(body, articleSlug);
-      if (!parsed) {
+      if (!parsed || (!parsed.insufficientEvidence && !parsed.answer)) {
         dispatch({ type: "failed" });
-      } else if (parsed.insufficientEvidence) {
-        dispatch({ type: "insufficient", response: parsed });
-      } else if (parsed.answer) {
-        dispatch({ type: "answered", response: parsed });
-      } else {
-        dispatch({ type: "failed" });
+        return;
       }
+      dispatch({ type: "completed", question, response: parsed });
+      setDraft("");
     } catch (error) {
       if (
         sequence === requestSequence.current &&
@@ -227,11 +354,12 @@ export function BlogAgent({
         controllerRef.current = null;
       }
     }
-  }, [articleSlug]);
+  }, [articleSlug, state.turns]);
 
-  const open = () => {
+  const clearHistory = () => {
+    if (loadingRef.current) return;
     setDraft("");
-    dispatch({ type: "open" });
+    dispatch({ type: "clear" });
   };
 
   const selectCitation = (url: string) => {
@@ -261,7 +389,7 @@ export function BlogAgent({
 
   return (
     <div className="blog-agent-root">
-      {state.phase !== "closed" && (
+      {state.isOpen && (
         <section
           className="blog-agent-panel"
           role="dialog"
@@ -275,68 +403,98 @@ export function BlogAgent({
               </p>
               <h2>正在阅读《{articleTitle}》</h2>
             </div>
-            <button
-              type="button"
-              className="blog-agent-icon-button"
-              aria-label="关闭文章 Agent"
-              onClick={close}
-            >
-              <X aria-hidden="true" size={18} />
-            </button>
+            <div className="blog-agent-header-actions">
+              {state.turns.length > 0 && (
+                <button
+                  type="button"
+                  className="blog-agent-clear-button"
+                  disabled={loading}
+                  onClick={clearHistory}
+                >
+                  清空对话
+                </button>
+              )}
+              <button
+                type="button"
+                className="blog-agent-icon-button"
+                aria-label="关闭文章 Agent"
+                onClick={close}
+              >
+                <X aria-hidden="true" size={18} />
+              </button>
+            </div>
           </header>
 
-          <div className="blog-agent-panel-body" aria-live="polite">
+          <div ref={bodyRef} className="blog-agent-panel-body" aria-live="polite">
             <p className="blog-agent-scope-note">
               我只依据当前文章回答，并附上可跳转的原文位置。
             </p>
 
-            <div className="blog-agent-suggestions" aria-label="建议问题">
-              {SUGGESTED_QUESTIONS.map((question) => (
-                <button
-                  type="button"
-                  key={question}
-                  disabled={loading}
-                  onClick={() => void ask(question)}
-                >
-                  {question}
-                </button>
-              ))}
-            </div>
+            {state.turns.length === 0 && !loading && (
+              <div className="blog-agent-suggestions" aria-label="建议问题">
+                {SUGGESTED_QUESTIONS.map((question) => (
+                  <button
+                    type="button"
+                    key={question}
+                    onClick={() => void ask(question)}
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {state.turns.length > 0 && (
+              <div className="blog-agent-transcript" aria-label="对话记录">
+                {state.turns.map((turn, index) => (
+                  <article
+                    className="blog-agent-turn"
+                    key={`${turn.response.queryId}:${index}`}
+                  >
+                    <div className="blog-agent-user-message">
+                      <span aria-hidden="true">你</span>
+                      <p>{turn.question}</p>
+                    </div>
+                    {turn.response.insufficientEvidence ? (
+                      <div className="blog-agent-status blog-agent-status-muted">
+                        这篇文章暂时没有足够信息回答这个问题。
+                      </div>
+                    ) : turn.response.answer ? (
+                      <div className="blog-agent-result">
+                        <SafeAgentMarkdown content={turn.response.answer} />
+                        {turn.response.citations.length > 0 && (
+                          <div className="blog-agent-citations">
+                            <p>原文依据</p>
+                            {turn.response.citations.map((citation) => (
+                              <button
+                                type="button"
+                                key={citation.id}
+                                aria-label={`查看引用：${citation.heading}`}
+                                onClick={() => selectCitation(citation.url)}
+                              >
+                                <span>{citation.heading}</span>
+                                <span aria-hidden="true">↗</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </article>
+                ))}
+              </div>
+            )}
 
             {loading && (
-              <div className="blog-agent-status">
-                <Loader2 className="animate-spin" aria-hidden="true" size={18} />
-                <span>正在阅读文章并整理依据…</span>
+              <div className="blog-agent-pending-turn">
+                <div className="blog-agent-user-message">
+                  <span aria-hidden="true">你</span>
+                  <p>{state.pendingQuestion}</p>
+                </div>
+                <ThinkingOrb />
               </div>
             )}
 
-            {state.phase === "answered" && state.response?.answer && (
-              <div className="blog-agent-result">
-                <SafeAgentMarkdown content={state.response.answer} />
-                {state.response.citations.length > 0 && (
-                  <div className="blog-agent-citations">
-                    <p>原文依据</p>
-                    {state.response.citations.map((citation) => (
-                      <button
-                        type="button"
-                        key={citation.id}
-                        aria-label={`查看引用：${citation.heading}`}
-                        onClick={() => selectCitation(citation.url)}
-                      >
-                        <span>{citation.heading}</span>
-                        <span aria-hidden="true">↗</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {state.phase === "insufficient" && (
-              <div className="blog-agent-status blog-agent-status-muted">
-                这篇文章暂时没有足够信息回答这个问题。
-              </div>
-            )}
             {state.phase === "limited" && (
               <div className="blog-agent-status blog-agent-status-muted">
                 请求有点多，请稍后再试。
@@ -376,9 +534,13 @@ export function BlogAgent({
                 aria-label="发送问题"
                 disabled={loading || !draft.trim()}
               >
-                {loading
-                  ? <Loader2 className="animate-spin" aria-hidden="true" size={18} />
-                  : <Send aria-hidden="true" size={18} />}
+                {loading ? (
+                  <span className="blog-agent-send-thinking" aria-hidden="true">
+                    <span />
+                  </span>
+                ) : (
+                  <Send aria-hidden="true" size={18} />
+                )}
               </button>
             </div>
           </form>
@@ -390,8 +552,8 @@ export function BlogAgent({
         type="button"
         className="blog-agent-trigger"
         aria-label="打开文章 Agent"
-        aria-expanded={state.phase !== "closed"}
-        onClick={state.phase === "closed" ? open : undefined}
+        aria-expanded={state.isOpen}
+        onClick={state.isOpen ? undefined : () => dispatch({ type: "open" })}
       >
         <span className="blog-agent-trigger-icon">
           <Bot aria-hidden="true" size={22} />
