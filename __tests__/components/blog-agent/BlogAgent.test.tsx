@@ -349,25 +349,28 @@ describe("BlogAgent", () => {
     heading.remove();
   });
 
-  it("offers a pinned GitHub line-range link without replacing the article citation", async () => {
+  it("makes the code citation a same-tab GitHub navigation with a distinct article action", async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse(githubAnswerBody));
     renderAgent();
     const user = await openAgent();
     await user.click(screen.getByRole("button", { name: "核心实现是什么？" }));
 
     const sourceLink = await screen.findByRole("link", {
-      name: "在 GitHub 查看 src/loop.py 第 12 到 27 行",
+      name: "查看 GitHub 源码 src/loop.py 第 12 到 27 行",
     });
     expect(sourceLink).toHaveAttribute(
       "href",
       `https://github.com/yaoziyaoguai/my-first-agent/blob/${"a".repeat(40)}/src/loop.py#L12-L27`,
     );
-    expect(sourceLink).toHaveAttribute("target", "_blank");
-    expect(sourceLink).toHaveAttribute("rel", expect.stringContaining("noopener"));
+    expect(sourceLink).not.toHaveAttribute("target");
+    expect(sourceLink).toHaveTextContent("查看源码 · src/loop.py");
     expect(screen.getByText("依据与源码")).toBeInTheDocument();
-    expect(screen.getByRole("button", {
-      name: "查看引用：Agent 主循环 · src/loop.py",
-    })).toBeInTheDocument();
+    const articleAction = screen.getByRole("button", {
+      name: "查看文章依据：Agent 主循环 · src/loop.py",
+    });
+    expect(sourceLink.parentElement?.firstElementChild).toBe(sourceLink);
+    expect(articleAction).toHaveClass("blog-agent-citation-article");
+    expect(articleAction).toHaveTextContent("文章依据 · Agent 主循环 · src/loop.py");
   });
 
   it("rejects a tampered GitHub URL instead of rendering an untrusted link", async () => {
@@ -387,7 +390,7 @@ describe("BlogAgent", () => {
 
     expect(await screen.findByText("暂时无法回答，请稍后重试。"))
       .toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /在 GitHub 查看/ }))
+    expect(screen.queryByRole("link", { name: /查看 GitHub 源码/ }))
       .not.toBeInTheDocument();
   });
 

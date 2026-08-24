@@ -499,27 +499,33 @@ export function BlogAgent({
                             </p>
                             {turn.response.citations.map((citation) => (
                               <div className="blog-agent-citation" key={citation.id}>
-                                <button
-                                  type="button"
-                                  aria-label={`查看引用：${citation.heading}`}
-                                  onClick={() => selectCitation(citation.url)}
-                                >
-                                  <span>{citation.heading}</span>
-                                  <span aria-hidden="true">↗</span>
-                                </button>
                                 {citation.github && (
                                   <a
                                     href={citation.github.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    aria-label={`在 GitHub 查看 ${citation.github.path} 第 ${citation.github.lineStart} 到 ${citation.github.lineEnd} 行`}
+                                    aria-label={`查看 GitHub 源码 ${citation.github.path} 第 ${citation.github.lineStart} 到 ${citation.github.lineEnd} 行`}
                                   >
-                                    <span>GitHub · {citation.github.path}</span>
+                                    <span>查看源码 · {citation.github.path}</span>
                                     <span>
                                       L{citation.github.lineStart}–L{citation.github.lineEnd} ↗
                                     </span>
                                   </a>
                                 )}
+                                <button
+                                  type="button"
+                                  className={citation.github
+                                    ? "blog-agent-citation-article"
+                                    : undefined}
+                                  aria-label={`${citation.github
+                                    ? "查看文章依据"
+                                    : "查看引用"}：${citation.heading}`}
+                                  onClick={() => selectCitation(citation.url)}
+                                >
+                                  <span>
+                                    {citation.github ? "文章依据 · " : ""}
+                                    {citation.heading}
+                                  </span>
+                                  <span aria-hidden="true">{citation.github ? "↓" : "↗"}</span>
+                                </button>
                               </div>
                             ))}
                           </div>
