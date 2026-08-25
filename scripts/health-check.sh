@@ -6,6 +6,13 @@ APP_URL="${1:-${APP_URL:-https://wangjinkun333.me}}"
 ENV_FILE="${ENV_FILE:-$PROJECT_DIR/.env.docker.prod}"
 COMPOSE_FILE="$PROJECT_DIR/docker/docker-compose.prod.yml"
 COMPOSE=(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE")
+TLS_MIN_VALID_DAYS="${TLS_MIN_VALID_DAYS:-21}"
+
+if [[ ! "$TLS_MIN_VALID_DAYS" =~ ^[1-9][0-9]*$ ]]; then
+  echo "TLS_MIN_VALID_DAYS must be a positive integer" >&2
+  exit 1
+fi
+tls_check_seconds=$((TLS_MIN_VALID_DAYS * 86400))
 
 for command in curl docker openssl; do
   command -v "$command" >/dev/null || {
@@ -46,8 +53,8 @@ echo "TLS certificate"
 certificate="$({ echo | openssl s_client -servername "$domain" -connect "$domain:443" 2>/dev/null; })"
 certificate_end="$(printf '%s\n' "$certificate" | openssl x509 -noout -enddate)"
 echo "$certificate_end"
-if ! printf '%s\n' "$certificate" | openssl x509 -checkend 604800 -noout >/dev/null; then
-  echo "TLS certificate is unavailable or expires within 7 days" >&2
+if ! printf '%s\n' "$certificate" | openssl x509 -checkend "$tls_check_seconds" -noout >/dev/null; then
+  echo "TLS certificate is unavailable or expires within $TLS_MIN_VALID_DAYS days" >&2
   exit 1
 fi
 
