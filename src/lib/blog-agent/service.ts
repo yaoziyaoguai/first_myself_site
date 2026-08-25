@@ -17,6 +17,11 @@ import type {
 } from "./types";
 import type { GenerationUsagePolicy } from "./usagePolicy";
 import { buildGitHubSource } from "./githubSource";
+import {
+  redactQuestionExcerpt,
+  type UnansweredQuestionReason,
+  type UnansweredQuestionRecorder,
+} from "./unansweredQuestions";
 
 type ServiceResult = {
   status: 200 | 429 | 503;
@@ -32,6 +37,7 @@ type BlogAgentServiceDependencies = {
   now?: () => Date;
   createQueryId?: () => string;
   articleRetriever?: BlogScopedArticleRetriever;
+  unansweredQuestions?: UnansweredQuestionRecorder;
 };
 
 function sha256(value: string): string {
@@ -95,6 +101,22 @@ export class BlogAgentService {
     this.createQueryId = dependencies.createQueryId ?? randomUUID;
   }
 
+  private async recordUnanswered(
+    input: { article: PublicMarkdownArticle; question: string },
+    queryId: string,
+    reason: UnansweredQuestionReason,
+  ): Promise<void> {
+    const recorder = this.dependencies.unansweredQuestions;
+    if (!recorder) return;
+    await recorder.record({
+      queryId,
+      articleSlug: input.article.slug,
+      questionExcerpt: redactQuestionExcerpt(input.question),
+      reason,
+      createdAt: this.now(),
+    }).catch(() => undefined);
+  }
+
   async execute(input: {
     article: PublicMarkdownArticle;
     question: string;
@@ -114,6 +136,7 @@ export class BlogAgentService {
       prepared = null;
     }
     if (input.article.agentContextRequired === true && !prepared) {
+      await this.recordUnanswered(input, queryId, "provider_error");
       return {
         status: 503,
         body: createBlogAgentUnavailableResponse("provider-unavailable", queryId),
@@ -159,6 +182,9 @@ export class BlogAgentService {
           cached.citationIds,
         );
         if (cached.insufficientEvidence || cachedCitations.length > 0) {
+          if (cached.insufficientEvidence) {
+            await this.recordUnanswered(input, queryId, "insufficient_evidence");
+          }
           return {
             status: 200,
             body: {
@@ -192,6 +218,7 @@ export class BlogAgentService {
         },
       );
       if (!generated.allowed) {
+        await this.recordUnanswered(input, queryId, "rate_limited");
         return {
           status: 429,
           body: createBlogAgentUnavailableResponse("rate-limited", queryId),
@@ -214,6 +241,9 @@ export class BlogAgentService {
         evidence?.sections ?? [],
         answer.citationIds,
       );
+      if (answer.insufficientEvidence) {
+        await this.recordUnanswered(input, queryId, "insufficient_evidence");
+      }
       return {
         status: 200,
         body: {
@@ -226,6 +256,7 @@ export class BlogAgentService {
         },
       };
     } catch {
+      await this.recordUnanswered(input, queryId, "provider_error");
       return {
         status: 503,
         body: createBlogAgentUnavailableResponse("provider-unavailable", queryId),

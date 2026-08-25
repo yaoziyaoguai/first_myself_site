@@ -6,6 +6,8 @@ import { GenerationUsagePolicy } from "@/lib/blog-agent/usagePolicy";
 import { BlogScopedArticleRetriever } from "@/lib/blog-agent/articleRetriever";
 import type { ArticleIndexRepository } from "@/lib/blog-agent/articleIndexRepository";
 import { hashPublicArticle } from "@/lib/blog-agent/articlePackage";
+import type { UnansweredQuestionRecorder } from
+  "@/lib/blog-agent/unansweredQuestions";
 
 const article = {
   id: "7",
@@ -21,6 +23,7 @@ function createFixture(options?: {
   modelContent?: string;
   modelError?: Error;
   articleRetriever?: BlogScopedArticleRetriever;
+  recorderError?: Error;
 }) {
   const repository: BlogAgentRepository = {
     getCachedAnswer: vi.fn().mockResolvedValue(options?.cached ?? null),
@@ -51,6 +54,11 @@ function createFixture(options?: {
     perIdentityConcurrency: 1,
     globalConcurrency: 3,
   }, () => new Date("2026-08-21T12:00:00.000Z"));
+  const unansweredQuestions: UnansweredQuestionRecorder = {
+    record: options?.recorderError
+      ? vi.fn().mockRejectedValue(options.recorderError)
+      : vi.fn().mockResolvedValue(undefined),
+  };
   const service = new BlogAgentService({
     repository,
     usagePolicy,
@@ -60,8 +68,9 @@ function createFixture(options?: {
     now: () => new Date("2026-08-21T12:00:00.000Z"),
     createQueryId: () => "query-1",
     articleRetriever: options?.articleRetriever,
+    unansweredQuestions,
   });
-  return { service, repository, client };
+  return { service, repository, client, unansweredQuestions };
 }
 
 describe("BlogAgentService", () => {
@@ -323,6 +332,13 @@ describe("BlogAgentService", () => {
     expect(response.status).toBe(429);
     expect(response.body.usage.reason).toBe("rate-limited");
     expect(fixture.client.complete).not.toHaveBeenCalled();
+    expect(fixture.unansweredQuestions.record).toHaveBeenCalledWith({
+      queryId: "query-1",
+      articleSlug: article.slug,
+      questionExcerpt: "为什么批量写入?",
+      reason: "rate_limited",
+      createdAt: new Date("2026-08-21T12:00:00.000Z"),
+    });
   });
 
   it("returns a safe 200 response when the article evidence is insufficient", async () => {
@@ -346,6 +362,52 @@ describe("BlogAgentService", () => {
       citations: [],
       insufficientEvidence: true,
     }));
+    expect(fixture.unansweredQuestions.record).toHaveBeenCalledWith({
+      queryId: "query-1",
+      articleSlug: article.slug,
+      questionExcerpt: "作者的电话号码是什么?",
+      reason: "insufficient_evidence",
+      createdAt: new Date("2026-08-21T12:00:00.000Z"),
+    });
+  });
+
+  it("records a cached insufficient answer but never records successful answers", async () => {
+    const insufficient = createFixture({
+      cached: { answer: "", citationIds: [], insufficientEvidence: true },
+    });
+    const cachedSuccess = createFixture({
+      cached: {
+        answer: "缓存回答",
+        citationIds: ["section:0:写入路径"],
+        insufficientEvidence: false,
+      },
+    });
+    const generatedSuccess = createFixture();
+
+    await insufficient.service.execute({
+      article,
+      question: "联系邮箱是 test@example.com 吗?",
+      identityHash: "identity-insufficient",
+    });
+    await cachedSuccess.service.execute({
+      article,
+      question: "为什么批量写入?",
+      identityHash: "identity-cache",
+    });
+    await generatedSuccess.service.execute({
+      article,
+      question: "为什么批量写入?",
+      identityHash: "identity-generated",
+    });
+
+    expect(insufficient.unansweredQuestions.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        questionExcerpt: "联系邮箱是 [邮箱已脱敏] 吗?",
+        reason: "insufficient_evidence",
+      }),
+    );
+    expect(cachedSuccess.unansweredQuestions.record).not.toHaveBeenCalled();
+    expect(generatedSuccess.unansweredQuestions.record).not.toHaveBeenCalled();
   });
 
   it("fails closed without leaking provider errors or article Markdown", async () => {
@@ -364,6 +426,30 @@ describe("BlogAgentService", () => {
     const serialized = JSON.stringify(response);
     expect(serialized).not.toContain("token=abc");
     expect(serialized).not.toContain(article.contentMarkdown);
+    expect(fixture.unansweredQuestions.record).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: "provider_error" }),
+    );
+  });
+
+  it("does not change the public answer when unanswered telemetry fails", async () => {
+    const fixture = createFixture({
+      modelContent: JSON.stringify({
+        answer: "",
+        citationIds: [],
+        insufficientEvidence: true,
+      }),
+      recorderError: new Error("telemetry unavailable"),
+    });
+
+    const response = await fixture.service.execute({
+      article,
+      question: "作者住在哪里?",
+      identityHash: "identity-hash",
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.insufficientEvidence).toBe(true);
+    expect(response.body.answer).toBeNull();
   });
 
   it("fails closed when an article requires a package that cannot be prepared", async () => {

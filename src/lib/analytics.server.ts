@@ -3,6 +3,12 @@ import { getPayloadAPI } from "./payload";
 
 type PersistedPageView = { id: number };
 
+export type AnalyticsIdentity = {
+  visitorHash: string;
+  networkPrefix: string;
+  isOwner: boolean;
+};
+
 export type AnalyticsSummary = {
   views: number;
   visitors: number;
@@ -12,7 +18,10 @@ export type AnalyticsSummary = {
   topPages: Array<{ path: string; title: string; views: number }>;
 };
 
-async function persistPageView(event: AnalyticsEvent, visitorHash: string) {
+async function persistPageView(
+  event: AnalyticsEvent,
+  identity: AnalyticsIdentity,
+) {
   const payload = await getPayloadAPI();
   const engagedSeconds = event.event === "heartbeat" ? event.engagedSeconds : 0;
   const scrollDepth = event.event === "heartbeat" ? event.scrollDepth : 0;
@@ -24,6 +33,8 @@ async function persistPageView(event: AnalyticsEvent, visitorHash: string) {
       INSERT INTO page_views (
         session_id,
         visitor_hash,
+        network_prefix,
+        is_owner,
         path,
         title,
         referrer_host,
@@ -33,8 +44,10 @@ async function persistPageView(event: AnalyticsEvent, visitorHash: string) {
         updated_at,
         created_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW(), NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW(), NOW())
       ON CONFLICT (session_id) DO UPDATE SET
+        network_prefix = EXCLUDED.network_prefix,
+        is_owner = page_views.is_owner OR EXCLUDED.is_owner,
         path = EXCLUDED.path,
         title = EXCLUDED.title,
         referrer_host = EXCLUDED.referrer_host,
@@ -47,7 +60,9 @@ async function persistPageView(event: AnalyticsEvent, visitorHash: string) {
     `,
     [
       event.sessionId,
-      visitorHash,
+      identity.visitorHash,
+      identity.networkPrefix || null,
+      identity.isOwner,
       event.path,
       event.title,
       event.referrerHost,
@@ -59,12 +74,12 @@ async function persistPageView(event: AnalyticsEvent, visitorHash: string) {
   return result.rows[0] ?? null;
 }
 
-export function recordPageView(event: AnalyticsEvent, visitorHash: string) {
-  return persistPageView(event, visitorHash);
+export function recordPageView(event: AnalyticsEvent, identity: AnalyticsIdentity) {
+  return persistPageView(event, identity);
 }
 
-export function updatePageView(event: AnalyticsEvent, visitorHash: string) {
-  return persistPageView(event, visitorHash);
+export function updatePageView(event: AnalyticsEvent, identity: AnalyticsIdentity) {
+  return persistPageView(event, identity);
 }
 
 export async function readAnalyticsSummary(
@@ -88,6 +103,7 @@ export async function readAnalyticsSummary(
         COUNT(*) FILTER (WHERE created_at >= $2)::int AS recent_views
       FROM page_views
       WHERE created_at >= $1
+        AND COALESCE(is_owner, false) = false
     `,
     [since, recentSince],
   );
@@ -103,6 +119,7 @@ export async function readAnalyticsSummary(
         COUNT(*)::int AS views
       FROM page_views
       WHERE created_at >= $1
+        AND COALESCE(is_owner, false) = false
       GROUP BY path
       ORDER BY views DESC, path ASC
       LIMIT 5

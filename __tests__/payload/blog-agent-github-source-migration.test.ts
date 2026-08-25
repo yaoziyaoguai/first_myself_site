@@ -5,9 +5,9 @@ import { migrations } from "@/payload/migrations";
 
 describe("Blog Agent GitHub source migration", () => {
   it("is registered after the article package migration", () => {
-    expect(migrations.at(-1)?.name).toBe(
-      "20260824_000000_add_blog_agent_github_sources",
-    );
+    const names = migrations.map(({ name }) => name);
+    expect(names.indexOf("20260824_000000_add_blog_agent_github_sources"))
+      .toBe(names.indexOf("20260823_000000_add_blog_agent_article_packages") + 1);
   });
 
   it("adds nullable, line-bounded source metadata without rewriting old chunks", async () => {

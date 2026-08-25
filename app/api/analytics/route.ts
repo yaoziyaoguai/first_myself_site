@@ -4,6 +4,7 @@ import { recordPageView, updatePageView } from "@/lib/analytics.server";
 import { isRateLimited } from "@/lib/rateLimit";
 import { readJsonObject } from "@/lib/requestBody";
 import { deriveRequestIdentity } from "@/lib/requestIdentity";
+import { getPayloadAPI } from "@/lib/payload";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,22 @@ function expectedOrigin(request: NextRequest) {
       .origin;
   } catch {
     return request.nextUrl.origin;
+  }
+}
+
+async function isOwnerRequest(request: NextRequest) {
+  if (
+    !request.cookies.has("payload-token") &&
+    !request.headers.has("authorization")
+  ) {
+    return false;
+  }
+  try {
+    const payload = await getPayloadAPI();
+    const { user } = await payload.auth({ headers: request.headers });
+    return user?.role === "admin" || user?.role === "editor";
+  } catch {
+    return false;
   }
 }
 
@@ -49,14 +66,19 @@ export async function POST(request: NextRequest) {
     ) {
       return errorResponse("Too many requests", 429);
     }
+    const analyticsIdentity = {
+      visitorHash: identity.fingerprint,
+      networkPrefix: identity.networkPrefix,
+      isOwner: await isOwnerRequest(request),
+    };
 
     if (event.event === "start") {
-      const pageView = await recordPageView(event, identity.fingerprint);
+      const pageView = await recordPageView(event, analyticsIdentity);
       if (!pageView) return errorResponse("Analytics session conflict", 409);
       return NextResponse.json({ ok: true }, { status: 201 });
     }
 
-    const pageView = await updatePageView(event, identity.fingerprint);
+    const pageView = await updatePageView(event, analyticsIdentity);
     if (!pageView) return errorResponse("Analytics session not found", 404);
     return NextResponse.json({ ok: true });
   } catch (error) {

@@ -16,6 +16,8 @@ const PageViews: CollectionConfig = {
     defaultColumns: [
       "path",
       "title",
+      "networkPrefix",
+      "isOwner",
       "engagedSeconds",
       "maxScrollDepth",
       "createdAt",
@@ -58,6 +60,20 @@ const PageViews: CollectionConfig = {
       name: "referrerHost",
       type: "text",
       label: "来源网站",
+      admin: { readOnly: true },
+    },
+    {
+      name: "networkPrefix",
+      type: "text",
+      label: "脱敏网段",
+      admin: { readOnly: true },
+    },
+    {
+      name: "isOwner",
+      type: "checkbox",
+      label: "站长访问",
+      defaultValue: false,
+      required: true,
       admin: { readOnly: true },
     },
     {

@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const { mockRecordPageView, mockUpdatePageView, mockIsRateLimited } =
+const { mockRecordPageView, mockUpdatePageView, mockIsRateLimited, mockAuth } =
   vi.hoisted(() => ({
     mockRecordPageView: vi.fn(),
     mockUpdatePageView: vi.fn(),
     mockIsRateLimited: vi.fn(),
+    mockAuth: vi.fn(),
   }));
 
 vi.mock("@/lib/analytics.server", () => ({
@@ -16,7 +17,11 @@ vi.mock("@/lib/requestIdentity", () => ({
   deriveRequestIdentity: vi.fn(() => ({
     fingerprint: "server-derived-visitor-hash",
     rateLimitKey: "server-rate-key",
+    networkPrefix: "203.0.113.0/24",
   })),
+}));
+vi.mock("@/lib/payload", () => ({
+  getPayloadAPI: vi.fn(async () => ({ auth: mockAuth })),
 }));
 vi.mock("@/lib/rateLimit", () => ({
   isRateLimited: mockIsRateLimited,
@@ -42,6 +47,7 @@ describe("POST /api/analytics", () => {
     mockIsRateLimited.mockReturnValue(false);
     mockRecordPageView.mockResolvedValue({ id: 1 });
     mockUpdatePageView.mockResolvedValue({ id: 1 });
+    mockAuth.mockResolvedValue({ user: null });
   });
 
   it("records a valid start with the server-derived anonymous identity", async () => {
@@ -57,6 +63,7 @@ describe("POST /api/analytics", () => {
     );
 
     expect(response.status).toBe(201);
+    expect(mockAuth).not.toHaveBeenCalled();
     expect(mockRecordPageView).toHaveBeenCalledWith(
       {
         event: "start",
@@ -65,7 +72,11 @@ describe("POST /api/analytics", () => {
         title: "Memory benchmark",
         referrerHost: "example.com",
       },
-      "server-derived-visitor-hash",
+      {
+        visitorHash: "server-derived-visitor-hash",
+        networkPrefix: "203.0.113.0/24",
+        isOwner: false,
+      },
     );
   });
 
@@ -101,7 +112,58 @@ describe("POST /api/analytics", () => {
         engagedSeconds: 45,
         scrollDepth: 82,
       },
-      "server-derived-visitor-hash",
+      {
+        visitorHash: "server-derived-visitor-hash",
+        networkPrefix: "203.0.113.0/24",
+        isOwner: false,
+      },
+    );
+  });
+
+  it.each(["admin", "editor"])(
+    "marks an authenticated %s request as an owner visit",
+    async (role) => {
+      mockAuth.mockResolvedValue({ user: { id: 1, role } });
+
+      const response = await POST(
+        request(
+          {
+            event: "start",
+            sessionId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35011",
+            path: "/blog/memory",
+            isOwner: false,
+          },
+          { cookie: "payload-token=valid-session" },
+        ),
+      );
+
+      expect(response.status).toBe(201);
+      expect(mockRecordPageView).toHaveBeenCalledWith(
+        expect.objectContaining({ path: "/blog/memory" }),
+        expect.objectContaining({ isOwner: true }),
+      );
+    },
+  );
+
+  it("ignores client owner claims and fails open when auth lookup fails", async () => {
+    mockAuth.mockRejectedValue(new Error("auth unavailable"));
+
+    const response = await POST(
+      request(
+        {
+          event: "start",
+          sessionId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35011",
+          path: "/blog/memory",
+          isOwner: true,
+        },
+        { cookie: "payload-token=invalid-session" },
+      ),
+    );
+
+    expect(response.status).toBe(201);
+    expect(mockRecordPageView).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ isOwner: false }),
     );
   });
 
@@ -145,14 +207,18 @@ describe("POST /api/analytics", () => {
     expect(
       (
         await POST(
-          request({
-            event: "start",
-            sessionId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35011",
-            path: "/",
-          }),
+          request(
+            {
+              event: "start",
+              sessionId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35011",
+              path: "/",
+            },
+            { cookie: "payload-token=untrusted-session" },
+          ),
         )
       ).status,
     ).toBe(429);
+    expect(mockAuth).not.toHaveBeenCalled();
 
     mockIsRateLimited.mockReturnValue(false);
     mockRecordPageView.mockRejectedValueOnce(new Error("database unavailable"));
