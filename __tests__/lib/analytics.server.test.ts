@@ -20,6 +20,11 @@ const context = {
   title: "Memory benchmark",
   referrerHost: "www.google.com",
 };
+const identity = {
+  visitorHash: "anonymous-visitor-hash",
+  networkPrefix: "203.0.113.0/24",
+  isOwner: false,
+};
 
 describe("analytics server persistence", () => {
   beforeEach(() => {
@@ -28,10 +33,7 @@ describe("analytics server persistence", () => {
   });
 
   it("uses one conflict-safe statement for start writes", async () => {
-    await recordPageView(
-      { event: "start", ...context },
-      "anonymous-visitor-hash",
-    );
+    await recordPageView({ event: "start", ...context }, identity);
 
     const [statement, values] = mockQuery.mock.calls[0];
     expect(statement).toContain("INSERT INTO page_views");
@@ -39,9 +41,19 @@ describe("analytics server persistence", () => {
     expect(statement).toContain(
       "page_views.visitor_hash = EXCLUDED.visitor_hash",
     );
+    expect(statement).toContain("network_prefix");
+    expect(statement).toContain("is_owner");
+    expect(statement).toContain(
+      "network_prefix = EXCLUDED.network_prefix",
+    );
+    expect(statement).toContain(
+      "is_owner = page_views.is_owner OR EXCLUDED.is_owner",
+    );
     expect(values).toEqual([
       context.sessionId,
       "anonymous-visitor-hash",
+      "203.0.113.0/24",
+      false,
       context.path,
       context.title,
       context.referrerHost,
@@ -58,7 +70,7 @@ describe("analytics server persistence", () => {
         engagedSeconds: 20,
         scrollDepth: 90,
       },
-      "anonymous-visitor-hash",
+      identity,
     );
 
     const [statement, values] = mockQuery.mock.calls[0];
@@ -82,7 +94,7 @@ describe("analytics server persistence", () => {
           engagedSeconds: 20,
           scrollDepth: 90,
         },
-        "different-visitor-hash",
+        { ...identity, visitorHash: "different-visitor-hash" },
       ),
     ).resolves.toBeNull();
   });
@@ -120,6 +132,12 @@ describe("analytics server persistence", () => {
     expect(mockQuery.mock.calls[0][0]).toContain(
       "COUNT(DISTINCT visitor_hash)",
     );
+    expect(mockQuery.mock.calls[0][0]).toContain(
+      "COALESCE(is_owner, false) = false",
+    );
     expect(mockQuery.mock.calls[1][0]).toContain("GROUP BY path");
+    expect(mockQuery.mock.calls[1][0]).toContain(
+      "COALESCE(is_owner, false) = false",
+    );
   });
 });

@@ -37,6 +37,7 @@ export async function AnalyticsSummary() {
         <p>
           近 24 小时 {summary.recentViews}{" "}
           次访问。有效停留只累计页面可见时间，访客数按服务端匿名哈希估算。
+          已登录的站长访问不计入概览。
         </p>
       </div>
 
