@@ -3,7 +3,9 @@ import { PostgresUnansweredQuestionRecorder } from
   "@/lib/blog-agent/unansweredQuestions.postgres";
 import type { BlogAgentQueryPool } from "@/lib/blog-agent/repository.postgres";
 
-function poolWith(query = vi.fn(async () => ({ rows: [] }))) {
+function poolWith(
+  query = vi.fn<BlogAgentQueryPool["query"]>(async () => ({ rows: [] })),
+) {
   return {
     pool: {
       query,
@@ -28,7 +30,7 @@ describe("PostgresUnansweredQuestionRecorder", () => {
     });
 
     expect(query).toHaveBeenCalledTimes(1);
-    const [statement, values] = query.mock.calls[0];
+    const [statement, values] = query.mock.calls[0]!;
     expect(statement).toContain("LIMIT 100");
     expect(statement).toContain("DELETE FROM \"blog_agent\".\"unanswered_questions\"");
     expect(statement).toContain("INSERT INTO \"blog_agent\".\"unanswered_questions\"");
@@ -65,7 +67,8 @@ describe("PostgresUnansweredQuestionRecorder", () => {
       reason: "provider_error",
       createdAt: new Date("2026-08-26T00:00:00.000Z"),
     });
-    const values = query.mock.calls[0][1];
+    const values = query.mock.calls[0]![1];
+    if (!values) throw new Error("Expected parameterized query values");
     expect(values[2]).toHaveLength(128);
     expect(values[3]).toHaveLength(500);
   });
