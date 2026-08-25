@@ -63,6 +63,7 @@ describe("POST /api/analytics", () => {
     );
 
     expect(response.status).toBe(201);
+    expect(mockAuth).not.toHaveBeenCalled();
     expect(mockRecordPageView).toHaveBeenCalledWith(
       {
         event: "start",
@@ -125,12 +126,15 @@ describe("POST /api/analytics", () => {
       mockAuth.mockResolvedValue({ user: { id: 1, role } });
 
       const response = await POST(
-        request({
-          event: "start",
-          sessionId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35011",
-          path: "/blog/memory",
-          isOwner: false,
-        }),
+        request(
+          {
+            event: "start",
+            sessionId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35011",
+            path: "/blog/memory",
+            isOwner: false,
+          },
+          { cookie: "payload-token=valid-session" },
+        ),
       );
 
       expect(response.status).toBe(201);
@@ -145,12 +149,15 @@ describe("POST /api/analytics", () => {
     mockAuth.mockRejectedValue(new Error("auth unavailable"));
 
     const response = await POST(
-      request({
-        event: "start",
-        sessionId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35011",
-        path: "/blog/memory",
-        isOwner: true,
-      }),
+      request(
+        {
+          event: "start",
+          sessionId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35011",
+          path: "/blog/memory",
+          isOwner: true,
+        },
+        { cookie: "payload-token=invalid-session" },
+      ),
     );
 
     expect(response.status).toBe(201);
@@ -200,14 +207,18 @@ describe("POST /api/analytics", () => {
     expect(
       (
         await POST(
-          request({
-            event: "start",
-            sessionId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35011",
-            path: "/",
-          }),
+          request(
+            {
+              event: "start",
+              sessionId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35011",
+              path: "/",
+            },
+            { cookie: "payload-token=untrusted-session" },
+          ),
         )
       ).status,
     ).toBe(429);
+    expect(mockAuth).not.toHaveBeenCalled();
 
     mockIsRateLimited.mockReturnValue(false);
     mockRecordPageView.mockRejectedValueOnce(new Error("database unavailable"));

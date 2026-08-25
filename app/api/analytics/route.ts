@@ -22,6 +22,12 @@ function expectedOrigin(request: NextRequest) {
 }
 
 async function isOwnerRequest(request: NextRequest) {
+  if (
+    !request.cookies.has("payload-token") &&
+    !request.headers.has("authorization")
+  ) {
+    return false;
+  }
   try {
     const payload = await getPayloadAPI();
     const { user } = await payload.auth({ headers: request.headers });
@@ -50,11 +56,6 @@ export async function POST(request: NextRequest) {
 
   try {
     const identity = deriveRequestIdentity(request);
-    const analyticsIdentity = {
-      visitorHash: identity.fingerprint,
-      networkPrefix: identity.networkPrefix,
-      isOwner: await isOwnerRequest(request),
-    };
     const limit = event.event === "start" ? 120 : 2_000;
     if (
       isRateLimited(
@@ -65,6 +66,11 @@ export async function POST(request: NextRequest) {
     ) {
       return errorResponse("Too many requests", 429);
     }
+    const analyticsIdentity = {
+      visitorHash: identity.fingerprint,
+      networkPrefix: identity.networkPrefix,
+      isOwner: await isOwnerRequest(request),
+    };
 
     if (event.event === "start") {
       const pageView = await recordPageView(event, analyticsIdentity);
