@@ -5,6 +5,7 @@ import { Footer } from "@/components/Footer";
 import { Navbar } from "@/components/Navbar";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 import { SITE_URL, siteDefaults } from "@/content/siteDefaults";
+import { buildSiteJsonLd, serializeJsonLd } from "@/lib/discovery";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -44,9 +45,15 @@ export const metadata: Metadata = {
 export default function MainRootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const siteJsonLd = buildSiteJsonLd();
+
   return (
     <html lang="zh-CN">
       <body className="flex min-h-screen flex-col antialiased">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(siteJsonLd) }}
+        />
         <AnalyticsTracker />
         <a className="skip-link" href="#main-content">
           跳到主要内容

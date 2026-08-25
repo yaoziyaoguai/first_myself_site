@@ -16,6 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     select: {
       slug: true,
       publishedDate: true,
+      updatedAt: true,
       status: true,
       visibility: true,
     },

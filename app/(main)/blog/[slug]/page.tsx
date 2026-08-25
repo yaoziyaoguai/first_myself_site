@@ -29,6 +29,21 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+function readCoverImageUrl(value: unknown): string | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const url = (value as { url?: unknown }).url;
+  return typeof url === "string" && url.trim() ? url : null;
+}
+
+function readArticleTags(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const tag = (item as { tag?: unknown }).tag;
+    return typeof tag === "string" && tag.trim() ? [tag.trim()] : [];
+  });
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug);
@@ -62,6 +77,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: post.title,
     slug: post.slug,
     description,
+    publishedDate: post.publishedDate,
+    updatedAt: post.updatedAt,
+    imageUrl: readCoverImageUrl(post.coverImage),
+    tags: readArticleTags(post.tags),
   });
 }
 
@@ -113,6 +132,8 @@ export default async function BlogPostPage({ params }: PageProps) {
     description: post.excerpt || siteDefaults.blog.description,
     publishedDate: post.publishedDate,
     updatedAt: post.updatedAt,
+    imageUrl: readCoverImageUrl(post.coverImage),
+    tags: readArticleTags(post.tags),
   });
 
   return (
