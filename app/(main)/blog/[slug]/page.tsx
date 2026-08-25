@@ -17,6 +17,11 @@ import { ShareActions } from "@/components/ShareActions";
 import { SITE_URL, siteDefaults } from "@/content/siteDefaults";
 import { canShowBlogAgent } from "@/lib/blog-agent/config";
 import { formatSiteDate } from "@/lib/siteDate";
+import {
+  buildArticleJsonLd,
+  buildArticleMetadata,
+  serializeJsonLd,
+} from "@/lib/discovery";
 
 export const dynamic = "force-dynamic";
 
@@ -53,32 +58,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  return {
-    title: `${post.title} | Jinkun Wang`,
+  return buildArticleMetadata({
+    title: post.title,
+    slug: post.slug,
     description,
-    alternates: { canonical: `/blog/${post.slug}` },
-    openGraph: {
-      title: `${post.title} | Jinkun Wang`,
-      description,
-      type: "article",
-      locale: "zh_CN",
-      siteName: "Jinkun Wang",
-      images: [
-        {
-          url: `${SITE_URL}/og-image.svg`,
-          width: 1200,
-          height: 630,
-          alt: post.title,
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: `${post.title} | Jinkun Wang`,
-      description,
-      images: [`${SITE_URL}/og-image.svg`],
-    },
-  };
+  });
 }
 
 export default async function BlogPostPage({ params }: PageProps) {
@@ -123,9 +107,20 @@ export default async function BlogPostPage({ params }: PageProps) {
     markdownContent &&
     canShowBlogAgent(),
   );
+  const articleJsonLd = buildArticleJsonLd({
+    title: post.title,
+    slug: post.slug,
+    description: post.excerpt || siteDefaults.blog.description,
+    publishedDate: post.publishedDate,
+    updatedAt: post.updatedAt,
+  });
 
   return (
     <div className="site-shell page-space">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(articleJsonLd) }}
+      />
       <article id="blog-article-top" className="mx-auto max-w-[46rem]">
         <Link
           href="/blog"
