@@ -1,4 +1,4 @@
-import type { MetadataRoute } from "next";
+import type { Metadata, MetadataRoute } from "next";
 import { SITE_URL } from "@/content/siteDefaults";
 
 export { SITE_URL };
@@ -10,6 +10,14 @@ export type DiscoveryPost = {
   publishedDate?: unknown;
   status?: unknown;
   visibility?: unknown;
+};
+
+type ArticleDiscoveryInput = {
+  title: string;
+  slug: string;
+  description: string;
+  publishedDate?: string | null;
+  updatedAt?: string | null;
 };
 
 const MAIN_ROUTES = ["", "/about", "/projects", "/blog", "/contact"];
@@ -30,6 +38,76 @@ function escapeXml(value: string): string {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&apos;");
+}
+
+function articlePath(slug: string): string {
+  return `/blog/${encodeURIComponent(slug)}`;
+}
+
+export function buildArticleMetadata(
+  input: ArticleDiscoveryInput,
+): Metadata {
+  const path = articlePath(input.slug);
+  const shareTitle = `${input.title} | Jinkun Wang`;
+
+  return {
+    title: input.title,
+    description: input.description,
+    alternates: { canonical: path },
+    openGraph: {
+      title: shareTitle,
+      description: input.description,
+      type: "article",
+      locale: "zh_CN",
+      siteName: "Jinkun Wang",
+      url: `${SITE_URL}${path}`,
+      images: [
+        {
+          url: `${SITE_URL}/og-image.svg`,
+          width: 1200,
+          height: 630,
+          alt: input.title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: shareTitle,
+      description: input.description,
+      images: [`${SITE_URL}/og-image.svg`],
+    },
+  };
+}
+
+export function buildArticleJsonLd(input: ArticleDiscoveryInput) {
+  const url = `${SITE_URL}${articlePath(input.slug)}`;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: input.title,
+    description: input.description,
+    inLanguage: "zh-CN",
+    url,
+    mainEntityOfPage: url,
+    image: `${SITE_URL}/og-image.svg`,
+    ...(input.publishedDate ? { datePublished: input.publishedDate } : {}),
+    ...(input.updatedAt ? { dateModified: input.updatedAt } : {}),
+    author: {
+      "@type": "Person",
+      name: "Jinkun Wang",
+      url: `${SITE_URL}/about`,
+    },
+    publisher: {
+      "@type": "Person",
+      name: "Jinkun Wang",
+      url: SITE_URL,
+    },
+  };
+}
+
+export function serializeJsonLd(value: unknown): string {
+  return JSON.stringify(value).replaceAll("<", "\\u003c");
 }
 
 export function summarizeExcerpt(value: unknown, limit = 180): string {

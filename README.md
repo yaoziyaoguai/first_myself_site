@@ -18,7 +18,7 @@
 - 评论、回复和点赞通过受控接口提供，Payload collection 不向匿名用户直开
 - 后台“运营 → 访问统计”展示访问量、估算访客、有效停留、阅读深度和脱敏后的 Agent 未回答问题
 - 公开 Markdown 文章可启用悬浮 Agent，只回答当前 Blog，并可选使用同一文章的私有材料包增强上下文
-- sitemap、RSS、canonical metadata 和数据库就绪检查已接入
+- sitemap、RSS、canonical metadata、Article 结构化数据和数据库就绪检查已接入
 - GitHub Pull Request 通过 CI 后合并到 `main`，自动部署到阿里云
 
 ## 后台内容地图
@@ -186,6 +186,7 @@ scripts/                  健康检查、备份和部署前验证
 - [DESIGN.md](DESIGN.md)：视觉系统、内容语气和后台交互约束
 - [TESTING_GUIDE.md](TESTING_GUIDE.md)：自动化测试与发布前验证
 - [SECURITY.md](SECURITY.md)：权限、隐私和生产安全边界
+- [搜索发现运维](docs/search-discovery.md)：Google / 百度站点验证、sitemap 提交与收录排查
 
 ## License
 
