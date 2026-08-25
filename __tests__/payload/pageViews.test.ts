@@ -21,13 +21,15 @@ describe("PageViews collection", () => {
     expect(PageViews.admin?.components?.beforeList).toEqual([
       "@/payload/components/AnalyticsSummary#AnalyticsSummary",
     ]);
+    expect(PageViews.admin?.pagination?.defaultLimit).toBe(25);
     expect(PageViews.admin?.defaultColumns).toEqual([
       "path",
-      "title",
+      "visitorLabel",
       "networkPrefix",
       "isOwner",
       "engagedSeconds",
       "maxScrollDepth",
+      "lastSeenAt",
       "createdAt",
     ]);
     const fields = PageViews.fields.filter(
@@ -49,5 +51,27 @@ describe("PageViews collection", () => {
         admin: expect.objectContaining({ readOnly: true }),
       }),
     ]);
+
+    const visitorLabel = PageViews.fields.find(
+      (field) => "name" in field && field.name === "visitorLabel",
+    );
+    expect(visitorLabel).toEqual(
+      expect.objectContaining({
+        name: "visitorLabel",
+        label: "匿名访客",
+        type: "text",
+        virtual: true,
+        admin: expect.objectContaining({ readOnly: true }),
+      }),
+    );
+    if (!visitorLabel || !("hooks" in visitorLabel)) {
+      throw new Error("visitorLabel hook missing");
+    }
+    const afterRead = visitorLabel.hooks?.afterRead?.[0];
+    expect(
+      afterRead?.({
+        data: { visitorHash: "abcdef12".padEnd(64, "0") },
+      } as never),
+    ).toBe("访客 ABCDEF12");
   });
 });

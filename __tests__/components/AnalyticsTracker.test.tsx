@@ -15,6 +15,7 @@ function analyticsBody(call: unknown[]) {
 
 describe("AnalyticsTracker", () => {
   let visibilityState: DocumentVisibilityState;
+  let documentFocused: boolean;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -29,10 +30,12 @@ describe("AnalyticsTracker", () => {
       value: "Memory benchmark",
     });
     visibilityState = "visible";
+    documentFocused = true;
     Object.defineProperty(document, "visibilityState", {
       configurable: true,
       get: () => visibilityState,
     });
+    vi.spyOn(document, "hasFocus").mockImplementation(() => documentFocused);
     Object.defineProperty(navigator, "doNotTrack", {
       configurable: true,
       value: "0",
@@ -109,6 +112,97 @@ describe("AnalyticsTracker", () => {
       await Promise.resolve();
     });
     expect(vi.mocked(fetch)).toHaveBeenCalledTimes(callsAfterUnmount);
+  });
+
+  it("does not count time while the browser window is unfocused", async () => {
+    render(<AnalyticsTracker />);
+
+    act(() => vi.advanceTimersByTime(5_000));
+    documentFocused = false;
+    act(() => window.dispatchEvent(new Event("blur")));
+    act(() => vi.advanceTimersByTime(30_000));
+    documentFocused = true;
+    act(() => window.dispatchEvent(new Event("focus")));
+    act(() => vi.advanceTimersByTime(5_000));
+    act(() => window.dispatchEvent(new Event("pagehide")));
+
+    const beacon = vi.mocked(navigator.sendBeacon);
+    const finalSnapshot = JSON.parse(
+      await (beacon.mock.calls.at(-1)?.[1] as Blob).text(),
+    );
+    expect(finalSnapshot).toEqual(
+      expect.objectContaining({ engagedSeconds: 10 }),
+    );
+  });
+
+  it("starts counting only after an initially unfocused window gains focus", async () => {
+    documentFocused = false;
+    render(<AnalyticsTracker />);
+
+    act(() => vi.advanceTimersByTime(30_000));
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
+
+    documentFocused = true;
+    act(() => window.dispatchEvent(new Event("focus")));
+    act(() => vi.advanceTimersByTime(5_000));
+    act(() => window.dispatchEvent(new Event("pagehide")));
+
+    const beacon = vi.mocked(navigator.sendBeacon);
+    const finalSnapshot = JSON.parse(
+      await (beacon.mock.calls.at(-1)?.[1] as Blob).text(),
+    );
+    expect(finalSnapshot).toEqual(
+      expect.objectContaining({ engagedSeconds: 5 }),
+    );
+  });
+
+  it("pauses periodic heartbeats while inactive and resumes after focus", async () => {
+    render(<AnalyticsTracker />);
+
+    act(() => vi.advanceTimersByTime(5_000));
+    documentFocused = false;
+    act(() => window.dispatchEvent(new Event("blur")));
+
+    await act(async () => {
+      vi.advanceTimersByTime(60_000);
+      await Promise.resolve();
+    });
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
+
+    documentFocused = true;
+    act(() => window.dispatchEvent(new Event("focus")));
+    await act(async () => {
+      vi.advanceTimersByTime(15_000);
+      await Promise.resolve();
+    });
+
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(2);
+    expect(analyticsBody(vi.mocked(fetch).mock.calls[1])).toEqual(
+      expect.objectContaining({ engagedSeconds: 20 }),
+    );
+  });
+
+  it("resumes engagement when a page returns from the back-forward cache", async () => {
+    render(<AnalyticsTracker />);
+
+    act(() => vi.advanceTimersByTime(5_000));
+    act(() => window.dispatchEvent(new PageTransitionEvent("pagehide", {
+      persisted: true,
+    })));
+    act(() => vi.advanceTimersByTime(30_000));
+    act(() => window.dispatchEvent(new PageTransitionEvent("pageshow", {
+      persisted: true,
+    })));
+    act(() => vi.advanceTimersByTime(5_000));
+    act(() => window.dispatchEvent(new Event("pagehide")));
+
+    const beacon = vi.mocked(navigator.sendBeacon);
+    const finalSnapshot = JSON.parse(
+      await (beacon.mock.calls.at(-1)?.[1] as Blob).text(),
+    );
+    expect(finalSnapshot).toEqual(
+      expect.objectContaining({ engagedSeconds: 10 }),
+    );
   });
 
   it("falls back to fetch when Beacon cannot queue the final snapshot", () => {

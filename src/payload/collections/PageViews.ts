@@ -1,4 +1,5 @@
 import type { CollectionConfig } from "payload";
+import { formatAnonymousVisitor } from "@/lib/requestIdentity";
 
 const canViewAnalytics = (role: unknown) =>
   role === "admin" || role === "editor";
@@ -13,13 +14,15 @@ const PageViews: CollectionConfig = {
     group: "运营",
     useAsTitle: "path",
     description: "站内匿名访问、有效停留时间和最大阅读深度。",
+    pagination: { defaultLimit: 25 },
     defaultColumns: [
       "path",
-      "title",
+      "visitorLabel",
       "networkPrefix",
       "isOwner",
       "engagedSeconds",
       "maxScrollDepth",
+      "lastSeenAt",
       "createdAt",
     ],
     components: {
@@ -41,6 +44,19 @@ const PageViews: CollectionConfig = {
       required: true,
       index: true,
       admin: { hidden: true },
+    },
+    {
+      name: "visitorLabel",
+      type: "text",
+      label: "匿名访客",
+      virtual: true,
+      admin: { readOnly: true },
+      hooks: {
+        afterRead: [({ data }) =>
+          formatAnonymousVisitor(
+            typeof data?.visitorHash === "string" ? data.visitorHash : "",
+          )],
+      },
     },
     {
       name: "path",

@@ -1,10 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   deriveRequestIdentity,
+  formatAnonymousVisitor,
   maskNetworkPrefix,
 } from "@/lib/requestIdentity";
 
 describe("deriveRequestIdentity", () => {
+  it("formats a stable short visitor label without exposing the full hash", () => {
+    const hash = "a1b2c3d4".padEnd(64, "e");
+
+    expect(formatAnonymousVisitor(hash)).toBe("访客 A1B2C3D4");
+    expect(formatAnonymousVisitor("")).toBe("访客 未知");
+  });
+
   it("derives stable opaque identifiers from server request context", () => {
     const request = new Request("https://example.com/api/likes", {
       headers: {

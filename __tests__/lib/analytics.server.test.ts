@@ -11,6 +11,7 @@ vi.mock("@/lib/payload", () => ({
 import {
   readAnalyticsSummary,
   recordPageView,
+  startOfShanghaiDayWindow,
   updatePageView,
 } from "@/lib/analytics.server";
 
@@ -107,6 +108,7 @@ describe("analytics server persistence", () => {
             views: 12_345,
             visitors: 456,
             average_engaged_seconds: 37,
+            median_engaged_seconds: 19,
             average_scroll_depth: 68,
             recent_views: 123,
           },
@@ -114,20 +116,32 @@ describe("analytics server persistence", () => {
       })
       .mockResolvedValueOnce({
         rows: [{ path: "/blog/memory", title: "Memory", views: 99 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          { date: "08-03", views: 5, visitors: 3 },
+          { date: "08-04", views: 0, visitors: 0 },
+        ],
       });
 
     await expect(
       readAnalyticsSummary(
         new Date("2026-08-03T00:00:00.000Z"),
         new Date("2026-08-09T00:00:00.000Z"),
+        new Date("2026-08-10T00:00:00.000Z"),
       ),
     ).resolves.toEqual({
       views: 12_345,
       visitors: 456,
       averageEngagedSeconds: 37,
+      medianEngagedSeconds: 19,
       averageScrollDepth: 68,
       recentViews: 123,
       topPages: [{ path: "/blog/memory", title: "Memory", views: 99 }],
+      dailyViews: [
+        { date: "08-03", views: 5, visitors: 3 },
+        { date: "08-04", views: 0, visitors: 0 },
+      ],
     });
     expect(mockQuery.mock.calls[0][0]).toContain(
       "COUNT(DISTINCT visitor_hash)",
@@ -139,5 +153,27 @@ describe("analytics server persistence", () => {
     expect(mockQuery.mock.calls[1][0]).toContain(
       "COALESCE(is_owner, false) = false",
     );
+    expect(mockQuery.mock.calls[2][0]).toContain("generate_series");
+    expect(mockQuery.mock.calls[2][0]).toContain("Asia/Shanghai");
+    expect(mockQuery.mock.calls[2][0]).toContain(
+      "COUNT(DISTINCT page_views.visitor_hash)",
+    );
+    expect(mockQuery.mock.calls[0][0]).toContain("created_at < $3");
+    expect(mockQuery.mock.calls[1][0]).toContain("created_at < $2");
+    expect(mockQuery.mock.calls[2][0]).toContain("page_views.created_at < $2");
+    expect(mockQuery.mock.calls[0][1]).toEqual([
+      new Date("2026-08-03T00:00:00.000Z"),
+      new Date("2026-08-09T00:00:00.000Z"),
+      new Date("2026-08-10T00:00:00.000Z"),
+    ]);
+  });
+
+  it("starts a seven-day Shanghai calendar window at local midnight", () => {
+    expect(
+      startOfShanghaiDayWindow(new Date("2026-08-26T15:59:59.000Z")),
+    ).toEqual(new Date("2026-08-19T16:00:00.000Z"));
+    expect(
+      startOfShanghaiDayWindow(new Date("2026-08-26T16:00:00.000Z")),
+    ).toEqual(new Date("2026-08-20T16:00:00.000Z"));
   });
 });

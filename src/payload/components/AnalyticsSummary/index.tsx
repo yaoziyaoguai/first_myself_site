@@ -1,6 +1,14 @@
-import { readAnalyticsSummary } from "@/lib/analytics.server";
+import {
+  readAnalyticsSummary,
+  startOfShanghaiDayWindow,
+} from "@/lib/analytics.server";
 import { readAgentOperationsSummary } from
   "@/lib/blog-agent/operationsSummary.server";
+import { headers } from "next/headers";
+import {
+  deriveRequestIdentity,
+  formatAnonymousVisitor,
+} from "@/lib/requestIdentity";
 
 import "./styles.css";
 
@@ -11,21 +19,39 @@ function formatDuration(seconds: number) {
   return `${minutes} 分 ${remainder} 秒`;
 }
 
+async function readCurrentVisitorLabel() {
+  try {
+    const requestHeaders = new Headers(await headers());
+    const request = new Request("https://analytics.invalid", {
+      headers: requestHeaders,
+    });
+    return formatAnonymousVisitor(deriveRequestIdentity(request).fingerprint);
+  } catch {
+    return null;
+  }
+}
+
 export async function AnalyticsSummary() {
   // 服务端后台概览必须以每次请求的当前时间计算滚动窗口。
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
-  const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+  const until = new Date(now);
+  const sevenDaysAgo = startOfShanghaiDayWindow(until);
   const oneDayAgo = new Date(now - 24 * 60 * 60 * 1000);
-  const [summary, agentSummary] = await Promise.all([
-    readAnalyticsSummary(sevenDaysAgo, oneDayAgo),
-    readAgentOperationsSummary(sevenDaysAgo, new Date(now)),
+  const [summary, agentSummary, currentVisitorLabel] = await Promise.all([
+    readAnalyticsSummary(sevenDaysAgo, oneDayAgo, until),
+    readAgentOperationsSummary(sevenDaysAgo, until),
+    readCurrentVisitorLabel(),
   ]);
   const reasonLabels = {
     insufficient_evidence: "证据不足",
     rate_limited: "额度限制",
     provider_error: "模型服务异常",
   } as const;
+  const maxDailyViews = Math.max(
+    1,
+    ...summary.dailyViews.map((item) => item.views),
+  );
 
   return (
     <section className="analytics-summary" aria-labelledby="analytics-title">
@@ -36,8 +62,7 @@ export async function AnalyticsSummary() {
         </div>
         <p>
           近 24 小时 {summary.recentViews}{" "}
-          次访问。有效停留只累计页面可见时间，访客数按服务端匿名哈希估算。
-          已登录的站长访问不计入概览。
+          次访问。匿名访客以 IP 与浏览器信息的服务端哈希估算；有效停留只累计页面可见且浏览器聚焦的时间。已登录的站长访问不计入概览。
         </p>
       </div>
 
@@ -47,18 +72,51 @@ export async function AnalyticsSummary() {
           <strong>{summary.views}</strong>
         </div>
         <div>
-          <span>独立访客（估算）</span>
+          <span>匿名访客（估算）</span>
           <strong>{summary.visitors}</strong>
         </div>
         <div>
-          <span>平均有效停留</span>
-          <strong>{formatDuration(summary.averageEngagedSeconds)}</strong>
+          <span>中位有效停留</span>
+          <strong>{formatDuration(summary.medianEngagedSeconds)}</strong>
         </div>
         <div>
           <span>平均阅读深度</span>
           <strong>{summary.averageScrollDepth}%</strong>
         </div>
       </div>
+
+      {currentVisitorLabel && (
+        <p className="analytics-summary__current-visitor">
+          当前浏览器：{currentVisitorLabel}
+        </p>
+      )}
+
+      {summary.dailyViews.length > 0 && (
+        <div className="analytics-summary__trend">
+          <h3>近 7 日趋势</h3>
+          <ol>
+            {summary.dailyViews.map((item) => (
+              <li
+                aria-label={`${item.date}：${item.views} 次访问，${item.visitors} 位匿名访客`}
+                key={item.date}
+              >
+                <div className="analytics-summary__trend-bar" aria-hidden="true">
+                  {item.views > 0 && (
+                    <span
+                      style={{
+                        height: `${Math.max(4, Math.round((item.views / maxDailyViews) * 100))}%`,
+                      }}
+                    />
+                  )}
+                </div>
+                <strong>{item.date}</strong>
+                <small>{item.views} / {item.visitors}</small>
+              </li>
+            ))}
+          </ol>
+          <p>访问次数 / 匿名访客</p>
+        </div>
+      )}
 
       {summary.topPages.length > 0 && (
         <div className="analytics-summary__pages">
