@@ -24,9 +24,30 @@ describe("PageViews collection", () => {
     expect(PageViews.admin?.defaultColumns).toEqual([
       "path",
       "title",
+      "networkPrefix",
+      "isOwner",
       "engagedSeconds",
       "maxScrollDepth",
       "createdAt",
+    ]);
+    const fields = PageViews.fields.filter(
+      (field) => "name" in field &&
+        (field.name === "networkPrefix" || field.name === "isOwner"),
+    );
+    expect(fields).toEqual([
+      expect.objectContaining({
+        name: "networkPrefix",
+        label: "脱敏网段",
+        type: "text",
+        admin: expect.objectContaining({ readOnly: true }),
+      }),
+      expect.objectContaining({
+        name: "isOwner",
+        label: "站长访问",
+        type: "checkbox",
+        defaultValue: false,
+        admin: expect.objectContaining({ readOnly: true }),
+      }),
     ]);
   });
 });
