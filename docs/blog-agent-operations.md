@@ -133,3 +133,15 @@ docker compose --env-file .env.docker.prod \
 出现费用异常、滥用、错误引用或 provider 故障时，GitHub Repository Variables 是自动部署的配置源：第一步把 `BLOG_AGENT_ENABLED`、`BLOG_AGENT_GENERATION_ENABLED` 都设为 `false`，手动触发 `main` workflow，并确认文章页不再渲染机器人、API 返回 `404`。必要时同时在供应商侧吊销专用 Key；不要删除 Blog、数据库表或整站容器作为第一响应。
 
 只有 GitHub 暂时不可用时，才把服务器 `.env.docker.prod` 中两个开关设为 `false` 并只重建 app 作为临时止血。该文件会被后续 GitHub 部署进程中的 Repository Variables 覆盖，所以 GitHub 恢复后必须同步把 Variables 设为 `false`，并在任何新部署前复核开关状态。
+
+## 每日巡检与数据保留
+
+`.github/workflows/production-maintenance.yml` 每天北京时间 02:17 复用现有 SSH 链路，并与正式部署共用 `production-deploy` concurrency group，避免备份、迁移和清理同时执行。它按顺序完成公网与容器健康检查、TLS 至少剩余 21 天检查、数据库与媒体备份、备份可读性校验、30 天数据清理和当日 Agent 用量检查。也可以从 GitHub Actions 手工触发。
+
+备份只有在 PostgreSQL custom dump、媒体 tar 和最外层归档都可读取后才会原子发布，服务器保留最近 7 份。这个检查不能代替恢复演练：至少每季度把一份备份复制到隔离环境，执行 `pg_restore`、解压媒体并打开代表性文章；异地备份仍需独立配置。
+
+访问记录不保存完整 IP，只保存 IPv4 `/24` 或 IPv6 `/64` 的脱敏网段。只有通过 Payload 验证的 admin/editor 请求会被标为站长访问，客户端字段不会被信任；后台总览默认排除这部分访问。访问记录与脱敏后的未回答问题摘要保留 30 天。
+
+当日模型请求达到 `BLOG_AGENT_GLOBAL_DAILY_LIMIT` 的 80% 时，巡检会以失败状态退出，但不会修改线上硬限额或关闭服务。应在 GitHub 通知设置中开启 Actions 失败邮件，并在红色运行记录中确认失败来自健康、备份、清理还是额度阈值；日志只包含计数，不包含问题、身份哈希或 Secret。
+
+DeepSeek 与 DashScope Key 至少每季度轮换一次，发生泄露、异常费用或人员权限变化时立即轮换。使用供应商侧低额度专用 Key，先更新 GitHub Actions Secret，再手工运行部署与内部 canary；确认成功后吊销旧 Key。不要把新旧 Key 写入文档、Issue 或工作流日志。

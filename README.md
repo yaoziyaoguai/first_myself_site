@@ -16,7 +16,7 @@
 - Markdown 后台提供等宽双栏预览，并按内容锚点双向同步滚动
 - 草稿、公开文章和登录可见文章具有独立的可见性规则
 - 评论、回复和点赞通过受控接口提供，Payload collection 不向匿名用户直开
-- 后台“运营 → 访问统计”展示访问量、估算访客、有效停留和阅读深度
+- 后台“运营 → 访问统计”展示访问量、估算访客、有效停留、阅读深度和脱敏后的 Agent 未回答问题
 - 公开 Markdown 文章可启用悬浮 Agent，只回答当前 Blog，并可选使用同一文章的私有材料包增强上下文
 - sitemap、RSS、canonical metadata 和数据库就绪检查已接入
 - GitHub Pull Request 通过 CI 后合并到 `main`，自动部署到阿里云
@@ -103,7 +103,7 @@ npm run build
 - `editor`：维护内容并查看访问统计，不能管理用户或角色
 - `viewer`：不能进入 Payload Admin
 
-访问统计不使用 Cookie，尊重 Do Not Track 和 Global Privacy Control。系统只保留经 HMAC 处理的匿名标识、页面、来源域名、有效停留和最大阅读深度，不保存原始 IP。
+访问统计不使用 Cookie，尊重 Do Not Track 和 Global Privacy Control。系统只保留经 HMAC 处理的匿名标识、IPv4 `/24` 或 IPv6 `/64` 脱敏网段、页面、来源域名、有效停留和最大阅读深度，不保存原始 IP。通过 Payload 验证的 admin/editor 访问会被标为站长访问，并从后台总览中排除。
 
 ## 单文章 Blog Agent
 
@@ -160,7 +160,9 @@ curl --fail https://wangjinkun333.me/api/health
 
 ## 备份与运维边界
 
-`scripts/backup.sh` 会从运行中的 Compose 服务生成 PostgreSQL custom-format dump 和媒体归档。部署前会自动执行一次备份；自动回滚只处理应用镜像，不恢复数据库。仍应把备份复制到 ECS 之外，并定期做隔离恢复演练。
+`scripts/backup.sh` 会从运行中的 Compose 服务生成 PostgreSQL custom-format dump 和媒体归档，并在发布备份文件前校验数据库 dump、媒体包和外层归档均可读取。部署前会自动执行一次备份；自动回滚只处理应用镜像，不恢复数据库。仍应把备份复制到 ECS 之外，并至少每季度做一次隔离恢复演练。
+
+`.github/workflows/production-maintenance.yml` 每天北京时间 02:17 检查公网与容器健康、TLS 21 天续期窗口、可读备份、30 天统计数据保留和 Agent 当日请求量。达到每日请求上限 80% 或任一检查失败时，GitHub Actions 会标记失败；请确保仓库 Actions 失败通知已开启。完整处置和 API Key 季度轮换步骤见 [Blog Agent 运维手册](docs/blog-agent-operations.md)。
 
 - Nginx 配置和证书续期属于服务器层；仓库负责在部署时验证 HTTPS 结果
 - ICP、阿里云安全组和网络策略属于云平台配置

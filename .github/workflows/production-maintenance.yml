@@ -1,0 +1,32 @@
+name: Production Maintenance
+
+on:
+  schedule:
+    - cron: '17 18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  maintenance:
+    name: Check Aliyun production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Run maintenance via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 20m
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.PROJECT_PATH }}"
+            PROJECT_DIR="$PWD" \
+              BACKUP_DIR="$(dirname "$PWD")/backups/first_myself_site" \
+              ./scripts/production-maintenance.sh
