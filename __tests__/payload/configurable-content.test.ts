@@ -17,6 +17,8 @@ import * as pageViewsSchemaMigration from "@/payload/migrations/20260810_110000_
 import * as blogAgentRuntimeMigration from "@/payload/migrations/20260821_000000_add_blog_agent_runtime";
 import * as blogAgentArticlePackageMigration from "@/payload/migrations/20260823_000000_add_blog_agent_article_packages";
 import * as blogAgentGithubSourceMigration from "@/payload/migrations/20260824_000000_add_blog_agent_github_sources";
+import * as unansweredAgentQuestionsMigration from "@/payload/migrations/20260826_000000_add_unanswered_agent_questions";
+import * as ownerAnalyticsFieldsMigration from "@/payload/migrations/20260826_010000_add_owner_analytics_fields";
 import {
   CONFIGURABLE_CONTENT_VERSION,
   backfillConfigurableContent,
@@ -58,6 +60,16 @@ describe("configurable portfolio content", () => {
         name: "20260824_000000_add_blog_agent_github_sources",
         up: blogAgentGithubSourceMigration.up,
         down: blogAgentGithubSourceMigration.down,
+      },
+      {
+        name: "20260826_000000_add_unanswered_agent_questions",
+        up: unansweredAgentQuestionsMigration.up,
+        down: unansweredAgentQuestionsMigration.down,
+      },
+      {
+        name: "20260826_010000_add_owner_analytics_fields",
+        up: ownerAnalyticsFieldsMigration.up,
+        down: ownerAnalyticsFieldsMigration.down,
       },
     ]);
   });

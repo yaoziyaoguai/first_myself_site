@@ -39,7 +39,7 @@ describe("unanswered Agent questions production migration", () => {
   it("registers the migration after the existing article-source migration", () => {
     const names = migrations.map(({ name }) => name);
 
-    expect(names.at(-2)).toBe("20260824_000000_add_blog_agent_github_sources");
-    expect(names.at(-1)).toBe("20260826_000000_add_unanswered_agent_questions");
+    expect(names.indexOf("20260826_000000_add_unanswered_agent_questions"))
+      .toBe(names.indexOf("20260824_000000_add_blog_agent_github_sources") + 1);
   });
 });
