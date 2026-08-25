@@ -10,6 +10,7 @@ import { BlogScopedArticleRetriever } from "./articleRetriever";
 import { PostgresBlogAgentRepository } from "./repository.postgres";
 import { BlogAgentService } from "./service";
 import { GenerationUsagePolicy } from "./usagePolicy";
+import { PostgresUnansweredQuestionRecorder } from "./unansweredQuestions.postgres";
 
 export type BlogAgentRuntime = {
   config: BlogAgentConfig;
@@ -76,6 +77,7 @@ export function getBlogAgentRuntime(): BlogAgentRuntime {
   }
 
   const repository = new PostgresBlogAgentRepository(pool);
+  const unansweredQuestions = new PostgresUnansweredQuestionRecorder(pool);
   const usagePolicy = new GenerationUsagePolicy(repository, {
     windowMs: config.windowMs,
     perIdentityWindow: config.perIdentityWindow,
@@ -100,6 +102,7 @@ export function getBlogAgentRuntime(): BlogAgentRuntime {
       modelCacheKey: createModelCacheKey(config),
       cacheTtlMs: config.cacheTtlMs,
       articleRetriever,
+      unansweredQuestions,
     }),
   };
   currentRuntime = { signature, value };
