@@ -69,8 +69,13 @@ trap 'rm -rf -- "$scratch_dir"; rm -f -- "$temporary_file"' EXIT
   --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
   >"$scratch_dir/database.dump"
 
+"${COMPOSE[@]}" exec -T postgres \
+  pg_restore --list <"$scratch_dir/database.dump" >/dev/null
+
 "${COMPOSE[@]}" exec -T app \
   tar -C /app/media -czf - . >"$scratch_dir/media.tar.gz"
+
+tar -tzf "$scratch_dir/media.tar.gz" >/dev/null
 
 cat >"$scratch_dir/README.txt" <<EOF
 Created: $timestamp
@@ -79,6 +84,7 @@ Restore into a separate environment and verify before replacing production data.
 EOF
 
 tar -C "$scratch_dir" -czf "$temporary_file" .
+tar -tzf "$temporary_file" >/dev/null
 chmod 600 "$temporary_file"
 mv -- "$temporary_file" "$backup_file"
 trap 'rm -rf -- "$scratch_dir"' EXIT
