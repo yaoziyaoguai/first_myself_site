@@ -9,6 +9,7 @@ vi.mock("@/lib/blog-agent/runtime", () => ({ getBlogAgentRuntime: vi.fn() }));
 import { POST } from "@/app/api/blog/[identifier]/agent/route";
 import { getPayloadAPI } from "@/lib/payload";
 import { getBlogAgentRuntime } from "@/lib/blog-agent/runtime";
+import { clearRateLimit } from "@/lib/rateLimit";
 
 const execute = vi.fn();
 const find = vi.fn();
@@ -32,6 +33,7 @@ function context(slug = "doris-write-path") {
 describe("POST /api/blog/[slug]/agent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearRateLimit("blog-agent:identity-hash");
     vi.mocked(getPayloadAPI).mockResolvedValue({ find } as never);
     find.mockResolvedValue({
       docs: [{
@@ -59,6 +61,25 @@ describe("POST /api/blog/[slug]/agent", () => {
       config: { enabled: true, generationEnabled: true, generationConfigured: true },
       service: { execute },
     } as never);
+  });
+
+  it("rejects excessive cached or quota-denied requests before they can flood question logs", async () => {
+    for (let requestNumber = 0; requestNumber < 30; requestNumber += 1) {
+      const response = await POST(
+        request({ question: "为什么批量写入？" }) as never,
+        context(),
+      );
+      expect(response.status).toBe(200);
+    }
+
+    const blocked = await POST(
+      request({ question: "为什么批量写入？" }) as never,
+      context(),
+    );
+
+    expect(blocked.status).toBe(429);
+    expect((await blocked.json()).usage.reason).toBe("rate-limited");
+    expect(execute).toHaveBeenCalledTimes(30);
   });
 
   it("resolves exactly one published public Markdown article from the path slug", async () => {

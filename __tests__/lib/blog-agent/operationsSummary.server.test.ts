@@ -14,21 +14,22 @@ import { readAgentOperationsSummary } from
 describe("readAgentOperationsSummary", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("aggregates existing usage and returns only the ten newest unanswered items", async () => {
+  it("aggregates usage and returns the twenty newest question details", async () => {
     mockQuery
       .mockResolvedValueOnce({
         rows: [{
           request_count: "34",
           input_tokens: "12345",
           output_tokens: "678",
+          question_count: "19",
           unanswered_count: "12",
         }],
       })
       .mockResolvedValueOnce({
         rows: [{
-          question_excerpt: "为什么没有代码证据?",
+          question_text: "为什么没有代码证据?",
           article_slug: "agent-runtime",
-          reason: "insufficient_evidence",
+          outcome: "insufficient_evidence",
           created_at: new Date("2026-08-26T01:00:00.000Z"),
         }],
       });
@@ -39,22 +40,24 @@ describe("readAgentOperationsSummary", () => {
       requestCount: 34,
       inputTokens: 12_345,
       outputTokens: 678,
+      questionCount: 19,
       unansweredCount: 12,
-      recentUnanswered: [{
-        questionExcerpt: "为什么没有代码证据?",
+      recentQuestions: [{
+        questionText: "为什么没有代码证据?",
         articleSlug: "agent-runtime",
-        reason: "insufficient_evidence",
+        outcome: "insufficient_evidence",
         createdAt: new Date("2026-08-26T01:00:00.000Z"),
       }],
     });
 
     const [aggregateSql, aggregateValues] = mockQuery.mock.calls[0];
     expect(aggregateSql).toContain('FROM "blog_agent"."usage_daily"');
-    expect(aggregateSql).toContain('FROM "blog_agent"."unanswered_questions"');
+    expect(aggregateSql).toContain('FROM "blog_agent"."questions"');
     expect(aggregateValues).toEqual([since, today]);
     const [recentSql, recentValues] = mockQuery.mock.calls[1];
+    expect(recentSql).toContain('FROM "blog_agent"."questions"');
     expect(recentSql).toContain("ORDER BY \"created_at\" DESC");
-    expect(recentSql).toContain("LIMIT 10");
+    expect(recentSql).toContain("LIMIT 20");
     expect(recentValues).toEqual([since]);
   });
 
@@ -65,6 +68,7 @@ describe("readAgentOperationsSummary", () => {
           request_count: "invalid",
           input_tokens: null,
           output_tokens: "-5",
+          question_count: "bad",
           unanswered_count: undefined,
         }],
       })
@@ -79,8 +83,9 @@ describe("readAgentOperationsSummary", () => {
       requestCount: 0,
       inputTokens: 0,
       outputTokens: 0,
+      questionCount: 0,
       unansweredCount: 0,
-      recentUnanswered: [],
+      recentQuestions: [],
     });
   });
 });
