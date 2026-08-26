@@ -31,8 +31,15 @@ if [[ ! -f "$COMPOSE_FILE" ]]; then
   exit 1
 fi
 
+domain="${APP_URL#https://}"
+domain="${domain#http://}"
+domain="${domain%%/*}"
+
 echo "Application readiness"
-curl --fail --silent --show-error --max-time 10 "$APP_URL/api/health"
+curl --fail --silent --show-error --max-time 10 \
+  --noproxy '*' \
+  --resolve "$domain:443:127.0.0.1" \
+  "$APP_URL/api/health"
 echo
 
 echo "Container status"
@@ -45,12 +52,8 @@ if [[ -n "$unhealthy" ]]; then
   exit 1
 fi
 
-domain="${APP_URL#https://}"
-domain="${domain#http://}"
-domain="${domain%%/*}"
-
 echo "TLS certificate"
-certificate="$({ echo | openssl s_client -servername "$domain" -connect "$domain:443" 2>/dev/null; })"
+certificate="$({ echo | openssl s_client -servername "$domain" -connect "127.0.0.1:443" 2>/dev/null; })"
 certificate_end="$(printf '%s\n' "$certificate" | openssl x509 -noout -enddate)"
 echo "$certificate_end"
 if ! printf '%s\n' "$certificate" | openssl x509 -checkend "$tls_check_seconds" -noout >/dev/null; then
