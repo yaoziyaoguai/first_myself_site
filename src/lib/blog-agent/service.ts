@@ -18,10 +18,10 @@ import type {
 import type { GenerationUsagePolicy } from "./usagePolicy";
 import { buildGitHubSource } from "./githubSource";
 import {
-  redactQuestionExcerpt,
-  type UnansweredQuestionReason,
-  type UnansweredQuestionRecorder,
-} from "./unansweredQuestions";
+  redactAgentQuestion,
+  type AgentQuestionOutcome,
+  type AgentQuestionRecorder,
+} from "./questionLog";
 
 type ServiceResult = {
   status: 200 | 429 | 503;
@@ -37,7 +37,7 @@ type BlogAgentServiceDependencies = {
   now?: () => Date;
   createQueryId?: () => string;
   articleRetriever?: BlogScopedArticleRetriever;
-  unansweredQuestions?: UnansweredQuestionRecorder;
+  questionLog?: AgentQuestionRecorder;
 };
 
 function sha256(value: string): string {
@@ -101,20 +101,28 @@ export class BlogAgentService {
     this.createQueryId = dependencies.createQueryId ?? randomUUID;
   }
 
-  private async recordUnanswered(
+  private async recordQuestion(
     input: { article: PublicMarkdownArticle; question: string },
     queryId: string,
-    reason: UnansweredQuestionReason,
+    outcome: AgentQuestionOutcome,
   ): Promise<void> {
-    const recorder = this.dependencies.unansweredQuestions;
+    const recorder = this.dependencies.questionLog;
     if (!recorder) return;
-    await recorder.record({
-      queryId,
-      articleSlug: input.article.slug,
-      questionExcerpt: redactQuestionExcerpt(input.question),
-      reason,
-      createdAt: this.now(),
-    }).catch(() => undefined);
+    try {
+      await recorder.record({
+        queryId,
+        articleSlug: input.article.slug,
+        questionText: redactAgentQuestion(input.question),
+        outcome,
+        createdAt: this.now(),
+      });
+    } catch {
+      // 记录失败不能泄露问题正文，也不能改变访客已经得到的问答结果。
+      console.error("[blog-agent] question-log-write-failed", {
+        queryId,
+        articleSlug: input.article.slug,
+      });
+    }
   }
 
   async execute(input: {
@@ -136,7 +144,7 @@ export class BlogAgentService {
       prepared = null;
     }
     if (input.article.agentContextRequired === true && !prepared) {
-      await this.recordUnanswered(input, queryId, "provider_error");
+      await this.recordQuestion(input, queryId, "provider_error");
       return {
         status: 503,
         body: createBlogAgentUnavailableResponse("provider-unavailable", queryId),
@@ -182,9 +190,11 @@ export class BlogAgentService {
           cached.citationIds,
         );
         if (cached.insufficientEvidence || cachedCitations.length > 0) {
-          if (cached.insufficientEvidence) {
-            await this.recordUnanswered(input, queryId, "insufficient_evidence");
-          }
+          await this.recordQuestion(
+            input,
+            queryId,
+            cached.insufficientEvidence ? "insufficient_evidence" : "answered",
+          );
           return {
             status: 200,
             body: {
@@ -218,7 +228,7 @@ export class BlogAgentService {
         },
       );
       if (!generated.allowed) {
-        await this.recordUnanswered(input, queryId, "rate_limited");
+        await this.recordQuestion(input, queryId, "rate_limited");
         return {
           status: 429,
           body: createBlogAgentUnavailableResponse("rate-limited", queryId),
@@ -241,9 +251,11 @@ export class BlogAgentService {
         evidence?.sections ?? [],
         answer.citationIds,
       );
-      if (answer.insufficientEvidence) {
-        await this.recordUnanswered(input, queryId, "insufficient_evidence");
-      }
+      await this.recordQuestion(
+        input,
+        queryId,
+        answer.insufficientEvidence ? "insufficient_evidence" : "answered",
+      );
       return {
         status: 200,
         body: {
@@ -256,7 +268,7 @@ export class BlogAgentService {
         },
       };
     } catch {
-      await this.recordUnanswered(input, queryId, "provider_error");
+      await this.recordQuestion(input, queryId, "provider_error");
       return {
         status: 503,
         body: createBlogAgentUnavailableResponse("provider-unavailable", queryId),

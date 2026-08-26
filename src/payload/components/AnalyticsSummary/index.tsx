@@ -43,7 +43,8 @@ export async function AnalyticsSummary() {
     readAgentOperationsSummary(sevenDaysAgo, until),
     readCurrentVisitorLabel(),
   ]);
-  const reasonLabels = {
+  const outcomeLabels = {
+    answered: "已回答",
     insufficient_evidence: "证据不足",
     rate_limited: "额度限制",
     provider_error: "模型服务异常",
@@ -141,9 +142,13 @@ export async function AnalyticsSummary() {
             <p className="analytics-summary__eyebrow">近 7 天</p>
             <h3>文章 Agent</h3>
           </div>
-          <p>只保留未回答问题的脱敏摘要，30 天后自动删除。</p>
+          <p>保留脱敏后的问题 30 天，不保存模型答案或对话历史。</p>
         </div>
         <div className="analytics-summary__agent-metrics">
+          <div>
+            <span>用户提问</span>
+            <strong>{agentSummary.questionCount.toLocaleString("zh-CN")}</strong>
+          </div>
           <div>
             <span>模型请求</span>
             <strong>{agentSummary.requestCount.toLocaleString("zh-CN")}</strong>
@@ -160,16 +165,23 @@ export async function AnalyticsSummary() {
             <strong>{agentSummary.unansweredCount.toLocaleString("zh-CN")}</strong>
           </div>
         </div>
-        {agentSummary.recentUnanswered.length > 0 && (
+        {agentSummary.recentQuestions.length > 0 && (
           <div className="analytics-summary__agent-inbox">
-            <h4>最近未回答</h4>
+            <h4>最近问题明细</h4>
             <ol>
-              {agentSummary.recentUnanswered.map((item, index) => (
+              {agentSummary.recentQuestions.map((item, index) => (
                 <li key={`${item.createdAt.toISOString()}:${index}`}>
                   <div>
-                    <span>{item.questionExcerpt}</span>
+                    <span>{item.questionText}</span>
                     <small>
-                      {item.articleSlug} · {reasonLabels[item.reason]} · {" "}
+                      <a
+                        href={`/blog/${encodeURIComponent(item.articleSlug)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {item.articleSlug}
+                      </a>{" "}
+                      · {outcomeLabels[item.outcome]} · {" "}
                       {item.createdAt.toLocaleString("zh-CN", { hour12: false })}
                     </small>
                   </div>

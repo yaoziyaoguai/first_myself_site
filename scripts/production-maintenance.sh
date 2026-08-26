@@ -49,27 +49,62 @@ cleanup_counts="$("${COMPOSE[@]}" exec -T postgres psql \
   --dbname "$POSTGRES_DB" \
   --quiet --tuples-only --no-align --field-separator='|' <<'SQL'
 BEGIN;
-WITH removed_page_views AS (
+SET LOCAL app.retention_days TO :'retention_days';
+CREATE TEMP TABLE retention_cleanup_counts (
+  page_views bigint NOT NULL,
+  agent_questions bigint NOT NULL,
+  legacy_unanswered bigint NOT NULL
+) ON COMMIT DROP;
+DO $retention_cleanup$
+DECLARE
+  removed_page_views bigint := 0;
+  removed_agent_questions bigint := 0;
+  removed_unanswered bigint := 0;
+BEGIN
   DELETE FROM "page_views"
-  WHERE created_at < NOW() - make_interval(days => :'retention_days'::integer)
-  RETURNING 1
-), removed_unanswered AS (
-  DELETE FROM "blog_agent"."unanswered_questions"
-  WHERE created_at < NOW() - make_interval(days => :'retention_days'::integer)
-  RETURNING 1
-)
+  WHERE created_at < NOW() - make_interval(
+    days => current_setting('app.retention_days')::integer
+  );
+  GET DIAGNOSTICS removed_page_views = ROW_COUNT;
+
+  IF to_regclass('blog_agent.questions') IS NOT NULL THEN
+    EXECUTE 'DELETE FROM "blog_agent"."questions"
+      WHERE created_at < NOW() - make_interval(
+        days => current_setting(''app.retention_days'')::integer
+      )';
+    GET DIAGNOSTICS removed_agent_questions = ROW_COUNT;
+  END IF;
+
+  IF to_regclass('blog_agent.unanswered_questions') IS NOT NULL THEN
+    EXECUTE 'DELETE FROM "blog_agent"."unanswered_questions"
+      WHERE created_at < NOW() - make_interval(
+        days => current_setting(''app.retention_days'')::integer
+      )';
+    GET DIAGNOSTICS removed_unanswered = ROW_COUNT;
+  END IF;
+
+  INSERT INTO retention_cleanup_counts
+    (page_views, agent_questions, legacy_unanswered)
+  VALUES
+    (removed_page_views, removed_agent_questions, removed_unanswered);
+END
+$retention_cleanup$;
 SELECT
-  (SELECT COUNT(*) FROM removed_page_views),
-  (SELECT COUNT(*) FROM removed_unanswered);
+  page_views,
+  agent_questions,
+  legacy_unanswered
+FROM retention_cleanup_counts;
 COMMIT;
 SQL
 )"
 
-if [[ ! "$cleanup_counts" =~ ^[0-9]+\|[0-9]+$ ]]; then
+if [[ ! "$cleanup_counts" =~ ^[0-9]+\|[0-9]+\|[0-9]+$ ]]; then
   echo "Retention cleanup returned an invalid count" >&2
   exit 1
 fi
-echo "Retention cleanup: page_views=${cleanup_counts%%|*}, unanswered=${cleanup_counts#*|}"
+IFS='|' read -r removed_page_views removed_agent_questions removed_unanswered \
+  <<<"$cleanup_counts"
+echo "Retention cleanup: page_views=$removed_page_views, agent_questions=$removed_agent_questions, legacy_unanswered=$removed_unanswered"
 
 daily_usage="$("${COMPOSE[@]}" exec -T postgres psql \
   --set ON_ERROR_STOP=1 \

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { PostgresUnansweredQuestionRecorder } from
-  "@/lib/blog-agent/unansweredQuestions.postgres";
+import { PostgresAgentQuestionRecorder } from
+  "@/lib/blog-agent/questionLog.postgres";
 import type { BlogAgentQueryPool } from "@/lib/blog-agent/repository.postgres";
 
 function poolWith(
@@ -15,57 +15,59 @@ function poolWith(
   };
 }
 
-describe("PostgresUnansweredQuestionRecorder", () => {
-  it("purges a bounded expired batch before inserting parameterized data", async () => {
+describe("PostgresAgentQuestionRecorder", () => {
+  it("purges expired rows and stores one bounded question without an answer", async () => {
     const { pool, query } = poolWith();
-    const recorder = new PostgresUnansweredQuestionRecorder(pool);
-    const createdAt = new Date("2026-08-26T01:02:03.000Z");
+    const recorder = new PostgresAgentQuestionRecorder(pool);
+    const createdAt = new Date("2026-08-27T01:02:03.000Z");
 
     await recorder.record({
       queryId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35011",
       articleSlug: "memory-agent",
-      questionExcerpt: "为什么这里没有足够证据？",
-      reason: "insufficient_evidence",
+      questionText: "这段代码为什么要先检查状态？",
+      outcome: "answered",
       createdAt,
     });
 
     expect(query).toHaveBeenCalledTimes(1);
     const [statement, values] = query.mock.calls[0]!;
     expect(statement).toContain("LIMIT 100");
-    expect(statement).toContain("DELETE FROM \"blog_agent\".\"unanswered_questions\"");
-    expect(statement).toContain("INSERT INTO \"blog_agent\".\"unanswered_questions\"");
-    expect(statement).toContain("ON CONFLICT (\"query_id\") DO NOTHING");
+    expect(statement).toContain("OFFSET 49999");
+    expect(statement).toContain('DELETE FROM "blog_agent"."questions"');
+    expect(statement).toContain('INSERT INTO "blog_agent"."questions"');
+    expect(statement).toContain('ON CONFLICT ("query_id") DO NOTHING');
+    expect(statement).not.toContain('"answer"');
     expect(values).toEqual([
-      new Date("2026-07-27T01:02:03.000Z"),
+      new Date("2026-07-28T01:02:03.000Z"),
       "4f0f0b87-8f0d-4fc8-a8df-2e5169e35011",
       "memory-agent",
-      "为什么这里没有足够证据？",
-      "insufficient_evidence",
+      "这段代码为什么要先检查状态？",
+      "answered",
       createdAt,
     ]);
   });
 
-  it("rejects invalid reasons and caps defense-in-depth text fields", async () => {
+  it("accepts only known outcomes and caps defense-in-depth text fields", async () => {
     const { pool, query } = poolWith();
-    const recorder = new PostgresUnansweredQuestionRecorder(pool);
+    const recorder = new PostgresAgentQuestionRecorder(pool);
 
     await expect(
       recorder.record({
         queryId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35011",
         articleSlug: "a".repeat(200),
-        questionExcerpt: "问".repeat(700),
-        reason: "answered" as "provider_error",
-        createdAt: new Date("2026-08-26T00:00:00.000Z"),
+        questionText: "问".repeat(700),
+        outcome: "unknown" as "answered",
+        createdAt: new Date("2026-08-27T00:00:00.000Z"),
       }),
-    ).rejects.toThrow("Invalid unanswered question reason");
+    ).rejects.toThrow("Invalid Agent question outcome");
     expect(query).not.toHaveBeenCalled();
 
     await recorder.record({
       queryId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35011",
       articleSlug: "a".repeat(200),
-      questionExcerpt: "问".repeat(700),
-      reason: "provider_error",
-      createdAt: new Date("2026-08-26T00:00:00.000Z"),
+      questionText: "问".repeat(700),
+      outcome: "provider_error",
+      createdAt: new Date("2026-08-27T00:00:00.000Z"),
     });
     const values = query.mock.calls[0]![1];
     if (!values) throw new Error("Expected parameterized query values");

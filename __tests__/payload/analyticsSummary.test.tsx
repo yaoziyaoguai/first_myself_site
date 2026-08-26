@@ -54,8 +54,9 @@ describe("AnalyticsSummary", () => {
       requestCount: 0,
       inputTokens: 0,
       outputTokens: 0,
+      questionCount: 0,
       unansweredCount: 0,
-      recentUnanswered: [],
+      recentQuestions: [],
     });
   });
 
@@ -105,5 +106,33 @@ describe("AnalyticsSummary", () => {
     render(await AnalyticsSummary());
 
     expect(screen.queryByText(/当前浏览器：/u)).not.toBeInTheDocument();
+  });
+
+  it("shows recent Agent questions and outcomes without an answer field", async () => {
+    mockReadAgentOperationsSummary.mockResolvedValueOnce({
+      requestCount: 8,
+      inputTokens: 1200,
+      outputTokens: 300,
+      questionCount: 11,
+      unansweredCount: 2,
+      recentQuestions: [{
+        questionText: "这段代码为什么要先检查状态？",
+        articleSlug: "local-process-tools",
+        outcome: "answered",
+        createdAt: new Date("2026-08-27T08:30:00.000Z"),
+      }],
+    });
+
+    render(await AnalyticsSummary());
+
+    expect(screen.getByText("用户提问")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "最近问题明细" }))
+      .toBeInTheDocument();
+    expect(screen.getByText("这段代码为什么要先检查状态？"))
+      .toBeInTheDocument();
+    const articleLink = screen.getByRole("link", { name: "local-process-tools" });
+    expect(articleLink).toHaveAttribute("href", "/blog/local-process-tools");
+    expect(articleLink.closest("small")).toHaveTextContent("已回答");
+    expect(screen.getByText(/不保存模型答案/u)).toBeInTheDocument();
   });
 });

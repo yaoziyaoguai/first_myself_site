@@ -6,8 +6,7 @@ import { GenerationUsagePolicy } from "@/lib/blog-agent/usagePolicy";
 import { BlogScopedArticleRetriever } from "@/lib/blog-agent/articleRetriever";
 import type { ArticleIndexRepository } from "@/lib/blog-agent/articleIndexRepository";
 import { hashPublicArticle } from "@/lib/blog-agent/articlePackage";
-import type { UnansweredQuestionRecorder } from
-  "@/lib/blog-agent/unansweredQuestions";
+import type { AgentQuestionRecorder } from "@/lib/blog-agent/questionLog";
 
 const article = {
   id: "7",
@@ -54,7 +53,7 @@ function createFixture(options?: {
     perIdentityConcurrency: 1,
     globalConcurrency: 3,
   }, () => new Date("2026-08-21T12:00:00.000Z"));
-  const unansweredQuestions: UnansweredQuestionRecorder = {
+  const questionLog: AgentQuestionRecorder = {
     record: options?.recorderError
       ? vi.fn().mockRejectedValue(options.recorderError)
       : vi.fn().mockResolvedValue(undefined),
@@ -68,9 +67,9 @@ function createFixture(options?: {
     now: () => new Date("2026-08-21T12:00:00.000Z"),
     createQueryId: () => "query-1",
     articleRetriever: options?.articleRetriever,
-    unansweredQuestions,
+    questionLog,
   });
-  return { service, repository, client, unansweredQuestions };
+  return { service, repository, client, questionLog };
 }
 
 describe("BlogAgentService", () => {
@@ -92,6 +91,16 @@ describe("BlogAgentService", () => {
       },
     ]);
     expect(response.body.usage).toEqual({ cached: false });
+    expect(fixture.questionLog.record).toHaveBeenCalledOnce();
+    expect(fixture.questionLog.record).toHaveBeenCalledWith({
+      queryId: "query-1",
+      articleSlug: article.slug,
+      questionText: "为什么批量写入?",
+      outcome: "answered",
+      createdAt: new Date("2026-08-21T12:00:00.000Z"),
+    });
+    expect(Object.keys(vi.mocked(fixture.questionLog.record).mock.calls[0]![0]))
+      .not.toContain("answer");
     expect(fixture.repository.recordTokenUsage).toHaveBeenCalledWith(
       expect.objectContaining({ inputTokens: 12, outputTokens: 5 }),
     );
@@ -177,6 +186,10 @@ describe("BlogAgentService", () => {
     expect(response.body.usage).toEqual({ cached: true });
     expect(fixture.repository.reserveGeneration).not.toHaveBeenCalled();
     expect(fixture.client.complete).not.toHaveBeenCalled();
+    expect(fixture.questionLog.record).toHaveBeenCalledOnce();
+    expect(fixture.questionLog.record).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: "answered" }),
+    );
   });
 
   it("regenerates a prose-only cached answer for a code question", async () => {
@@ -332,11 +345,12 @@ describe("BlogAgentService", () => {
     expect(response.status).toBe(429);
     expect(response.body.usage.reason).toBe("rate-limited");
     expect(fixture.client.complete).not.toHaveBeenCalled();
-    expect(fixture.unansweredQuestions.record).toHaveBeenCalledWith({
+    expect(fixture.questionLog.record).toHaveBeenCalledOnce();
+    expect(fixture.questionLog.record).toHaveBeenCalledWith({
       queryId: "query-1",
       articleSlug: article.slug,
-      questionExcerpt: "为什么批量写入?",
-      reason: "rate_limited",
+      questionText: "为什么批量写入?",
+      outcome: "rate_limited",
       createdAt: new Date("2026-08-21T12:00:00.000Z"),
     });
   });
@@ -362,16 +376,17 @@ describe("BlogAgentService", () => {
       citations: [],
       insufficientEvidence: true,
     }));
-    expect(fixture.unansweredQuestions.record).toHaveBeenCalledWith({
+    expect(fixture.questionLog.record).toHaveBeenCalledOnce();
+    expect(fixture.questionLog.record).toHaveBeenCalledWith({
       queryId: "query-1",
       articleSlug: article.slug,
-      questionExcerpt: "作者的电话号码是什么?",
-      reason: "insufficient_evidence",
+      questionText: "作者的电话号码是什么?",
+      outcome: "insufficient_evidence",
       createdAt: new Date("2026-08-21T12:00:00.000Z"),
     });
   });
 
-  it("records a cached insufficient answer but never records successful answers", async () => {
+  it("records every accepted question once and redacts sensitive text", async () => {
     const insufficient = createFixture({
       cached: { answer: "", citationIds: [], insufficientEvidence: true },
     });
@@ -400,14 +415,21 @@ describe("BlogAgentService", () => {
       identityHash: "identity-generated",
     });
 
-    expect(insufficient.unansweredQuestions.record).toHaveBeenCalledWith(
+    expect(insufficient.questionLog.record).toHaveBeenCalledOnce();
+    expect(insufficient.questionLog.record).toHaveBeenCalledWith(
       expect.objectContaining({
-        questionExcerpt: "联系邮箱是 [邮箱已脱敏] 吗?",
-        reason: "insufficient_evidence",
+        questionText: "联系邮箱是 [邮箱已脱敏] 吗?",
+        outcome: "insufficient_evidence",
       }),
     );
-    expect(cachedSuccess.unansweredQuestions.record).not.toHaveBeenCalled();
-    expect(generatedSuccess.unansweredQuestions.record).not.toHaveBeenCalled();
+    expect(cachedSuccess.questionLog.record).toHaveBeenCalledOnce();
+    expect(cachedSuccess.questionLog.record).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: "answered" }),
+    );
+    expect(generatedSuccess.questionLog.record).toHaveBeenCalledOnce();
+    expect(generatedSuccess.questionLog.record).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: "answered" }),
+    );
   });
 
   it("fails closed without leaking provider errors or article Markdown", async () => {
@@ -426,12 +448,14 @@ describe("BlogAgentService", () => {
     const serialized = JSON.stringify(response);
     expect(serialized).not.toContain("token=abc");
     expect(serialized).not.toContain(article.contentMarkdown);
-    expect(fixture.unansweredQuestions.record).toHaveBeenCalledWith(
-      expect.objectContaining({ reason: "provider_error" }),
+    expect(fixture.questionLog.record).toHaveBeenCalledOnce();
+    expect(fixture.questionLog.record).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: "provider_error" }),
     );
   });
 
-  it("does not change the public answer when unanswered telemetry fails", async () => {
+  it("does not change the public answer when question logging fails", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const fixture = createFixture({
       modelContent: JSON.stringify({
         answer: "",
@@ -450,6 +474,12 @@ describe("BlogAgentService", () => {
     expect(response.status).toBe(200);
     expect(response.body.insufficientEvidence).toBe(true);
     expect(response.body.answer).toBeNull();
+    expect(consoleError).toHaveBeenCalledWith(
+      "[blog-agent] question-log-write-failed",
+      { queryId: "query-1", articleSlug: article.slug },
+    );
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain("作者住在哪里");
+    consoleError.mockRestore();
   });
 
   it("fails closed when an article requires a package that cannot be prepared", async () => {
@@ -475,6 +505,10 @@ describe("BlogAgentService", () => {
     expect(response.body.usage.reason).toBe("provider-unavailable");
     expect(fixture.client.complete).not.toHaveBeenCalled();
     expect(fixture.repository.reserveGeneration).not.toHaveBeenCalled();
+    expect(fixture.questionLog.record).toHaveBeenCalledOnce();
+    expect(fixture.questionLog.record).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: "provider_error" }),
+    );
   });
 
   it("returns a completed answer when only the cache write fails", async () => {

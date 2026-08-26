@@ -43,7 +43,7 @@
 .analytics-summary__agent-metrics {
   display: grid;
   margin-top: 16px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -88,6 +88,10 @@
   display: flex;
   gap: 4px;
   flex-direction: column;
+}
+
+.analytics-summary__agent-inbox a {
+  color: currentColor;
 }
 
 .analytics-summary__heading > p {

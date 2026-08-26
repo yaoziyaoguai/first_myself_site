@@ -92,6 +92,9 @@ export const RATE_LIMITS = {
 
   // Contact form: 5 per day per IP
   CONTACT_FORM: { limit: 5, windowMs: 24 * 60 * 60 * 1000 },
+
+  // Article Agent: bound cache hits and rejected generations before they can flood logs.
+  BLOG_AGENT: { limit: 30, windowMs: 10 * 60 * 1000 },
 };
 
 /**

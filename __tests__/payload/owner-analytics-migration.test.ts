@@ -36,9 +36,10 @@ describe("owner analytics production migration", () => {
   });
 
   it("registers after the unanswered-question migration", () => {
-    expect(migrations.map(({ name }) => name).slice(-2)).toEqual([
+    expect(migrations.map(({ name }) => name).slice(-3)).toEqual([
       "20260826_000000_add_unanswered_agent_questions",
       "20260826_010000_add_owner_analytics_fields",
+      "20260827_000000_add_agent_question_log",
     ]);
   });
 });

@@ -66,6 +66,8 @@ trap 'rm -rf -- "$scratch_dir"; rm -f -- "$temporary_file"' EXIT
 
 "${COMPOSE[@]}" exec -T postgres \
   pg_dump --format=custom --no-owner --no-privileges \
+  --exclude-table-data=blog_agent.questions \
+  --exclude-table-data=blog_agent.unanswered_questions \
   --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
   >"$scratch_dir/database.dump"
 

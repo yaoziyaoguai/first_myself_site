@@ -3,6 +3,7 @@ import { getBlogAgentRuntime } from "@/lib/blog-agent/runtime";
 import { createBlogAgentUnavailableResponse } from "@/lib/blog-agent/service";
 import { getPayloadAPI } from "@/lib/payload";
 import { deriveRequestIdentity } from "@/lib/requestIdentity";
+import { isRateLimited, RATE_LIMITS } from "@/lib/rateLimit";
 import type {
   BlogAgentConversationTurn,
   PublicMarkdownArticle,
@@ -229,6 +230,16 @@ export async function POST(request: Request, { params }: RouteContext) {
     if (!article) return errorResponse("Article not found", 404);
 
     const identity = deriveRequestIdentity(request);
+    if (isRateLimited(
+      `blog-agent:${identity.rateLimitKey}`,
+      RATE_LIMITS.BLOG_AGENT.limit,
+      RATE_LIMITS.BLOG_AGENT.windowMs,
+    )) {
+      return NextResponse.json(
+        createBlogAgentUnavailableResponse("rate-limited"),
+        { status: 429 },
+      );
+    }
     const result = await runtime.service.execute({
       article,
       question,

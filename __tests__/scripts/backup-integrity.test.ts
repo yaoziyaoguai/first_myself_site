@@ -22,6 +22,8 @@ describe("production backup integrity", () => {
     const publish = script.indexOf('mv -- "$temporary_file" "$backup_file"');
 
     expect(dump).toBeGreaterThan(-1);
+    expect(script).toContain("--exclude-table-data=blog_agent.questions");
+    expect(script).toContain("--exclude-table-data=blog_agent.unanswered_questions");
     expect(dumpCheck).toBeGreaterThan(dump);
     expect(mediaArchive).toBeGreaterThan(dumpCheck);
     expect(mediaCheck).toBeGreaterThan(mediaArchive);

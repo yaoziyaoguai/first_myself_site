@@ -14,6 +14,9 @@ describe("production maintenance", () => {
     const health = script.indexOf("./scripts/health-check.sh");
     const backup = script.indexOf("./scripts/backup.sh");
     const cleanup = script.indexOf('DELETE FROM "page_views"');
+    const questionCleanup = script.indexOf(
+      'DELETE FROM "blog_agent"."questions"',
+    );
     const usage = script.indexOf('FROM "blog_agent"."usage_daily"');
 
     expect(script).toContain('RETENTION_DAYS="${RETENTION_DAYS:-30}"');
@@ -25,11 +28,13 @@ describe("production maintenance", () => {
     expect(health).toBeGreaterThan(-1);
     expect(backup).toBeGreaterThan(health);
     expect(cleanup).toBeGreaterThan(backup);
+    expect(questionCleanup).toBeGreaterThan(cleanup);
     expect(usage).toBeGreaterThan(cleanup);
     expect(script).toContain(
-      "created_at < NOW() - make_interval(days => :'retention_days'::integer)",
+      "days => current_setting('app.retention_days')::integer",
     );
     expect(script).toContain('--set=retention_days="$RETENTION_DAYS"');
+    expect(script).toContain("to_regclass('blog_agent.questions')");
     expect(script).toContain("BEGIN;");
     expect(script).toContain("COMMIT;");
     expect(script).toContain(
@@ -38,5 +43,6 @@ describe("production maintenance", () => {
     expect(script).toContain('if (( daily_requests >= alert_threshold )); then');
     expect(script).not.toContain("question_excerpt");
     expect(script).not.toContain("identity_hash");
+    expect(script).toContain("agent_questions=");
   });
 });
