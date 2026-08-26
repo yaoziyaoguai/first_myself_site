@@ -197,6 +197,13 @@ jobs:
               return 1
             }
 
+            verify_nginx_health() {
+              curl --fail --silent --show-error --max-time 10 \
+                --noproxy '*' \
+                --resolve "wangjinkun333.me:443:127.0.0.1" \
+                https://wangjinkun333.me/api/health >/dev/null
+            }
+
             verify_agent_disabled() {
               status="$(curl --silent --show-error --max-time 5 \
                 --output /dev/null --write-out '%{http_code}' \
@@ -295,9 +302,8 @@ jobs:
               exit 1
             fi
 
-            # 同时验证 Nginx、域名和 TLS，避免只检查到容器内部正常。
-            if ! curl --fail --silent --show-error --max-time 10 \
-              https://wangjinkun333.me/api/health >/dev/null; then
+            # 直连本机 Nginx，验证域名、SNI、证书与代理链路，避免外层安全策略误伤发布探针。
+            if ! verify_nginx_health; then
               if ! fail_closed_rollback; then
                 echo "Unable to establish a fail-closed rollback state" >&2
               fi
@@ -332,8 +338,7 @@ jobs:
               fi
               exit 1
             fi
-            if ! curl --fail --silent --show-error --max-time 10 \
-              https://wangjinkun333.me/api/health >/dev/null; then
+            if ! verify_nginx_health; then
               if ! fail_closed_rollback; then
                 echo "Unable to establish a fail-closed rollback state" >&2
               fi

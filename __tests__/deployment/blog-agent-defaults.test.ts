@@ -131,8 +131,9 @@ describe("Blog Agent production defaults", () => {
       '"${compose[@]}" up -d',
       disableCandidate,
     );
-    const publicHealthCheck = workflow.indexOf(
-      "https://wangjinkun333.me/api/health",
+    const nginxHealthDefinition = workflow.indexOf("verify_nginx_health() {");
+    const firstNginxHealthCheck = workflow.indexOf(
+      "verify_nginx_health",
       firstCandidateStart,
     );
     const canaryCommand = workflow.indexOf(
@@ -154,7 +155,14 @@ describe("Blog Agent production defaults", () => {
       "verify_runtime_agent_flags",
       finalCandidateStart,
     );
-    const deploySuccess = workflow.indexOf('"${compose[@]}" ps', runtimeFlagCheck);
+    const finalNginxHealthCheck = workflow.indexOf(
+      "verify_nginx_health",
+      runtimeFlagCheck,
+    );
+    const deploySuccess = workflow.indexOf(
+      '"${compose[@]}" ps',
+      finalNginxHealthCheck,
+    );
 
     expect(workflow).toContain(
       "BLOG_AGENT_CANARY_SLUG: ${{ vars.BLOG_AGENT_CANARY_SLUG }}",
@@ -177,13 +185,21 @@ describe("Blog Agent production defaults", () => {
     expect(targetFlags).toBeGreaterThan(-1);
     expect(disableCandidate).toBeGreaterThan(targetFlags);
     expect(firstCandidateStart).toBeGreaterThan(disableCandidate);
-    expect(publicHealthCheck).toBeGreaterThan(-1);
-    expect(canaryCommand).toBeGreaterThan(publicHealthCheck);
+    expect(nginxHealthDefinition).toBeGreaterThan(-1);
+    expect(workflow.slice(nginxHealthDefinition, firstCandidateStart)).toContain(
+      '--resolve "wangjinkun333.me:443:127.0.0.1"',
+    );
+    expect(workflow.slice(nginxHealthDefinition, firstCandidateStart)).toContain(
+      "--noproxy '*'",
+    );
+    expect(firstNginxHealthCheck).toBeGreaterThan(firstCandidateStart);
+    expect(canaryCommand).toBeGreaterThan(firstNginxHealthCheck);
     expect(restorePublicAgent).toBeGreaterThan(canaryCommand);
     expect(restoreGeneration).toBeGreaterThan(canaryCommand);
     expect(finalCandidateStart).toBeGreaterThan(restoreGeneration);
     expect(runtimeFlagCheck).toBeGreaterThan(finalCandidateStart);
-    expect(deploySuccess).toBeGreaterThan(runtimeFlagCheck);
+    expect(finalNginxHealthCheck).toBeGreaterThan(runtimeFlagCheck);
+    expect(deploySuccess).toBeGreaterThan(finalNginxHealthCheck);
     expect(workflow).toContain("verify_agent_disabled");
     expect(workflow).toContain("fail_closed_rollback");
     expect(workflow).not.toContain("rollback || true");
