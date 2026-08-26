@@ -13,10 +13,27 @@ export type AnalyticsSummary = {
   views: number;
   visitors: number;
   averageEngagedSeconds: number;
+  medianEngagedSeconds: number;
   averageScrollDepth: number;
   recentViews: number;
   topPages: Array<{ path: string; title: string; views: number }>;
+  dailyViews: Array<{ date: string; views: number; visitors: number }>;
 };
+
+const DAY_MS = 24 * 60 * 60 * 1_000;
+const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1_000;
+
+export function startOfShanghaiDayWindow(now: Date, days = 7): Date {
+  const shanghai = new Date(now.getTime() + SHANGHAI_OFFSET_MS);
+  const localMidnight = Date.UTC(
+    shanghai.getUTCFullYear(),
+    shanghai.getUTCMonth(),
+    shanghai.getUTCDate(),
+  );
+  return new Date(
+    localMidnight - SHANGHAI_OFFSET_MS - Math.max(0, days - 1) * DAY_MS,
+  );
+}
 
 async function persistPageView(
   event: AnalyticsEvent,
@@ -85,12 +102,14 @@ export function updatePageView(event: AnalyticsEvent, identity: AnalyticsIdentit
 export async function readAnalyticsSummary(
   since: Date,
   recentSince: Date,
+  until: Date,
 ): Promise<AnalyticsSummary> {
   const payload = await getPayloadAPI();
   const totals = await payload.db.pool.query<{
     views: number;
     visitors: number;
     average_engaged_seconds: number;
+    median_engaged_seconds: number;
     average_scroll_depth: number;
     recent_views: number;
   }>(
@@ -99,13 +118,18 @@ export async function readAnalyticsSummary(
         COUNT(*)::int AS views,
         COUNT(DISTINCT visitor_hash)::int AS visitors,
         COALESCE(ROUND(AVG(engaged_seconds)), 0)::int AS average_engaged_seconds,
+        COALESCE(
+          ROUND((PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY engaged_seconds))::numeric),
+          0
+        )::int AS median_engaged_seconds,
         COALESCE(ROUND(AVG(max_scroll_depth)), 0)::int AS average_scroll_depth,
         COUNT(*) FILTER (WHERE created_at >= $2)::int AS recent_views
       FROM page_views
       WHERE created_at >= $1
+        AND created_at < $3
         AND COALESCE(is_owner, false) = false
     `,
-    [since, recentSince],
+    [since, recentSince, until],
   );
   const topPages = await payload.db.pool.query<{
     path: string;
@@ -119,12 +143,41 @@ export async function readAnalyticsSummary(
         COUNT(*)::int AS views
       FROM page_views
       WHERE created_at >= $1
+        AND created_at < $2
         AND COALESCE(is_owner, false) = false
       GROUP BY path
       ORDER BY views DESC, path ASC
       LIMIT 5
     `,
-    [since],
+    [since, until],
+  );
+  const dailyViews = await payload.db.pool.query<{
+    date: string;
+    views: number;
+    visitors: number;
+  }>(
+    `
+      WITH days AS (
+        SELECT generate_series(
+          date_trunc('day', $1::timestamptz AT TIME ZONE 'Asia/Shanghai'),
+          date_trunc('day', $2::timestamptz AT TIME ZONE 'Asia/Shanghai'),
+          INTERVAL '1 day'
+        ) AS day
+      )
+      SELECT
+        TO_CHAR(days.day, 'MM-DD') AS date,
+        COUNT(page_views.id)::int AS views,
+        COUNT(DISTINCT page_views.visitor_hash)::int AS visitors
+      FROM days
+      LEFT JOIN page_views
+        ON page_views.created_at >= days.day AT TIME ZONE 'Asia/Shanghai'
+        AND page_views.created_at < (days.day + INTERVAL '1 day') AT TIME ZONE 'Asia/Shanghai'
+        AND page_views.created_at < $2
+        AND COALESCE(page_views.is_owner, false) = false
+      GROUP BY days.day
+      ORDER BY days.day ASC
+    `,
+    [since, until],
   );
   const row = totals.rows[0];
 
@@ -132,8 +185,10 @@ export async function readAnalyticsSummary(
     views: row?.views ?? 0,
     visitors: row?.visitors ?? 0,
     averageEngagedSeconds: row?.average_engaged_seconds ?? 0,
+    medianEngagedSeconds: row?.median_engaged_seconds ?? 0,
     averageScrollDepth: row?.average_scroll_depth ?? 0,
     recentViews: row?.recent_views ?? 0,
     topPages: topPages.rows,
+    dailyViews: dailyViews.rows,
   };
 }

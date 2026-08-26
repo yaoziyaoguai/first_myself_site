@@ -1,5 +1,5 @@
 import type { Metadata, MetadataRoute } from "next";
-import { SITE_URL } from "@/content/siteDefaults";
+import { SITE_URL, siteDefaults } from "@/content/siteDefaults";
 
 export { SITE_URL };
 
@@ -8,6 +8,7 @@ export type DiscoveryPost = {
   slug?: unknown;
   excerpt?: unknown;
   publishedDate?: unknown;
+  updatedAt?: unknown;
   status?: unknown;
   visibility?: unknown;
 };
@@ -18,6 +19,8 @@ type ArticleDiscoveryInput = {
   description: string;
   publishedDate?: string | null;
   updatedAt?: string | null;
+  imageUrl?: string | null;
+  tags?: string[];
 };
 
 const MAIN_ROUTES = ["", "/about", "/projects", "/blog", "/contact"];
@@ -44,11 +47,25 @@ function articlePath(slug: string): string {
   return `/blog/${encodeURIComponent(slug)}`;
 }
 
+function articleImageUrl(value?: string | null): string {
+  if (!value) return `${SITE_URL}/og-image.svg`;
+
+  try {
+    const image = new URL(value, SITE_URL);
+    return image.protocol === "http:" || image.protocol === "https:"
+      ? image.toString()
+      : `${SITE_URL}/og-image.svg`;
+  } catch {
+    return `${SITE_URL}/og-image.svg`;
+  }
+}
+
 export function buildArticleMetadata(
   input: ArticleDiscoveryInput,
 ): Metadata {
   const path = articlePath(input.slug);
   const shareTitle = `${input.title} | Jinkun Wang`;
+  const image = articleImageUrl(input.imageUrl);
 
   return {
     title: input.title,
@@ -61,11 +78,13 @@ export function buildArticleMetadata(
       locale: "zh_CN",
       siteName: "Jinkun Wang",
       url: `${SITE_URL}${path}`,
+      authors: [`${SITE_URL}/about`],
+      ...(input.publishedDate ? { publishedTime: input.publishedDate } : {}),
+      ...(input.updatedAt ? { modifiedTime: input.updatedAt } : {}),
+      ...(input.tags?.length ? { tags: input.tags } : {}),
       images: [
         {
-          url: `${SITE_URL}/og-image.svg`,
-          width: 1200,
-          height: 630,
+          url: image,
           alt: input.title,
         },
       ],
@@ -74,23 +93,25 @@ export function buildArticleMetadata(
       card: "summary_large_image",
       title: shareTitle,
       description: input.description,
-      images: [`${SITE_URL}/og-image.svg`],
+      images: [image],
     },
   };
 }
 
 export function buildArticleJsonLd(input: ArticleDiscoveryInput) {
   const url = `${SITE_URL}${articlePath(input.slug)}`;
+  const image = articleImageUrl(input.imageUrl);
 
   return {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "BlogPosting",
     headline: input.title,
     description: input.description,
     inLanguage: "zh-CN",
     url,
     mainEntityOfPage: url,
-    image: `${SITE_URL}/og-image.svg`,
+    image,
+    ...(input.tags?.length ? { keywords: input.tags } : {}),
     ...(input.publishedDate ? { datePublished: input.publishedDate } : {}),
     ...(input.updatedAt ? { dateModified: input.updatedAt } : {}),
     author: {
@@ -103,6 +124,39 @@ export function buildArticleJsonLd(input: ArticleDiscoveryInput) {
       name: "Jinkun Wang",
       url: SITE_URL,
     },
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Jinkun Wang",
+      url: SITE_URL,
+    },
+  };
+}
+
+export function buildSiteJsonLd() {
+  const personId = `${SITE_URL}/#person`;
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Person",
+        "@id": personId,
+        name: siteDefaults.identity.name,
+        url: `${SITE_URL}/about`,
+        description: siteDefaults.identity.bio,
+        sameAs: ["https://github.com/yaoziyaoguai"],
+        knowsAbout: siteDefaults.home.directions.map((item) => item.label),
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${SITE_URL}/#website`,
+        name: "Jinkun Wang",
+        url: SITE_URL,
+        description: siteDefaults.identity.bio,
+        inLanguage: "zh-CN",
+        author: { "@id": personId },
+      },
+    ],
   };
 }
 
@@ -131,8 +185,10 @@ export function buildSitemapEntries(
     .map((post) => ({
       url: `${SITE_URL}/blog/${encodeURIComponent(String(post.slug))}`,
       lastModified:
-        typeof post.publishedDate === "string"
-          ? new Date(post.publishedDate)
+        typeof post.updatedAt === "string"
+          ? new Date(post.updatedAt)
+          : typeof post.publishedDate === "string"
+            ? new Date(post.publishedDate)
           : undefined,
       changeFrequency: "monthly",
       priority: 0.8,

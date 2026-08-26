@@ -15,6 +15,11 @@ function hmac(secret: string, purpose: string, value: string): string {
     .digest("hex");
 }
 
+export function formatAnonymousVisitor(visitorHash: string): string {
+  const shortHash = visitorHash.slice(0, 8).toUpperCase();
+  return shortHash ? `访客 ${shortHash}` : "访客 未知";
+}
+
 function maskIpv4(address: string): string {
   const octets = address.split(".");
   return `${octets[0]}.${octets[1]}.${octets[2]}.*`;

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildArticleJsonLd,
   buildArticleMetadata,
+  buildSiteJsonLd,
   buildSitemapEntries,
   renderRssFeed,
   serializeJsonLd,
@@ -15,6 +16,7 @@ const posts = [
     slug: "agent-notes",
     excerpt: "使用 <Agent> 做可靠实验",
     publishedDate: "2026-08-01T00:00:00.000Z",
+    updatedAt: "2026-08-03T12:30:00.000Z",
     status: "published",
     visibility: "public",
   },
@@ -37,6 +39,23 @@ describe("discovery metadata", () => {
     expect(urls).toContain(`${SITE_URL}/blog/agent-notes`);
     expect(urls).not.toContain(`${SITE_URL}/admin`);
     expect(urls).not.toContain(`${SITE_URL}/blog/private-note`);
+    expect(
+      entries.find((entry) => entry.url.endsWith("/blog/agent-notes"))
+        ?.lastModified,
+    ).toEqual(new Date("2026-08-03T12:30:00.000Z"));
+  });
+
+  it("falls back to the publication date when an article has never been updated", () => {
+    const entries = buildSitemapEntries([
+      {
+        ...posts[0],
+        updatedAt: undefined,
+      },
+    ]);
+
+    expect(entries.at(-1)?.lastModified).toEqual(
+      new Date("2026-08-01T00:00:00.000Z"),
+    );
   });
 
   it("renders valid escaped RSS XML for public posts", () => {
@@ -58,6 +77,10 @@ describe("discovery metadata", () => {
       title: "让 Agent 安全执行命令",
       slug: "safe-agent",
       description: "一篇测试文章",
+      publishedDate: "2026-08-01T00:00:00.000Z",
+      updatedAt: "2026-08-02T00:00:00.000Z",
+      imageUrl: "/media/safe-agent-cover.png",
+      tags: ["Agent", "Safety"],
     });
 
     expect(metadata.title).toBe("让 Agent 安全执行命令");
@@ -66,6 +89,28 @@ describe("discovery metadata", () => {
       title: "让 Agent 安全执行命令 | Jinkun Wang",
       url: `${SITE_URL}/blog/safe-agent`,
       type: "article",
+      publishedTime: "2026-08-01T00:00:00.000Z",
+      modifiedTime: "2026-08-02T00:00:00.000Z",
+      authors: [`${SITE_URL}/about`],
+      tags: ["Agent", "Safety"],
+      images: [
+        expect.objectContaining({
+          url: `${SITE_URL}/media/safe-agent-cover.png`,
+        }),
+      ],
+    });
+  });
+
+  it("falls back to the site share image for unsupported cover URLs", () => {
+    const metadata = buildArticleMetadata({
+      title: "安全封面",
+      slug: "safe-cover",
+      description: "一篇测试文章",
+      imageUrl: "javascript:alert(1)",
+    });
+
+    expect(metadata.openGraph).toMatchObject({
+      images: [expect.objectContaining({ url: `${SITE_URL}/og-image.svg` })],
     });
   });
 
@@ -77,16 +122,19 @@ describe("discovery metadata", () => {
         description: "一篇测试文章",
         publishedDate: "2026-08-01T00:00:00.000Z",
         updatedAt: "2026-08-02T00:00:00.000Z",
+        imageUrl: "/media/safe-agent-cover.png",
+        tags: ["Agent", "Safety"],
       }),
     ).toEqual({
       "@context": "https://schema.org",
-      "@type": "Article",
+      "@type": "BlogPosting",
       headline: "让 Agent 安全执行命令",
       description: "一篇测试文章",
       inLanguage: "zh-CN",
       url: `${SITE_URL}/blog/safe-agent`,
       mainEntityOfPage: `${SITE_URL}/blog/safe-agent`,
-      image: `${SITE_URL}/og-image.svg`,
+      image: `${SITE_URL}/media/safe-agent-cover.png`,
+      keywords: ["Agent", "Safety"],
       datePublished: "2026-08-01T00:00:00.000Z",
       dateModified: "2026-08-02T00:00:00.000Z",
       author: {
@@ -99,6 +147,11 @@ describe("discovery metadata", () => {
         name: "Jinkun Wang",
         url: SITE_URL,
       },
+      isPartOf: {
+        "@type": "WebSite",
+        name: "Jinkun Wang",
+        url: SITE_URL,
+      },
     });
   });
 
@@ -108,6 +161,28 @@ describe("discovery metadata", () => {
     expect(serialized).not.toContain("</script>");
     expect(JSON.parse(serialized)).toEqual({
       headline: "</script><script>alert(1)</script>",
+    });
+  });
+
+  it("describes the site and its author as one connected structured-data graph", () => {
+    expect(buildSiteJsonLd()).toMatchObject({
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Person",
+          "@id": `${SITE_URL}/#person`,
+          name: "Jinkun Wang",
+          url: `${SITE_URL}/about`,
+          sameAs: ["https://github.com/yaoziyaoguai"],
+        },
+        {
+          "@type": "WebSite",
+          "@id": `${SITE_URL}/#website`,
+          url: SITE_URL,
+          inLanguage: "zh-CN",
+          author: { "@id": `${SITE_URL}/#person` },
+        },
+      ],
     });
   });
 });

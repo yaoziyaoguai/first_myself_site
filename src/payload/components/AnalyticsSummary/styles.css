@@ -15,6 +15,7 @@
 }
 
 .analytics-summary__heading h2,
+.analytics-summary__trend h3,
 .analytics-summary__pages h3,
 .analytics-summary__agent h3,
 .analytics-summary__agent h4 {
@@ -135,6 +136,66 @@
   color: var(--theme-elevation-900);
   font-size: 26px;
   font-weight: 600;
+}
+
+.analytics-summary__current-visitor {
+  margin: 10px 0 0;
+  color: var(--theme-elevation-600);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.analytics-summary__trend {
+  margin-top: 24px;
+}
+
+.analytics-summary__trend ol {
+  display: grid;
+  min-height: 152px;
+  margin: 12px 0 0;
+  padding: 0;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  list-style: none;
+}
+
+.analytics-summary__trend li {
+  display: grid;
+  min-width: 0;
+  grid-template-rows: 100px auto auto;
+  gap: 5px;
+  text-align: center;
+}
+
+.analytics-summary__trend-bar {
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  border-radius: var(--style-radius-s);
+  background: var(--theme-elevation-100);
+}
+
+.analytics-summary__trend-bar span {
+  width: 100%;
+  min-height: 4px;
+  border-radius: var(--style-radius-s);
+  background: var(--theme-success-500);
+}
+
+.analytics-summary__trend strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.analytics-summary__trend small,
+.analytics-summary__trend > p {
+  color: var(--theme-elevation-600);
+  font-size: 11px;
+}
+
+.analytics-summary__trend > p {
+  margin: 4px 0 0;
+  text-align: right;
 }
 
 .analytics-summary__pages {

@@ -6,7 +6,7 @@
 - `https://wangjinkun333.me/sitemap.xml`
 - `https://wangjinkun333.me/rss.xml`
 
-公开页面使用 `https://wangjinkun333.me` 作为 canonical 域名；文章页输出 Article JSON-LD。`/admin/` 和 `/api/` 不允许搜索引擎抓取。
+公开页面使用 `https://wangjinkun333.me` 作为 canonical 域名；全站输出关联的 Person / WebSite JSON-LD，文章页输出 BlogPosting JSON-LD，并在有封面时复用封面作为分享与结构化数据图片。sitemap 的 `lastmod` 来自文章真实更新时间。`/admin/` 和 `/api/` 不允许搜索引擎抓取。
 
 ## 首次接入
 
@@ -30,7 +30,7 @@ Google：
 
 1. 确认新文章出现在 sitemap 和 RSS 中。
 2. 确认页面返回 `200`，不存在 `noindex`，canonical 指向当前公开 URL。
-3. 确认标题只包含一次站点名，Article JSON-LD 可以被解析。
+3. 确认标题只包含一次站点名，Person / WebSite / BlogPosting JSON-LD 可以被解析，封面图 URL 可公开抓取。
 4. 在两个站长平台中观察抓取错误、已发现未收录和索引数量，不以 `site:` 查询作为唯一结论。
 
 如果平台报告无法抓取，先检查 DNS、TLS、Nginx/WAF 对 Googlebot 与 Baiduspider 的响应，再检查应用日志。不要为了“让爬虫通过”关闭全站安全策略；只修复能够复现的错误规则。

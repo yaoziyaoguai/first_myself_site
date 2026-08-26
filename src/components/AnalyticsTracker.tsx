@@ -80,7 +80,9 @@ export function AnalyticsTracker() {
     };
     let engagedMilliseconds = 0;
     let activeSince =
-      document.visibilityState === "visible" ? Date.now() : null;
+      document.visibilityState === "visible" && document.hasFocus()
+        ? Date.now()
+        : null;
     let maxScrollDepth = readScrollDepth();
     let heartbeatTimeout: number | null = null;
     let stopped = false;
@@ -103,11 +105,18 @@ export function AnalyticsTracker() {
         preferBeacon,
       );
 
-    const scheduleHeartbeat = (delay = HEARTBEAT_MS) => {
+    const stopHeartbeat = () => {
       if (heartbeatTimeout !== null) window.clearTimeout(heartbeatTimeout);
+      heartbeatTimeout = null;
+    };
+
+    const scheduleHeartbeat = (delay = HEARTBEAT_MS) => {
+      if (stopped || activeSince === null) return;
+      stopHeartbeat();
       heartbeatTimeout = window.setTimeout(async () => {
+        heartbeatTimeout = null;
         const recorded = await heartbeat();
-        if (stopped) return;
+        if (stopped || activeSince === null) return;
 
         scheduleHeartbeat(
           recorded
@@ -117,37 +126,71 @@ export function AnalyticsTracker() {
       }, delay);
     };
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        if (activeSince !== null) {
-          engagedMilliseconds += Date.now() - activeSince;
-          activeSince = null;
-        }
-        void heartbeat(true);
-      } else if (activeSince === null) {
+    const pauseEngagement = () => {
+      stopHeartbeat();
+      if (activeSince === null) return;
+      engagedMilliseconds += Date.now() - activeSince;
+      activeSince = null;
+    };
+
+    const resumeEngagement = () => {
+      if (
+        activeSince === null &&
+        document.visibilityState === "visible" &&
+        document.hasFocus()
+      ) {
         activeSince = Date.now();
+        scheduleHeartbeat();
       }
     };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        pauseEngagement();
+        void heartbeat(true);
+      } else {
+        resumeEngagement();
+      }
+    };
+
+    const handleBlur = () => {
+      pauseEngagement();
+      void heartbeat(true);
+    };
+
+    const handleFocus = () => resumeEngagement();
 
     const handleScroll = () => {
       maxScrollDepth = Math.max(maxScrollDepth, readScrollDepth());
     };
 
-    const handlePageHide = () => void heartbeat(true);
+    const handlePageHide = () => {
+      pauseEngagement();
+      void heartbeat(true);
+    };
+
+    const handlePageShow = () => resumeEngagement();
 
     void postAnalytics({ event: "start", sessionId, ...pageContext });
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("blur", handleBlur);
+    window.addEventListener("focus", handleFocus);
     window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("pageshow", handlePageShow);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     scheduleHeartbeat();
 
     return () => {
       stopped = true;
-      if (heartbeatTimeout !== null) window.clearTimeout(heartbeatTimeout);
+      stopHeartbeat();
       window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("blur", handleBlur);
+      window.removeEventListener("focus", handleFocus);
       window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("pageshow", handlePageShow);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      pauseEngagement();
       void heartbeat(true);
     };
   }, [pathname]);
