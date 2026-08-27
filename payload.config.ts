@@ -25,6 +25,7 @@ validateRequiredEnvVars();
 export default buildConfig({
   serverURL: process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:3000",
   admin: {
+    avatar: "default",
     user: "users",
     components: {
       beforeNavLinks: ["@/payload/components/BackToSite#BackToSite"]
