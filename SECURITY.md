@@ -20,6 +20,7 @@
 - `editor`：维护内容，不能管理用户和角色。
 - `viewer`：不能进入 Payload Admin。
 - 草稿和私有文章不会向匿名访问者公开。
+- Payload 登录会话 Cookie 使用 `HttpOnly`、`Secure` 和 `SameSite=Lax`，不会通过明文 HTTP 发送。
 - Comments 与 Likes collection 禁止匿名直接读写；公开页面只能通过经过校验的应用接口访问。
 
 评论和点赞的匿名标识由服务端使用 HMAC 生成。浏览器不能提交可信身份字段，公开响应也不包含邮箱、原始 IP、fingerprint 或内部删除字段。接口会校验目标资源、父评论关系与输入长度，并执行进程内限流。当前限流不跨多个应用实例；如果以后水平扩容，需要改为共享存储限流。
