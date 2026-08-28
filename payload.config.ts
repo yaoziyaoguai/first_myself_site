@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { buildConfig } from "payload";
 import { postgresAdapter } from "@payloadcms/db-postgres";
 import { lexicalEditor } from "@payloadcms/richtext-lexical";
@@ -8,7 +9,7 @@ import Home from "./src/payload/globals/Home";
 import SiteSettings from "./src/payload/globals/SiteSettings";
 import About from "./src/payload/globals/About";
 import Contact from "./src/payload/globals/Contact";
-import { backfillConfigurableContent } from "./src/payload/migrations/backfillConfigurableContent";
+import { backfillConfigurableContent } from "./src/payload/backfillConfigurableContent";
 import { migrations as prodMigrations } from "./src/payload/migrations";
 
 // Collections
@@ -35,6 +36,7 @@ export default buildConfig({
   globals: [Home, SiteSettings, About, Contact],
   collections: [Users, Media, Blog, Projects, Comments, Likes, PageViews],
   db: postgresAdapter({
+    migrationDir: resolve(process.cwd(), "src/payload/migrations"),
     pool: {
       connectionString: process.env.DATABASE_URL!,
     },

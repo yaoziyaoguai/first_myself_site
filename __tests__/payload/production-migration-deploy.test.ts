@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
@@ -9,6 +9,10 @@ const workflow = readFileSync(
 );
 const productionCompose = readFileSync(
   resolve(process.cwd(), "docker/docker-compose.prod.yml"),
+  "utf8",
+);
+const payloadConfig = readFileSync(
+  resolve(process.cwd(), "payload.config.ts"),
   "utf8",
 );
 
@@ -80,6 +84,22 @@ describe("production migration deployment", () => {
       "COPY --from=builder /app/payload.config.ts ./payload.config.ts",
     );
     expect(dockerfile).toContain("COPY --from=builder /app/src ./src");
+  });
+
+  it("points the production CLI at a directory containing only executable migrations", () => {
+    const migrationDir = resolve(process.cwd(), "src/payload/migrations");
+    const nonMigrationFiles = readdirSync(migrationDir)
+      .filter((file) => file.endsWith(".ts") && file !== "index.ts")
+      .filter((file) => {
+        const source = readFileSync(resolve(migrationDir, file), "utf8");
+        return !source.includes("export async function up(")
+          || !source.includes("export async function down(");
+      });
+
+    expect(payloadConfig).toContain(
+      'migrationDir: resolve(process.cwd(), "src/payload/migrations")',
+    );
+    expect(nonMigrationFiles).toEqual([]);
   });
 
   it("injects the DashScope key through the server-only deploy environment", () => {

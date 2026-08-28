@@ -1,6 +1,6 @@
 import type { BasePayload } from "payload";
 import { siteDefaults } from "@/content/siteDefaults";
-import { CONFIGURABLE_CONTENT_VERSION } from "@/payload/migrations/backfillConfigurableContent";
+import { CONFIGURABLE_CONTENT_VERSION } from "@/payload/backfillConfigurableContent";
 
 export async function seedDevelopmentContent(payload: BasePayload): Promise<string[]> {
   const results: string[] = [];
