@@ -73,7 +73,8 @@ describe("AnalyticsSummary", () => {
       deriveRequestIdentity(request, "analytics-summary-test-secret").fingerprint,
     );
 
-    expect(screen.getByText("匿名访客（估算）")).toBeInTheDocument();
+    expect(screen.getByText("独立访客（UV，估算）")).toBeInTheDocument();
+    expect(screen.getByText("页面浏览量（PV）")).toBeInTheDocument();
     expect(screen.getByText(new RegExp("IP 与浏览器信息"))).toBeInTheDocument();
     expect(screen.getByText(`当前浏览器：${currentVisitor}`)).toBeInTheDocument();
   });
@@ -91,11 +92,11 @@ describe("AnalyticsSummary", () => {
     render(await AnalyticsSummary());
 
     expect(screen.getByRole("heading", { name: "近 7 日趋势" })).toBeInTheDocument();
-    expect(screen.getByLabelText("08-25：12 次访问，3 位匿名访客")).toBeInTheDocument();
-    expect(screen.getByLabelText("08-26：11 次访问，2 位匿名访客")).toBeInTheDocument();
+    expect(screen.getByLabelText("08-25：12 PV，3 UV")).toBeInTheDocument();
+    expect(screen.getByLabelText("08-26：11 PV，2 UV")).toBeInTheDocument();
     expect(
       screen
-        .getByLabelText("08-27：0 次访问，0 位匿名访客")
+        .getByLabelText("08-27：0 PV，0 UV")
         .querySelector(".analytics-summary__trend-bar span"),
     ).toBeNull();
   });
@@ -133,6 +134,9 @@ describe("AnalyticsSummary", () => {
     const articleLink = screen.getByRole("link", { name: "local-process-tools" });
     expect(articleLink).toHaveAttribute("href", "/blog/local-process-tools");
     expect(articleLink.closest("small")).toHaveTextContent("已回答");
+    expect(articleLink.closest("small")).toHaveTextContent(
+      "2026/8/27 16:30:00",
+    );
     expect(screen.getByText(/不保存模型答案/u)).toBeInTheDocument();
   });
 });

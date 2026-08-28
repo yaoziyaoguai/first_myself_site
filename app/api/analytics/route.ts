@@ -5,6 +5,11 @@ import { isRateLimited } from "@/lib/rateLimit";
 import { readJsonObject } from "@/lib/requestBody";
 import { deriveRequestIdentity } from "@/lib/requestIdentity";
 import { getPayloadAPI } from "@/lib/payload";
+import {
+  createOwnerDeviceMarker,
+  OWNER_DEVICE_COOKIE,
+  verifyOwnerDeviceMarker,
+} from "@/lib/analyticsOwner";
 
 export const dynamic = "force-dynamic";
 
@@ -21,20 +26,43 @@ function expectedOrigin(request: NextRequest) {
   }
 }
 
-async function isOwnerRequest(request: NextRequest) {
+async function readOwnerStatus(request: NextRequest) {
+  const markedOwner = verifyOwnerDeviceMarker(
+    request.cookies.get(OWNER_DEVICE_COOKIE)?.value,
+  );
   if (
     !request.cookies.has("payload-token") &&
     !request.headers.has("authorization")
   ) {
-    return false;
+    return { authenticatedOwner: false, isOwner: markedOwner };
   }
   try {
     const payload = await getPayloadAPI();
     const { user } = await payload.auth({ headers: request.headers });
-    return user?.role === "admin" || user?.role === "editor";
+    const authenticatedOwner =
+      user?.role === "admin" || user?.role === "editor";
+    return {
+      authenticatedOwner,
+      isOwner: authenticatedOwner || markedOwner,
+    };
   } catch {
-    return false;
+    return { authenticatedOwner: false, isOwner: markedOwner };
   }
+}
+
+function successResponse(status: number, rememberOwner: boolean) {
+  const response = NextResponse.json({ ok: true }, { status });
+  const marker = rememberOwner ? createOwnerDeviceMarker() : null;
+  if (marker) {
+    response.cookies.set(OWNER_DEVICE_COOKIE, marker, {
+      httpOnly: true,
+      maxAge: 365 * 24 * 60 * 60,
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
+  return response;
 }
 
 export async function POST(request: NextRequest) {
@@ -66,21 +94,22 @@ export async function POST(request: NextRequest) {
     ) {
       return errorResponse("Too many requests", 429);
     }
+    const owner = await readOwnerStatus(request);
     const analyticsIdentity = {
       visitorHash: identity.fingerprint,
       networkPrefix: identity.networkPrefix,
-      isOwner: await isOwnerRequest(request),
+      isOwner: owner.isOwner,
     };
 
     if (event.event === "start") {
       const pageView = await recordPageView(event, analyticsIdentity);
       if (!pageView) return errorResponse("Analytics session conflict", 409);
-      return NextResponse.json({ ok: true }, { status: 201 });
+      return successResponse(201, owner.authenticatedOwner);
     }
 
     const pageView = await updatePageView(event, analyticsIdentity);
     if (!pageView) return errorResponse("Analytics session not found", 404);
-    return NextResponse.json({ ok: true });
+    return successResponse(200, owner.authenticatedOwner);
   } catch (error) {
     console.error("Error recording analytics:", error);
     return errorResponse("Failed to record analytics", 500);

@@ -43,6 +43,7 @@ function request(body: unknown, headers: Record<string, string> = {}) {
 
 describe("POST /api/analytics", () => {
   beforeEach(() => {
+    vi.stubEnv("PAYLOAD_SECRET", "analytics-owner-cookie-test-secret");
     vi.clearAllMocks();
     mockIsRateLimited.mockReturnValue(false);
     mockRecordPageView.mockResolvedValue({ id: 1 });
@@ -142,8 +143,150 @@ describe("POST /api/analytics", () => {
         expect.objectContaining({ path: "/blog/memory" }),
         expect.objectContaining({ isOwner: true }),
       );
+      expect(response.cookies.get("site-owner-device")?.value).toBeTruthy();
+      const setCookie = response.headers.get("set-cookie") ?? "";
+      expect(setCookie).toContain("HttpOnly");
+      expect(setCookie).toContain("Path=/");
+      expect(setCookie).toContain("Max-Age=31536000");
+      expect(setCookie).toMatch(/SameSite=lax/i);
     },
   );
+
+  it("does not exclude an authenticated viewer or issue an owner marker", async () => {
+    mockAuth.mockResolvedValue({ user: { id: 1, role: "viewer" } });
+
+    const response = await POST(
+      request(
+        {
+          event: "start",
+          sessionId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35011",
+          path: "/blog/memory",
+        },
+        { cookie: "payload-token=viewer-session" },
+      ),
+    );
+
+    expect(response.status).toBe(201);
+    expect(mockRecordPageView).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ isOwner: false }),
+    );
+    expect(response.cookies.get("site-owner-device")).toBeUndefined();
+  });
+
+  it("keeps a signed owner device excluded after the Payload session ends", async () => {
+    mockAuth.mockResolvedValueOnce({ user: { id: 1, role: "admin" } });
+    const authenticatedResponse = await POST(
+      request(
+        {
+          event: "start",
+          sessionId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35011",
+          path: "/blog/memory",
+        },
+        { cookie: "payload-token=valid-session" },
+      ),
+    );
+    const marker = authenticatedResponse.cookies.get("site-owner-device")?.value;
+    expect(marker).toBeTruthy();
+
+    vi.clearAllMocks();
+    mockIsRateLimited.mockReturnValue(false);
+    mockRecordPageView.mockResolvedValue({ id: 2 });
+    const response = await POST(
+      request(
+        {
+          event: "start",
+          sessionId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35012",
+          path: "/about",
+        },
+        { cookie: `site-owner-device=${marker}` },
+      ),
+    );
+
+    expect(response.status).toBe(201);
+    expect(mockAuth).not.toHaveBeenCalled();
+    expect(mockRecordPageView).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ isOwner: true }),
+    );
+  });
+
+  it("does not trust a tampered owner device marker", async () => {
+    mockAuth.mockResolvedValueOnce({ user: { id: 1, role: "admin" } });
+    const authenticatedResponse = await POST(
+      request(
+        {
+          event: "start",
+          sessionId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35011",
+          path: "/admin",
+        },
+        { cookie: "payload-token=valid-session" },
+      ),
+    );
+    const marker = authenticatedResponse.cookies.get("site-owner-device")?.value;
+    expect(marker).toBeTruthy();
+    const finalCharacter = marker?.endsWith("A") ? "B" : "A";
+    const tamperedMarker = `${marker?.slice(0, -1)}${finalCharacter}`;
+
+    vi.clearAllMocks();
+    mockIsRateLimited.mockReturnValue(false);
+    mockRecordPageView.mockResolvedValue({ id: 2 });
+    const response = await POST(
+      request(
+        {
+          event: "start",
+          sessionId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35012",
+          path: "/",
+        },
+        { cookie: `site-owner-device=${tamperedMarker}` },
+      ),
+    );
+
+    expect(response.status).toBe(201);
+    expect(mockRecordPageView).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ isOwner: false }),
+    );
+  });
+
+  it("keeps a valid owner marker when an expired Payload session fails auth", async () => {
+    mockAuth.mockResolvedValueOnce({ user: { id: 1, role: "admin" } });
+    const authenticatedResponse = await POST(
+      request(
+        {
+          event: "start",
+          sessionId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35011",
+          path: "/admin",
+        },
+        { cookie: "payload-token=valid-session" },
+      ),
+    );
+    const marker = authenticatedResponse.cookies.get("site-owner-device")?.value;
+
+    vi.clearAllMocks();
+    mockIsRateLimited.mockReturnValue(false);
+    mockRecordPageView.mockResolvedValue({ id: 2 });
+    mockAuth.mockRejectedValueOnce(new Error("expired session"));
+    const response = await POST(
+      request(
+        {
+          event: "start",
+          sessionId: "4f0f0b87-8f0d-4fc8-a8df-2e5169e35012",
+          path: "/about",
+        },
+        {
+          cookie: `payload-token=expired; site-owner-device=${marker}`,
+        },
+      ),
+    );
+
+    expect(response.status).toBe(201);
+    expect(mockAuth).toHaveBeenCalledOnce();
+    expect(mockRecordPageView).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ isOwner: true }),
+    );
+  });
 
   it("ignores client owner claims and fails open when auth lookup fails", async () => {
     mockAuth.mockRejectedValue(new Error("auth unavailable"));

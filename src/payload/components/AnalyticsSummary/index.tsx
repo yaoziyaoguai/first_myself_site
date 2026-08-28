@@ -63,17 +63,17 @@ export async function AnalyticsSummary() {
         </div>
         <p>
           近 24 小时 {summary.recentViews}{" "}
-          次访问。匿名访客以 IP 与浏览器信息的服务端哈希估算；有效停留只累计页面可见且浏览器聚焦的时间。已登录的站长访问不计入概览。
+          次页面浏览。独立访客以 IP 与浏览器信息的服务端哈希估算；有效停留只累计页面可见且浏览器聚焦的时间。已识别的站长浏览器访问不计入概览。
         </p>
       </div>
 
       <div className="analytics-summary__metrics">
         <div>
-          <span>访问次数</span>
+          <span>页面浏览量（PV）</span>
           <strong>{summary.views}</strong>
         </div>
         <div>
-          <span>匿名访客（估算）</span>
+          <span>独立访客（UV，估算）</span>
           <strong>{summary.visitors}</strong>
         </div>
         <div>
@@ -98,7 +98,7 @@ export async function AnalyticsSummary() {
           <ol>
             {summary.dailyViews.map((item) => (
               <li
-                aria-label={`${item.date}：${item.views} 次访问，${item.visitors} 位匿名访客`}
+                aria-label={`${item.date}：${item.views} PV，${item.visitors} UV`}
                 key={item.date}
               >
                 <div className="analytics-summary__trend-bar" aria-hidden="true">
@@ -115,7 +115,7 @@ export async function AnalyticsSummary() {
               </li>
             ))}
           </ol>
-          <p>访问次数 / 匿名访客</p>
+          <p>页面浏览量（PV）/ 独立访客（UV）</p>
         </div>
       )}
 
@@ -182,7 +182,10 @@ export async function AnalyticsSummary() {
                         {item.articleSlug}
                       </a>{" "}
                       · {outcomeLabels[item.outcome]} · {" "}
-                      {item.createdAt.toLocaleString("zh-CN", { hour12: false })}
+                      {item.createdAt.toLocaleString("zh-CN", {
+                        hour12: false,
+                        timeZone: "Asia/Shanghai",
+                      })}
                     </small>
                   </div>
                 </li>

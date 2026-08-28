@@ -83,6 +83,9 @@ describe("Blog Agent production defaults", () => {
       "__tests__/payload/blog-agent-article-package-migration.postgres.test.ts",
     );
     expect(workflow).toContain(
+      "__tests__/payload/owner-analytics-identity-migration.postgres.test.ts",
+    );
+    expect(workflow).toContain(
       "__tests__/lib/blog-agent/runtime.postgres.test.ts",
     );
     expect(workflow).toContain(

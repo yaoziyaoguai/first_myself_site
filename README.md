@@ -103,7 +103,7 @@ npm run build
 - `editor`：维护内容并查看访问统计，不能管理用户或角色
 - `viewer`：不能进入 Payload Admin
 
-访问统计不使用 Cookie，尊重 Do Not Track 和 Global Privacy Control。匿名访客由服务端对 `IP + User-Agent` 做 HMAC 后估算，后台只显示短访客编号以及 IPv4 `/24` 或 IPv6 `/64` 脱敏网段，不保存原始 IP。有效停留只累计页面可见且浏览器聚焦的时间，概览展示中位数和近 7 日趋势；后台也会标出当前浏览器编号。通过 Payload 验证的 admin/editor 访问会被标为站长访问，并从后台总览中排除。
+访问统计尊重 Do Not Track 和 Global Privacy Control。匿名访客由服务端对 `IP + User-Agent` 做 HMAC 后估算，后台只显示短访客编号以及 IPv4 `/24` 或 IPv6 `/64` 脱敏网段，不保存原始 IP。有效停留只累计页面可见且浏览器聚焦的时间，概览展示中位数和近 7 日趋势；后台也会标出当前浏览器编号。通过 Payload 验证的 admin/editor 访问会写入一个签名、HttpOnly 的站长设备标记，使同一浏览器退出后台后仍可排除站长流量；该标记只影响统计分类，不授予登录状态或任何权限。后台总览还会按访客指纹防御性排除已经识别出的站长历史流量。
 
 ## 单文章 Blog Agent
 

@@ -63,6 +63,20 @@ describe("analytics server persistence", () => {
     ]);
   });
 
+  it("promotes every row for an authenticated owner identity and inherits it later", async () => {
+    await recordPageView(
+      { event: "start", ...context },
+      { ...identity, isOwner: true },
+    );
+
+    const [statement] = mockQuery.mock.calls[0];
+    expect(statement).toContain("UPDATE page_views");
+    expect(statement).toContain("visitor_hash = $2");
+    expect(statement).toContain("is_owner = TRUE");
+    expect(statement).toContain("EXISTS");
+    expect(statement).toContain("known_owner");
+  });
+
   it("lets a heartbeat create the row and atomically preserves collected maxima", async () => {
     await updatePageView(
       {
@@ -149,15 +163,21 @@ describe("analytics server persistence", () => {
     expect(mockQuery.mock.calls[0][0]).toContain(
       "COALESCE(is_owner, false) = false",
     );
+    expect(mockQuery.mock.calls[0][0]).toContain("NOT EXISTS");
+    expect(mockQuery.mock.calls[0][0]).toContain(
+      "known_owner.visitor_hash = page_views.visitor_hash",
+    );
     expect(mockQuery.mock.calls[1][0]).toContain("GROUP BY path");
     expect(mockQuery.mock.calls[1][0]).toContain(
       "COALESCE(is_owner, false) = false",
     );
+    expect(mockQuery.mock.calls[1][0]).toContain("NOT EXISTS");
     expect(mockQuery.mock.calls[2][0]).toContain("generate_series");
     expect(mockQuery.mock.calls[2][0]).toContain("Asia/Shanghai");
     expect(mockQuery.mock.calls[2][0]).toContain(
       "COUNT(DISTINCT page_views.visitor_hash)",
     );
+    expect(mockQuery.mock.calls[2][0]).toContain("NOT EXISTS");
     expect(mockQuery.mock.calls[0][0]).toContain("created_at < $3");
     expect(mockQuery.mock.calls[1][0]).toContain("created_at < $2");
     expect(mockQuery.mock.calls[2][0]).toContain("page_views.created_at < $2");

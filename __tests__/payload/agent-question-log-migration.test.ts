@@ -39,7 +39,6 @@ describe("Agent question log production migration", () => {
   it("registers after the owner analytics migration", () => {
     const names = migrations.map(({ name }) => name);
 
-    expect(names.at(-1)).toBe("20260827_000000_add_agent_question_log");
     expect(names.indexOf("20260827_000000_add_agent_question_log"))
       .toBe(names.indexOf("20260826_010000_add_owner_analytics_fields") + 1);
   });

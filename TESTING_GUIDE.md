@@ -4,10 +4,10 @@
 
 ## 当前基线
 
-截至 2026-08-23 的 Blog Agent 合并候选：
+截至 2026-08-28 的合并候选：
 
-- 70 个测试文件，其中 66 个通过、4 个按真库条件跳过
-- 555 个自动化测试通过，7 个按真库条件跳过
+- 88 个测试文件，其中 82 个通过、6 个按真库条件跳过
+- 736 个自动化测试通过，11 个按真库条件跳过
 - ESLint、TypeScript、Vitest 和 production build 均通过
 - GitHub Actions 在 Pull Request 上执行完整检查
 - Blog Agent 另有 PostgreSQL 15 真库门禁和生产 Docker/Payload CLI 验证
@@ -61,6 +61,7 @@ __tests__/
 - 配置内容 backfill 只填空值，不覆盖用户已经编辑的数据
 - 生产迁移以显式 `prodMigrations` 运行
 - PageViews migration、collection 权限和 SQL 聚合结果
+- 生产浏览器验收从带 `?analytics=off` 的 URL 开始，避免自动化流量污染访问统计
 
 ### Markdown 编辑器
 
@@ -120,8 +121,10 @@ npm run test:watch
 
 1. 在未开启 DNT/GPC 的浏览器访问公开页面并停留至少 15 秒。
 2. 切换页面或隐藏标签页，确认阅读时间只统计可见时段。
-3. 进入后台“运营 → 访问统计”，确认访问、停留和深度出现。
-4. 开启 DNT 或 GPC 后重新访问，确认浏览器不发送统计事件。
+3. 进入后台“运营 → 访问统计”，确认页面浏览量（PV）、独立访客（UV，估算）、停留和深度出现。
+4. 用 admin/editor 登录后访问公开页面，再退出后台继续访问；确认同一浏览器的站长流量不会进入概览。
+5. 开启 DNT 或 GPC 后重新访问，确认浏览器不发送统计事件。
+6. 生产自动化验收从带 `?analytics=off` 的 URL 开始，并确认同一标签页后续导航也不再发送统计事件。
 
 ### 生产冒烟
 

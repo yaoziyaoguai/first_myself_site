@@ -26,7 +26,7 @@
 
 ## 访问统计与隐私
 
-- 统计客户端不使用 Cookie、localStorage 或跨站跟踪脚本。
+- 统计客户端不使用 localStorage 或跨站跟踪脚本；通过 Payload 验证的 admin/editor 会收到签名、HttpOnly、`SameSite=Lax` 的站长设备 Cookie，只用于从统计中排除站长流量，不授予登录状态或任何权限。
 - 浏览器启用 Do Not Track 或 Global Privacy Control 时不发送事件。
 - 只接收与正式站点同源的 JSON 请求，并校验字段长度、数值范围和 session UUID。
 - 原始 IP 只在服务端短暂用于 HMAC 派生和限流，不写入数据库。

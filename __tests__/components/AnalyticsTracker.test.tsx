@@ -25,6 +25,8 @@ describe("AnalyticsTracker", () => {
       vi.fn(() => Promise.resolve(new Response(null, { status: 200 }))),
     );
     vi.spyOn(window.crypto, "randomUUID").mockReturnValue(sessionId);
+    window.history.replaceState({}, "", "/blog/memory");
+    window.sessionStorage.clear();
     Object.defineProperty(document, "title", {
       configurable: true,
       value: "Memory benchmark",
@@ -253,6 +255,20 @@ describe("AnalyticsTracker", () => {
       value: privacy.globalPrivacyControl,
     });
 
+    render(<AnalyticsTracker />);
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(navigator.sendBeacon).not.toHaveBeenCalled();
+  });
+
+  it("keeps browser QA traffic opted out for the rest of the tab", () => {
+    window.history.replaceState({}, "", "/blog/memory?analytics=off");
+    const firstRender = render(<AnalyticsTracker />);
+
+    expect(fetch).not.toHaveBeenCalled();
+    firstRender.unmount();
+
+    window.history.replaceState({}, "", "/about");
     render(<AnalyticsTracker />);
 
     expect(fetch).not.toHaveBeenCalled();

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const HEARTBEAT_MS = 15_000;
 const MAX_HEARTBEAT_BACKOFF_MS = 5 * 60_000;
+const ANALYTICS_OPT_OUT_KEY = "site-analytics-opt-out";
 
 type PrivacyNavigator = Navigator & { globalPrivacyControl?: boolean };
 
@@ -64,8 +65,22 @@ export function AnalyticsTracker() {
 
   useEffect(() => {
     const privacy = navigator as PrivacyNavigator;
+    const explicitOptOut = new URLSearchParams(window.location.search)
+      .get("analytics") === "off";
+    let tabOptedOut = explicitOptOut;
+    try {
+      if (explicitOptOut) {
+        window.sessionStorage.setItem(ANALYTICS_OPT_OUT_KEY, "1");
+      }
+      tabOptedOut =
+        tabOptedOut ||
+        window.sessionStorage.getItem(ANALYTICS_OPT_OUT_KEY) === "1";
+    } catch {
+      // 禁用 sessionStorage 时，本次 URL 的显式退出仍然有效。
+    }
     if (
       !pathname ||
+      tabOptedOut ||
       privacy.doNotTrack === "1" ||
       privacy.globalPrivacyControl === true
     ) {
