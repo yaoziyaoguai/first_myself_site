@@ -24,7 +24,7 @@ import * as ownerAnalyticsIdentityMigration from "@/payload/migrations/20260828_
 import {
   CONFIGURABLE_CONTENT_VERSION,
   backfillConfigurableContent,
-} from "@/payload/migrations/backfillConfigurableContent";
+} from "@/payload/backfillConfigurableContent";
 
 const castPayload = (mock: Record<string, unknown>): BasePayload =>
   mock as unknown as BasePayload;
