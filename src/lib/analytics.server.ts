@@ -47,6 +47,22 @@ async function persistPageView(
   // visitor_hash 条件阻止伪造 sessionId 的请求修改其他访客记录。
   const result = await payload.db.pool.query<PersistedPageView>(
     `
+      WITH known_owner AS (
+        SELECT (
+          $4::boolean OR EXISTS (
+            SELECT 1
+            FROM page_views AS known_owner
+            WHERE known_owner.visitor_hash = $2
+              AND known_owner.is_owner = TRUE
+          )
+        ) AS is_owner
+      ), promoted_owner_rows AS (
+        UPDATE page_views
+        SET is_owner = TRUE, updated_at = NOW()
+        WHERE $4::boolean = TRUE
+          AND visitor_hash = $2
+          AND is_owner = FALSE
+      )
       INSERT INTO page_views (
         session_id,
         visitor_hash,
@@ -61,7 +77,9 @@ async function persistPageView(
         updated_at,
         created_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW(), NOW())
+      SELECT $1, $2, $3, known_owner.is_owner, $5, $6, $7, $8, $9,
+        NOW(), NOW(), NOW()
+      FROM known_owner
       ON CONFLICT (session_id) DO UPDATE SET
         network_prefix = EXCLUDED.network_prefix,
         is_owner = page_views.is_owner OR EXCLUDED.is_owner,
@@ -128,6 +146,12 @@ export async function readAnalyticsSummary(
       WHERE created_at >= $1
         AND created_at < $3
         AND COALESCE(is_owner, false) = false
+        AND NOT EXISTS (
+          SELECT 1
+          FROM page_views AS known_owner
+          WHERE known_owner.visitor_hash = page_views.visitor_hash
+            AND known_owner.is_owner = TRUE
+        )
     `,
     [since, recentSince, until],
   );
@@ -145,6 +169,12 @@ export async function readAnalyticsSummary(
       WHERE created_at >= $1
         AND created_at < $2
         AND COALESCE(is_owner, false) = false
+        AND NOT EXISTS (
+          SELECT 1
+          FROM page_views AS known_owner
+          WHERE known_owner.visitor_hash = page_views.visitor_hash
+            AND known_owner.is_owner = TRUE
+        )
       GROUP BY path
       ORDER BY views DESC, path ASC
       LIMIT 5
@@ -174,6 +204,12 @@ export async function readAnalyticsSummary(
         AND page_views.created_at < (days.day + INTERVAL '1 day') AT TIME ZONE 'Asia/Shanghai'
         AND page_views.created_at < $2
         AND COALESCE(page_views.is_owner, false) = false
+        AND NOT EXISTS (
+          SELECT 1
+          FROM page_views AS known_owner
+          WHERE known_owner.visitor_hash = page_views.visitor_hash
+            AND known_owner.is_owner = TRUE
+        )
       GROUP BY days.day
       ORDER BY days.day ASC
     `,

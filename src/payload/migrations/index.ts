@@ -6,6 +6,7 @@ import * as migration_20260824_000000_add_blog_agent_github_sources from "./2026
 import * as migration_20260826_000000_add_unanswered_agent_questions from "./20260826_000000_add_unanswered_agent_questions";
 import * as migration_20260826_010000_add_owner_analytics_fields from "./20260826_010000_add_owner_analytics_fields";
 import * as migration_20260827_000000_add_agent_question_log from "./20260827_000000_add_agent_question_log";
+import * as migration_20260828_000000_propagate_owner_analytics from "./20260828_000000_propagate_owner_analytics";
 
 export const migrations = [
   {
@@ -47,5 +48,10 @@ export const migrations = [
     up: migration_20260827_000000_add_agent_question_log.up,
     down: migration_20260827_000000_add_agent_question_log.down,
     name: "20260827_000000_add_agent_question_log",
+  },
+  {
+    up: migration_20260828_000000_propagate_owner_analytics.up,
+    down: migration_20260828_000000_propagate_owner_analytics.down,
+    name: "20260828_000000_propagate_owner_analytics",
   },
 ];
