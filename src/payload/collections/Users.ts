@@ -5,7 +5,12 @@ const Users: CollectionConfig = {
   admin: {
     useAsTitle: "email",
   },
-  auth: true,
+  auth: {
+    cookies: {
+      sameSite: "Lax",
+      secure: true,
+    },
+  },
   fields: [
     {
       name: "role",

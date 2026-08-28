@@ -10,6 +10,15 @@ describe('Users Collection - Access Control', () => {
     user,
   })
 
+  it('marks the Payload session cookie Secure and SameSite=Lax', () => {
+    expect(Users.auth).toMatchObject({
+      cookies: {
+        sameSite: 'Lax',
+        secure: true,
+      },
+    })
+  })
+
   describe('admin access', () => {
     const adminAccess = Users.access?.admin
 
