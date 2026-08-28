@@ -61,6 +61,7 @@ __tests__/
 - 配置内容 backfill 只填空值，不覆盖用户已经编辑的数据
 - 生产迁移以显式 `prodMigrations` 运行
 - PageViews migration、collection 权限和 SQL 聚合结果
+- 生产浏览器验收从带 `?analytics=off` 的 URL 开始，避免自动化流量污染访问统计
 
 ### Markdown 编辑器
 
