@@ -81,6 +81,7 @@ set -euo pipefail
 if [[ "\${1:-}" == "s_client" ]]; then
   printf 'openssl=%s\n' "$*" >>"$COMMAND_LOG"
   [[ "$*" == "s_client -servername wangjinkun333.me -connect 127.0.0.1:443" ]]
+  cat >/dev/null
   printf 'fake certificate\n'
 elif [[ "$*" == *"-enddate"* ]]; then
   printf 'notAfter=Oct 30 00:00:00 2026 GMT\n'
