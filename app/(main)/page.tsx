@@ -112,66 +112,41 @@ export default async function Home() {
           <p className="section-number">02</p>
           <h2 className="section-title">项目与实验</h2>
         </div>
-        <div className="grid gap-5 md:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)]">
-          {projects[0] ? (
+        <div className="grid gap-x-10 md:grid-cols-2">
+          {projects.slice(0, 4).map((project) => (
             <Link
-              className="flex min-h-80 flex-col rounded-xl border border-border bg-card p-7 md:p-9"
-              href={projects[0].href}
-              target={projects[0].href.startsWith("http") ? "_blank" : undefined}
-              rel={projects[0].href.startsWith("http") ? "noreferrer" : undefined}
+              className="group flex min-h-64 flex-col border-t border-border py-7 md:py-8"
+              href={project.href}
+              key={String(project.id)}
+              target={project.href.startsWith("http") ? "_blank" : undefined}
+              rel={project.href.startsWith("http") ? "noreferrer" : undefined}
             >
-              <div className="flex items-start justify-between gap-4">
-                <p className="font-mono text-xs text-muted-foreground">
-                  {projects[0].role} · {projects[0].period}
-                </p>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs text-muted-foreground">
+                <span>{project.role}</span>
+                <span>{project.period}</span>
+              </div>
+              <div className="mt-6 flex items-start justify-between gap-4">
+                <h3 className="text-2xl font-medium tracking-tight group-hover:text-primary">
+                  {project.title}
+                </h3>
                 <ArrowUpRight
                   aria-hidden="true"
-                  className="text-muted-foreground"
+                  className="mt-1 shrink-0 text-muted-foreground group-hover:text-primary"
                   size={18}
                 />
               </div>
-              <h3 className="mt-12 text-3xl font-medium tracking-tight">{projects[0].title}</h3>
-              <p className="mt-4 max-w-xl text-sm leading-7 text-muted-foreground">
-                {projects[0].description}
+              <p className="mt-3 max-w-xl text-sm leading-7 text-muted-foreground">
+                {project.description}
               </p>
               <div className="mt-auto flex flex-wrap gap-2 pt-8">
-                {projects[0].tags?.slice(0, 3).map((tag: { tag?: string | null }) => (
+                {project.tags?.slice(0, 3).map((tag: { tag?: string | null }) => (
                   <span className="text-xs text-muted-foreground" key={tag.tag ?? "tag"}>
                     #{tag.tag}
                   </span>
                 ))}
               </div>
             </Link>
-          ) : null}
-
-          <div className="divide-y divide-border border-y border-border">
-            {projects.slice(1, 4).map((project) => (
-              <Link
-                className="grid gap-3 py-6 sm:grid-cols-[1fr_auto]"
-                href={project.href}
-                key={String(project.id)}
-                target={project.href.startsWith("http") ? "_blank" : undefined}
-                rel={project.href.startsWith("http") ? "noreferrer" : undefined}
-              >
-                <span>
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {project.role} · {project.period}
-                  </span>
-                  <span className="mt-2 block text-lg font-medium tracking-tight">
-                    {project.title}
-                  </span>
-                  <span className="mt-2 line-clamp-2 block text-sm leading-6 text-muted-foreground">
-                    {project.description}
-                  </span>
-                </span>
-                <ArrowUpRight
-                  aria-hidden="true"
-                  className="text-muted-foreground"
-                  size={18}
-                />
-              </Link>
-            ))}
-          </div>
+          ))}
         </div>
       </section>
 
