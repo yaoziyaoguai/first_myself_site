@@ -71,7 +71,7 @@ NEXT_PUBLIC_SERVER_URL=http://localhost:3000
 npm run lint
 npx tsc --noEmit -p tsconfig.ci.json
 npm test
-npm audit --package-lock-only --audit-level=high --registry=https://registry.npmjs.org/
+npx --yes npm@11.19.0 audit --package-lock-only --audit-level=high --registry=https://registry.npmjs.org/
 npm run build
 ```
 
