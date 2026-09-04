@@ -51,7 +51,7 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - run: npm ci
-      - run: npm audit --package-lock-only --audit-level=high --registry=https://registry.npmmirror.com
+      - run: npx --yes npm@10.9.4 audit --package-lock-only --audit-level=high --registry=https://registry.npmmirror.com
 
   # ── 第3层：自动化测试 ─────────────────────────────
   test:
