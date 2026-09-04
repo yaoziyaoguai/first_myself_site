@@ -21,9 +21,10 @@ npm ci
 npm run lint
 npx tsc --noEmit -p tsconfig.ci.json
 npm test
-npx --yes npm@11.19.0 audit --package-lock-only --audit-level=high --registry=https://registry.npmjs.org/
 npm run build
 ```
+
+Pull Request 会由 GitHub Dependency Review 比较本次依赖变更，新增 high/critical 漏洞时直接失败。`npm audit` 可作为本地补充检查，但它依赖 npm registry 实时服务，不作为生产部署的重复门禁。
 
 `npm run build` 需要有效但可以是临时的 PostgreSQL 和以下变量：
 
@@ -137,13 +138,13 @@ npm run test:watch
 ## CI/CD 顺序
 
 ```text
-ESLint
-  → TypeScript ─→ Tests → Build ─┐
-  → Security Scan ────────────────┤
-                                  └→ Deploy（main push 或受控手工触发）
+Pull Request: ESLint ─┬→ TypeScript → Tests → Build
+                     └→ Security Scan
+
+main push / workflow_dispatch: ESLint → TypeScript → Tests → Build → Deploy
 ```
 
-Pull Request 不会部署。只有 `main` 的 push 或明确的 `workflow_dispatch` 且全部上游检查成功后，Deploy job 才会连接阿里云；同一生产服务器的部署按 concurrency group 串行执行。
+Pull Request 不会部署，但会审查本次新增的依赖风险。只有 `main` 的 push 或明确的 `workflow_dispatch` 且 Build 成功后，Deploy job 才会连接阿里云；同一生产服务器的部署按 concurrency group 串行执行。仓库变更应经 PR 合入，不直接 push 到 `main`。
 
 ## 结果报告要求
 
