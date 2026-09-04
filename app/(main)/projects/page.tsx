@@ -20,6 +20,18 @@ export default async function ProjectsPage() {
     isAdmin(),
   ]);
   const projects = result.docs.length > 0 ? result.docs : siteDefaults.projects;
+  const projectGroups = [
+    {
+      title: "主要项目",
+      description: "首页优先展示的项目，也可以继续在后台调整排序。",
+      projects: projects.slice(0, 4),
+    },
+    {
+      title: "更多实践",
+      description: "已经形成完整实现、使用说明或复盘材料的公开项目。",
+      projects: projects.slice(4),
+    },
+  ].filter((group) => group.projects.length > 0);
 
   return (
     <div className="site-shell page-space">
@@ -36,65 +48,75 @@ export default async function ProjectsPage() {
         ) : null}
       </header>
 
-      <div className="divide-y divide-border border-y border-border">
-        {projects.map((project, index) => {
-          const href = "href" in project ? project.href : null;
-          const className =
-            "group grid gap-7 py-10 md:grid-cols-[5rem_minmax(0,0.8fr)_minmax(0,1.2fr)] md:py-14";
-          const content = (
-            <>
-              <span className="font-mono text-xs text-muted-foreground">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <span>
-                <span className="flex items-start gap-3">
-                  <span className="text-2xl font-semibold tracking-tight">{project.title}</span>
-                  {href ? <ArrowUpRight aria-hidden="true" size={18} /> : null}
-                </span>
-                <span className="mt-3 block text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                  {project.role} · {project.period}
-                </span>
-              </span>
-              <span>
-                <span className="block text-sm leading-7 text-muted-foreground">
-                  {project.description}
-                </span>
-                <span className="mt-6 flex flex-wrap gap-2">
-                  {project.tags?.map((tag: { tag?: string | null }) => (
-                    <span className="topic-pill" key={tag.tag ?? "tag"}>
-                      {tag.tag}
-                    </span>
-                  ))}
-                </span>
-                {project.highlights?.length ? (
-                  <span className="mt-7 block border-l border-primary pl-5">
-                    {project.highlights.map((highlight: { text?: string | null }) => (
-                      <span className="block text-sm leading-7 text-foreground/80" key={highlight.text ?? "highlight"}>
-                        {highlight.text}
+      <div className="space-y-16 md:space-y-24">
+        {projectGroups.map((group) => (
+          <section className="grid gap-8 md:grid-cols-[12rem_minmax(0,1fr)]" key={group.title}>
+            <div>
+              <h2 className="text-xl font-medium tracking-tight">{group.title}</h2>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">{group.description}</p>
+            </div>
+            <div className="divide-y divide-border border-y border-border">
+              {group.projects.map((project) => {
+                const href = "href" in project ? project.href : null;
+                const className =
+                  "grid gap-5 py-8 sm:grid-cols-[minmax(12rem,0.72fr)_minmax(0,1.28fr)] md:py-10";
+                const content = (
+                  <>
+                    <span>
+                      <span className="flex items-start gap-3">
+                        <span className="text-xl font-medium tracking-tight">{project.title}</span>
+                        {href ? <ArrowUpRight aria-hidden="true" size={17} /> : null}
                       </span>
-                    ))}
-                  </span>
-                ) : null}
-              </span>
-            </>
-          );
+                      <span className="mt-3 block font-mono text-xs leading-5 text-muted-foreground">
+                        {project.role} · {project.period}
+                      </span>
+                    </span>
+                    <span>
+                      <span className="block text-sm leading-7 text-muted-foreground">
+                        {project.description}
+                      </span>
+                      <span className="mt-5 flex flex-wrap gap-2">
+                        {project.tags?.map((tag: { tag?: string | null }) => (
+                          <span className="topic-pill" key={tag.tag ?? "tag"}>
+                            {tag.tag}
+                          </span>
+                        ))}
+                      </span>
+                      {project.highlights?.length ? (
+                        <span className="mt-6 block border-l border-primary pl-5">
+                          {project.highlights.map((highlight: { text?: string | null }) => (
+                            <span
+                              className="block text-sm leading-7 text-foreground/80"
+                              key={highlight.text ?? "highlight"}
+                            >
+                              {highlight.text}
+                            </span>
+                          ))}
+                        </span>
+                      ) : null}
+                    </span>
+                  </>
+                );
 
-          return href ? (
-            <Link
-              className={className}
-              href={href}
-              key={String(project.id)}
-              target={href.startsWith("http") ? "_blank" : undefined}
-              rel={href.startsWith("http") ? "noreferrer" : undefined}
-            >
-              {content}
-            </Link>
-          ) : (
-            <article className={className} key={String(project.id)}>
-              {content}
-            </article>
-          );
-        })}
+                return href ? (
+                  <Link
+                    className={className}
+                    href={href}
+                    key={String(project.id)}
+                    target={href.startsWith("http") ? "_blank" : undefined}
+                    rel={href.startsWith("http") ? "noreferrer" : undefined}
+                  >
+                    {content}
+                  </Link>
+                ) : (
+                  <article className={className} key={String(project.id)}>
+                    {content}
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        ))}
       </div>
     </div>
   );

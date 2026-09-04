@@ -2,7 +2,7 @@ import type { BasePayload } from "payload";
 import { siteDefaults } from "@/content/siteDefaults";
 import { resolveArray, resolveText } from "@/lib/contentFallback";
 
-export const CONFIGURABLE_CONTENT_VERSION = 1;
+export const CONFIGURABLE_CONTENT_VERSION = 2;
 
 export async function backfillConfigurableContent(
   payload: BasePayload,
@@ -13,7 +13,8 @@ export async function backfillConfigurableContent(
     showHiddenFields: true,
   });
 
-  if (Number(settings?.contentVersion ?? 0) >= CONFIGURABLE_CONTENT_VERSION) {
+  const currentVersion = Number(settings?.contentVersion ?? 0);
+  if (currentVersion >= CONFIGURABLE_CONTENT_VERSION) {
     return false;
   }
 
@@ -91,6 +92,14 @@ export async function backfillConfigurableContent(
           highlights: project.highlights.map((item) => ({ ...item })),
           sortOrder: index + 1,
         },
+        overrideAccess: true,
+      });
+    } else if (currentVersion >= 1) {
+      // 内容版本 2 只统一一次已知项目的初始顺序，后续后台调整不会重复覆盖。
+      await payload.update({
+        collection: "projects",
+        id: existing.docs[0].id,
+        data: { sortOrder: index + 1 },
         overrideAccess: true,
       });
     }

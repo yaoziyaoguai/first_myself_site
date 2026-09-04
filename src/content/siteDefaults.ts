@@ -86,33 +86,108 @@ export const siteDefaults = {
   },
   projects: [
     {
-      id: "default-mindforge",
-      title: "MindForge",
-      slug: "mindforge",
-      role: "个人学习项目",
-      period: "持续迭代",
-      description:
-        "围绕 Agent 的上下文、记忆、工具与评测搭建实验场，用小步迭代理解可靠 AI 系统的工程边界。",
-      href: "https://github.com/yaoziyaoguai/mindforge",
-      tags: [{ tag: "Agent" }, { tag: "Evaluation" }, { tag: "Harness" }],
-      highlights: [
-        { text: "用真实实验记录设计取舍和失败原因" },
-        { text: "逐步补充评测、检查点与安全约束" },
-      ],
-    },
-    {
       id: "default-portfolio",
       title: "个人网站",
       slug: "personal-site",
-      role: "独立开发",
-      period: "持续维护",
+      role: "全栈内容系统",
+      period: "2026.09 · 持续维护",
       description:
-        "使用 Next.js、Payload CMS 与 PostgreSQL 搭建内容网站，并通过 GitHub Actions 部署到阿里云。",
+        "使用 Next.js、Payload CMS 与 PostgreSQL 搭建可配置的技术博客，并通过 GitHub Actions 持续部署到阿里云。",
       href: "https://github.com/yaoziyaoguai/first_myself_site",
       tags: [{ tag: "Next.js" }, { tag: "Payload CMS" }, { tag: "PostgreSQL" }],
       highlights: [
-        { text: "内容管理、公开页面与部署链路保持在同一仓库" },
-        { text: "持续补齐测试、安全边界与生产可观测性" },
+        { text: "文章、项目、统计和单篇文章问答由同一后台管理" },
+        { text: "从 Pull Request、自动测试到阿里云部署形成完整发布链路" },
+      ],
+    },
+    {
+      id: "default-gpt-oracle-web",
+      title: "GPT Oracle Web",
+      slug: "gpt-oracle-web",
+      role: "Codex Skill 与浏览器自动化",
+      period: "2026.09 · 活跃开发",
+      description:
+        "把复杂规划和代码审查交给已登录的 ChatGPT 网页端，再由当前 Codex 负责实现与验证的可安装工作流。",
+      href: "https://github.com/yaoziyaoguai/gpt_oracle_web",
+      tags: [{ tag: "Codex Skill" }, { tag: "CDP" }, { tag: "Fail Closed" }],
+      highlights: [
+        { text: "验证网页实际显示的推理档位和已提交消息，不把请求参数当作成功证据" },
+        { text: "按独立 session 管理 Chrome 身份、恢复和临时 Profile 清理" },
+      ],
+    },
+    {
+      id: "default-video-factory",
+      title: "VideoFactory",
+      slug: "video-factory",
+      role: "本地优先短视频 Creative OS",
+      period: "2026.09 · 活跃开发",
+      description:
+        "把选题、Production Brief、逐镜素材、配音渲染、审片返修和发布包组织成可恢复、可审计的单人创作链路。",
+      href: "https://github.com/yaoziyaoguai/video-factory",
+      tags: [{ tag: "TypeScript" }, { tag: "Fastify" }, { tag: "FFmpeg" }],
+      highlights: [
+        { text: "React Studio 管理工作流、审批、成本和 artifact，Python 负责媒体执行" },
+        { text: "付费素材逐镜报价并由人工确认，失败节点明确停止而不是伪装成片" },
+      ],
+    },
+    {
+      id: "default-my-first-agent",
+      title: "My First Agent",
+      slug: "my-first-agent",
+      role: "本地优先 Agent Runtime",
+      period: "2026.08 · 活跃开发",
+      description:
+        "从当前目录工作的日常 Agent，围绕上下文、工具审批、持久化状态、失败恢复和来源证据构建一条受治理的执行路径。",
+      href: "https://github.com/yaoziyaoguai/my-first-agent",
+      tags: [{ tag: "Python" }, { tag: "Agent Runtime" }, { tag: "Safety" }],
+      highlights: [
+        { text: "同一自然语言入口覆盖回答、文件任务、受控 Web 和结构化本机行动" },
+        { text: "只有 durable evidence 满足验收标准时才显示任务完成" },
+      ],
+    },
+    {
+      id: "default-mindforge",
+      title: "MindForge",
+      slug: "mindforge",
+      role: "知识工作流学习项目",
+      period: "2026.06 · 阶段性归档",
+      description:
+        "把本地资料转成待审知识卡片，经人工批准后进入 Library、BM25 Recall 和 Topic View 的个人知识加工实验。",
+      href: "https://github.com/yaoziyaoguai/mindforge",
+      tags: [{ tag: "Python" }, { tag: "Knowledge Workflow" }, { tag: "BM25" }],
+      highlights: [
+        { text: "AI 只生成草稿，正式知识必须人工显式批准" },
+        { text: "项目已暂停推进，保留为 vibe coding 学习和复盘样本" },
+      ],
+    },
+    {
+      id: "default-vehicle-memory-benchmark",
+      title: "Vehicle Memory Benchmark",
+      slug: "vehicle-memory-benchmark",
+      role: "车载 AI 记忆离线诊断",
+      period: "2026.06 · 阶段性实践",
+      description:
+        "面向自然语言记忆系统的离线评测工具，用标准化 predictions 快照定位抽取、更新、删除、召回和隐私边界问题。",
+      href: "https://github.com/yaoziyaoguai/vehicle_memory_benchmark",
+      tags: [{ tag: "Python" }, { tag: "Memory" }, { tag: "Evaluation" }],
+      highlights: [
+        { text: "评测器不直连目标系统，只消费可复现、可审计的 predictions.jsonl" },
+        { text: "覆盖 210 个 case，并区分真实零分与本轮未覆盖的 N/A" },
+      ],
+    },
+    {
+      id: "default-agent-tool-harness",
+      title: "Agent Tool Harness",
+      slug: "agent-tool-harness",
+      role: "Agent 工具调用评测",
+      period: "2026.05 · 阶段性实践",
+      description:
+        "消费已有 trace 和评测结果，以确定性规则检查工具调用、任务结果、回归变化、上下文浪费和工具组合质量。",
+      href: "https://github.com/yaoziyaoguai/agent-tool-harness",
+      tags: [{ tag: "Python" }, { tag: "Tool Use" }, { tag: "Evaluation" }],
+      highlights: [
+        { text: "默认不运行目标 Agent、不调用真实 LLM，也不自动修改工具" },
+        { text: "从单条 trace 检查延伸到 suite、回归对比和工具组合评审" },
       ],
     },
   ] satisfies ProjectSummary[],
