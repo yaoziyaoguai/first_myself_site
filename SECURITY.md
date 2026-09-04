@@ -48,16 +48,17 @@
 
 ## 依赖与检查
 
-CI 使用锁文件执行 `npm ci`，并阻止 high/critical 依赖漏洞。提交前运行：
+CI 使用锁文件执行 `npm ci`，并在 Pull Request 上阻止本次新增的 high/critical 依赖漏洞。提交前运行：
 
 ```bash
 npm run lint
 npx tsc --noEmit -p tsconfig.ci.json
 npm test
-npm audit --audit-level=high
 npm run build
 ```
 
-`npm audit --audit-level=high` 是 CI 门禁。若审计仍报告 low/moderate 上游问题，应核对 Payload 与 Next.js 的兼容版本；没有无破坏性升级路径时，不应使用 `npm audit fix --force` 越过框架兼容范围。
+GitHub Dependency Review 直接比较 PR 的基准与当前依赖图；它是依赖变更门禁。`npm audit` 可作为本地补充检查，但不再作为生产部署的实时前置条件，避免 npm registry 审计接口故障将已通过 PR 审查的发布卡死。若审查报告 low/moderate 上游问题，应核对 Payload 与 Next.js 的兼容版本；没有无破坏性升级路径时，不应使用 `npm audit fix --force` 越过框架兼容范围。
+
+仓库必须保持 GitHub Dependency Graph 和 Dependabot vulnerability alerts 开启；两者只做依赖分析与告警，不会自动升级生产依赖。
 
 如果任何密钥或管理员凭证可能泄露，应先在阿里云/服务器轮换，再重新部署；不要把真实值粘贴到 Issue、PR、日志或聊天中。

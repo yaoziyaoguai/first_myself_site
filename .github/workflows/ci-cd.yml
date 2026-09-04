@@ -35,19 +35,20 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit -p tsconfig.ci.json
 
-  # ── 第2层并行：依赖安全扫描 ──────────────────────
+  # ── 第2层并行：PR 依赖变更审查 ──────────────────
   security:
     name: Security Scan
     runs-on: ubuntu-latest
     needs: lint
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@v5.0.0
         with:
-          node-version: '22'
-          cache: 'npm'
-      - run: npm ci
-      - run: npm audit --audit-level=high
+          fail-on-severity: high
 
   # ── 第3层：自动化测试 ─────────────────────────────
   test:
@@ -114,7 +115,8 @@ jobs:
   deploy:
     name: Deploy to Server
     runs-on: ubuntu-latest
-    needs: [build, security]
+    # 依赖变更已在 PR 上审查；main 部署不再重复请求外部 npm audit 服务。
+    needs: build
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     concurrency:
       group: production-deploy

@@ -20,7 +20,7 @@
 
 ## 当前阶段
 
-**阶段**：核心内容、互动、运营统计和 GitHub → 阿里云部署链路已上线；Blog Agent V1 已完成本地发布候选验证，仍待 PR 与生产灰度。
+**阶段**：核心内容、互动、运营统计、单文章 Blog Agent 和 GitHub → 阿里云部署链路均已上线。
 
 **定位**：以低调的方式记录数据工程、AI 评测和 Agent 系统的学习、实验与转型过程。
 
@@ -36,18 +36,16 @@
 | 评论与点赞 | 受控公开接口、匿名 HMAC 身份和权限隔离已上线 |
 | 访问统计 | 后台可查看访问、估算访客、有效停留、阅读深度和热门页面 |
 | 内容发布 Skill | 全局 `publish-site-article` 可从任意 Codex 项目上传 Markdown 与图片 |
-| Blog Agent UI | 桌面浮层与移动端 bottom sheet 已实现，生产开关默认关闭 |
+| Blog Agent UI | 桌面浮层与移动端 bottom sheet 已上线，支持按文章保存会话历史和调整面板大小 |
 | Blog 内 RAG | 当前文章 Markdown 为基线；可选文章包补充同一 Blog 的代码、文档、数据和图片说明 |
 | Agent 安全 | 不跨 Blog；服务端 Key、持久化配额、并发限制、无证据拒答和紧急双开关已实现 |
-| SEO / 发现 | sitemap、RSS 和 canonical metadata 已上线 |
-| 测试 | 合并候选已通过 70 个测试文件、555 个测试、ESLint、TypeScript、PostgreSQL 15 与生产 Docker 构建；PR CI 仍是最终门禁 |
+| SEO / 发现 | sitemap、RSS、canonical metadata 和 ICP 备案页脚已上线 |
+| 测试 | `main` 已通过 88 个测试文件（82 通过、6 个真库条件跳过）、740 个测试、ESLint、TypeScript 与 production build；PR CI 仍是最终门禁 |
 | 部署 | PR → CI → main → 阿里云串行部署，带备份、健康检查和应用镜像回滚；数据库恢复需人工处理 |
 
 ## 当前 Blockers
 
 无影响网站可用性的阻碍。
-
-Blog Agent 尚未对访客开放；需要先完成 PR、关闭开关部署、实验文章索引和生产 canary。
 
 仍需持续关注：
 
@@ -59,10 +57,10 @@ Blog Agent 尚未对访客开放；需要先完成 PR、关闭开关部署、实
 
 ## 下一步建议
 
-1. 完成 Blog Agent PR，并以两个开关关闭的状态部署 migration 与页面代码
-2. 通过全局发布 Skill 发布和索引实验文章，运行关闭入口时的 package canary
-3. 开启访客入口并执行公网 canary；失败时立即关闭两个 Repository Variables 并重部署
-4. 配置异地备份、恢复演练和低维护成本的 uptime / TLS 监控
+1. 持续通过全局发布 Skill 发布文章，并为需要代码问答的文章维护同 Blog 材料包
+2. 在 Google Search Console 与百度搜索资源平台持续观察抓取和收录状态
+3. 配置异地备份、恢复演练和低维护成本的 uptime / TLS 监控
+4. 轮换曾在对话中使用过的模型 API Key
 
 ## 重要决策与约束
 
@@ -87,5 +85,5 @@ npm run build
 npm run payload -- run payload.config.ts
 ```
 
-**最后更新**：2026-08-23
-**更新说明**：保留已上线的统计与编辑器能力，并记录 Blog Agent V1 的文章边界、安全设计和灰度发布状态。
+**最后更新**：2026-09-04
+**更新说明**：同步 Blog Agent、项目展示、ICP 备案、访问统计和当前测试基线的生产状态。

@@ -12,6 +12,7 @@
 
 - 首页、关于、项目、文章和联系页面由 Payload CMS 管理
 - “最近在学习”、项目/实验、外部链接、公开邮箱均可在后台配置，不需要改代码
+- 首页与项目页展示近期维护的公开 GitHub 项目，并保留后台配置内容优先、仓库默认值兜底的规则
 - 文章支持 Markdown、GFM 表格、任务列表和本地图片
 - Markdown 后台提供等宽双栏预览，并按内容锚点双向同步滚动
 - 草稿、公开文章和登录可见文章具有独立的可见性规则
@@ -19,6 +20,7 @@
 - 后台“运营 → 访问统计”展示访问量、估算访客、有效停留、阅读深度和近 7 天 Agent 问题明细
 - 公开 Markdown 文章可启用悬浮 Agent，只回答当前 Blog，并可选使用同一文章的私有材料包增强上下文
 - sitemap、RSS、canonical metadata、Article 结构化数据和数据库就绪检查已接入
+- 全站页脚展示工信部 ICP 备案号，并链接到备案查询系统
 - GitHub Pull Request 通过 CI 后合并到 `main`，自动部署到阿里云
 
 ## 后台内容地图
@@ -69,7 +71,6 @@ NEXT_PUBLIC_SERVER_URL=http://localhost:3000
 npm run lint
 npx tsc --noEmit -p tsconfig.ci.json
 npm test
-npm audit --audit-level=high
 npm run build
 ```
 
@@ -188,6 +189,7 @@ scripts/                  健康检查、备份和部署前验证
 - [DESIGN.md](DESIGN.md)：视觉系统、内容语气和后台交互约束
 - [TESTING_GUIDE.md](TESTING_GUIDE.md)：自动化测试与发布前验证
 - [SECURITY.md](SECURITY.md)：权限、隐私和生产安全边界
+- [Blog Agent 运维手册](docs/blog-agent-operations.md)：开关、索引、canary、配额和故障处置
 - [搜索发现运维](docs/search-discovery.md)：Google / 百度站点验证、sitemap 提交与收录排查
 
 ## License

@@ -68,5 +68,3 @@ media/*
 nginx.conf
 .env.docker.prod
 resume
-cookies.txt
-docs/

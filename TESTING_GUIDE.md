@@ -4,10 +4,10 @@
 
 ## 当前基线
 
-截至 2026-08-28 的合并候选：
+截至 2026-09-04 的 `main` 基线：
 
 - 88 个测试文件，其中 82 个通过、6 个按真库条件跳过
-- 736 个自动化测试通过，11 个按真库条件跳过
+- 740 个自动化测试通过，11 个按真库条件跳过
 - ESLint、TypeScript、Vitest 和 production build 均通过
 - GitHub Actions 在 Pull Request 上执行完整检查
 - Blog Agent 另有 PostgreSQL 15 真库门禁和生产 Docker/Payload CLI 验证
@@ -21,9 +21,10 @@ npm ci
 npm run lint
 npx tsc --noEmit -p tsconfig.ci.json
 npm test
-npm audit --audit-level=high
 npm run build
 ```
+
+Pull Request 会由 GitHub Dependency Review 比较本次依赖变更，新增 high/critical 漏洞时直接失败。`npm audit` 可作为本地补充检查，但它依赖 npm registry 实时服务，不作为生产部署的重复门禁。
 
 `npm run build` 需要有效但可以是临时的 PostgreSQL 和以下变量：
 
@@ -137,13 +138,13 @@ npm run test:watch
 ## CI/CD 顺序
 
 ```text
-ESLint
-  → TypeScript ─→ Tests → Build ─┐
-  → Security Scan ────────────────┤
-                                  └→ Deploy（main push 或受控手工触发）
+Pull Request: ESLint ─┬→ TypeScript → Tests → Build
+                     └→ Security Scan
+
+main push / workflow_dispatch: ESLint → TypeScript → Tests → Build → Deploy
 ```
 
-Pull Request 不会部署。只有 `main` 的 push 或明确的 `workflow_dispatch` 且全部上游检查成功后，Deploy job 才会连接阿里云；同一生产服务器的部署按 concurrency group 串行执行。
+Pull Request 不会部署，但会审查本次新增的依赖风险。只有 `main` 的 push 或明确的 `workflow_dispatch` 且 Build 成功后，Deploy job 才会连接阿里云；同一生产服务器的部署按 concurrency group 串行执行。仓库变更应经 PR 合入，不直接 push 到 `main`。
 
 ## 结果报告要求
 
