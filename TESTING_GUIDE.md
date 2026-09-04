@@ -4,10 +4,10 @@
 
 ## 当前基线
 
-截至 2026-08-28 的合并候选：
+截至 2026-09-04 的 `main` 基线：
 
 - 88 个测试文件，其中 82 个通过、6 个按真库条件跳过
-- 736 个自动化测试通过，11 个按真库条件跳过
+- 740 个自动化测试通过，11 个按真库条件跳过
 - ESLint、TypeScript、Vitest 和 production build 均通过
 - GitHub Actions 在 Pull Request 上执行完整检查
 - Blog Agent 另有 PostgreSQL 15 真库门禁和生产 Docker/Payload CLI 验证
