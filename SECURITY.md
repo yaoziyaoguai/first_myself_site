@@ -54,10 +54,10 @@ CI 使用锁文件执行 `npm ci`，并阻止 high/critical 依赖漏洞。提�
 npm run lint
 npx tsc --noEmit -p tsconfig.ci.json
 npm test
-npm audit --audit-level=high
+npm audit --package-lock-only --audit-level=high --registry=https://registry.npmjs.org/
 npm run build
 ```
 
-`npm audit --audit-level=high` 是 CI 门禁。若审计仍报告 low/moderate 上游问题，应核对 Payload 与 Next.js 的兼容版本；没有无破坏性升级路径时，不应使用 `npm audit fix --force` 越过框架兼容范围。
+锁文件审计是 CI 门禁；显式使用 npm 官方 registry，避免本地镜像缺少 audit API。若审计仍报告 low/moderate 上游问题，应核对 Payload 与 Next.js 的兼容版本；没有无破坏性升级路径时，不应使用 `npm audit fix --force` 越过框架兼容范围。
 
 如果任何密钥或管理员凭证可能泄露，应先在阿里云/服务器轮换，再重新部署；不要把真实值粘贴到 Issue、PR、日志或聊天中。

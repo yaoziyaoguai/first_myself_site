@@ -21,7 +21,7 @@ npm ci
 npm run lint
 npx tsc --noEmit -p tsconfig.ci.json
 npm test
-npm audit --audit-level=high
+npm audit --package-lock-only --audit-level=high --registry=https://registry.npmjs.org/
 npm run build
 ```
 

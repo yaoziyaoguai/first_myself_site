@@ -47,7 +47,8 @@ jobs:
           node-version: '22'
           cache: 'npm'
       - run: npm ci
-      - run: npm audit --audit-level=high
+      # 只审计已提交锁文件，避免 runner 的平台可选依赖让 npm 误报 Invalid package tree。
+      - run: npm audit --package-lock-only --audit-level=high --registry=https://registry.npmjs.org/
 
   # ── 第3层：自动化测试 ─────────────────────────────
   test:
