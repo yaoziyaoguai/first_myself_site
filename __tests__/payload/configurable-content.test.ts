@@ -225,6 +225,94 @@ describe("configurable portfolio content", () => {
     expect(mockPayload.create).not.toHaveBeenCalled();
   });
 
+  it("adds recent public projects and reorders known entries without overwriting their content", async () => {
+    const existingProjects = new Map<string, Record<string, unknown>>([
+      [
+        "personal-site",
+        {
+          id: "project-site",
+          slug: "personal-site",
+          title: "后台自定义网站标题",
+          description: "后台自定义描述",
+          sortOrder: 99,
+        },
+      ],
+      [
+        "mindforge",
+        {
+          id: "project-mindforge",
+          slug: "mindforge",
+          title: "后台自定义 MindForge 标题",
+          description: "保留这段后台内容",
+          sortOrder: 98,
+        },
+      ],
+    ]);
+    const mockPayload = {
+      findGlobal: vi.fn(async ({ slug }: { slug: string }) => {
+        const globals: Record<string, Record<string, unknown>> = {
+          "site-settings": { contentVersion: 1, socialLinks: [] },
+          home: { directions: [], capabilities: [] },
+          about: { workDirections: [], techStack: [], focusAreas: [] },
+          contact: { contactMethods: [], discussionTopics: [] },
+        };
+        return globals[slug];
+      }),
+      find: vi.fn(
+        async ({ where }: { where: { slug: { equals: string } } }) => ({
+          docs: existingProjects.has(where.slug.equals)
+            ? [existingProjects.get(where.slug.equals)]
+            : [],
+        }),
+      ),
+      create: vi.fn().mockResolvedValue({}),
+      update: vi.fn().mockResolvedValue({}),
+      updateGlobal: vi.fn().mockResolvedValue({}),
+    };
+
+    const changed = await backfillConfigurableContent(castPayload(mockPayload));
+
+    expect(changed).toBe(true);
+    expect(siteDefaults.projects.map((project) => project.slug)).toEqual([
+      "personal-site",
+      "gpt-oracle-web",
+      "video-factory",
+      "my-first-agent",
+      "mindforge",
+      "vehicle-memory-benchmark",
+      "agent-tool-harness",
+    ]);
+    expect(mockPayload.update).toHaveBeenCalledWith({
+      collection: "projects",
+      id: "project-site",
+      data: { sortOrder: 1 },
+      overrideAccess: true,
+    });
+    expect(mockPayload.update).toHaveBeenCalledWith({
+      collection: "projects",
+      id: "project-mindforge",
+      data: { sortOrder: 5 },
+      overrideAccess: true,
+    });
+    expect(mockPayload.update).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          title: expect.anything(),
+          description: expect.anything(),
+        }),
+      }),
+    );
+    expect(
+      mockPayload.create.mock.calls.map(([{ data }]) => data.slug),
+    ).toEqual([
+      "gpt-oracle-web",
+      "video-factory",
+      "my-first-agent",
+      "vehicle-memory-benchmark",
+      "agent-tool-harness",
+    ]);
+  });
+
   it("keeps existing CMS text and arrays during the first backfill", async () => {
     const customLearning = [
       { title: "自定义学习项", description: "保留后台已经填写的内容" },
@@ -341,7 +429,7 @@ describe("configurable portfolio content", () => {
       create: vi.fn(
         async ({ data }: { data: Record<string, unknown> }) => {
           const slug = String(data.slug);
-          if (slug === "personal-site" && failSecondProjectOnce) {
+          if (slug === "gpt-oracle-web" && failSecondProjectOnce) {
             failSecondProjectOnce = false;
             throw new Error("injected project write failure");
           }
@@ -357,18 +445,20 @@ describe("configurable portfolio content", () => {
     ).rejects.toThrow("injected project write failure");
 
     expect(globals["site-settings"].contentVersion).toBe(0);
-    expect([...projects.keys()]).toEqual(["mindforge"]);
+    expect([...projects.keys()]).toEqual(["personal-site"]);
 
     writes.length = 0;
     const changed = await backfillConfigurableContent(castPayload(mockPayload));
 
     expect(changed).toBe(true);
-    expect([...projects.keys()]).toEqual(["mindforge", "personal-site"]);
+    expect([...projects.keys()]).toEqual(
+      siteDefaults.projects.map(({ slug }) => slug),
+    );
     expect(
       mockPayload.create.mock.calls
         .slice(2)
         .map(([{ data }]) => data.slug),
-    ).toEqual(["personal-site"]);
+    ).toEqual(siteDefaults.projects.slice(1).map(({ slug }) => slug));
     expect(globals["site-settings"].contentVersion).toBe(
       CONFIGURABLE_CONTENT_VERSION,
     );
