@@ -26,9 +26,19 @@ export async function Footer() {
       <div className="site-shell grid gap-10 py-12 md:grid-cols-[1fr_auto] md:items-end">
         <div>
           <p className="max-w-xl text-2xl font-medium leading-snug tracking-tight">{bioShort}</p>
-          <p className="mt-5 text-xs uppercase tracking-[0.16em] text-background/55">
-            © {new Date().getFullYear()} {name}
-          </p>
+          <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-background/55">
+            <p className="uppercase tracking-[0.16em]">
+              © {new Date().getFullYear()} {name}
+            </p>
+            <Link
+              className="underline decoration-background/25 underline-offset-4 transition-colors hover:text-background"
+              href="https://beian.miit.gov.cn/"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              京ICP备20260057679号-1
+            </Link>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           {socialLinks.map((link) => (
