@@ -2,6 +2,16 @@ import { withPayload } from "@payloadcms/next/withPayload";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.wangjinkun333.me" }],
+        destination: "https://wangjinkun333.me/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {
