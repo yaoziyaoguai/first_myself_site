@@ -4,7 +4,10 @@ import remarkGfm from "remark-gfm";
 import { slugifyArticleHeading } from "@/lib/blog-agent/articleMarkdown";
 
 function normalizeTitle(value: string): string {
-  return value.normalize("NFKC").trim().replace(/\s+/g, " ");
+  return value
+    .normalize("NFKC")
+    .toLocaleLowerCase("zh-CN")
+    .replace(/[\p{P}\p{S}\s]+/gu, "");
 }
 
 function textFromChildren(children: ReactNode): string {
@@ -51,10 +54,11 @@ function headingComponent(
     ) {
       return <span id={id} aria-hidden="true" />;
     }
+    const RenderTag: HeadingTag = Tag === "h1" && state.title ? "h2" : Tag;
     return (
-      <Tag {...props} id={id}>
+      <RenderTag {...props} id={id}>
         {children}
-      </Tag>
+      </RenderTag>
     );
   };
 }
@@ -81,6 +85,16 @@ export function MarkdownArticle({
         h4: headingComponent("h4", headingState),
         h5: headingComponent("h5", headingState),
         h6: headingComponent("h6", headingState),
+        table: ({ children }) => (
+          <div
+            aria-label="可横向滚动的表格"
+            className="article-table-scroll"
+            role="region"
+            tabIndex={0}
+          >
+            <table>{children}</table>
+          </div>
+        ),
       }}
     >
       {markdown}

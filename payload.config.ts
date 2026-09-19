@@ -17,6 +17,7 @@ import Users from "./src/payload/collections/Users";
 import Projects from "./src/payload/collections/Projects";
 import Media from "./src/payload/collections/Media";
 import Blog from "./src/payload/collections/Blog";
+import BlogSeries from "./src/payload/collections/BlogSeries";
 import Comments from "./src/payload/collections/Comments";
 import Likes from "./src/payload/collections/Likes";
 import PageViews from "./src/payload/collections/PageViews";
@@ -34,7 +35,7 @@ export default buildConfig({
   },
   editor: lexicalEditor(),
   globals: [Home, SiteSettings, About, Contact],
-  collections: [Users, Media, Blog, Projects, Comments, Likes, PageViews],
+  collections: [Users, Media, BlogSeries, Blog, Projects, Comments, Likes, PageViews],
   db: postgresAdapter({
     migrationDir: resolve(process.cwd(), "src/payload/migrations"),
     pool: {

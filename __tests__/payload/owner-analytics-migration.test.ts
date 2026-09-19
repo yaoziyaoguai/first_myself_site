@@ -36,11 +36,10 @@ describe("owner analytics production migration", () => {
   });
 
   it("registers after the unanswered-question migration", () => {
-    expect(migrations.map(({ name }) => name).slice(-4)).toEqual([
-      "20260826_000000_add_unanswered_agent_questions",
-      "20260826_010000_add_owner_analytics_fields",
-      "20260827_000000_add_agent_question_log",
-      "20260828_000000_propagate_owner_analytics",
-    ]);
+    const names = migrations.map(({ name }) => name);
+    expect(names.indexOf("20260826_010000_add_owner_analytics_fields"))
+      .toBeGreaterThan(names.indexOf("20260826_000000_add_unanswered_agent_questions"));
+    expect(names.indexOf("20260827_000000_add_agent_question_log"))
+      .toBeGreaterThan(names.indexOf("20260826_010000_add_owner_analytics_fields"));
   });
 });

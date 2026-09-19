@@ -84,11 +84,14 @@ jobs:
           __tests__/payload/blog-agent-article-package-migration.postgres.test.ts
           __tests__/payload/agent-question-log-migration.postgres.test.ts
           __tests__/payload/owner-analytics-identity-migration.postgres.test.ts
+          __tests__/payload/blog-series-migration.postgres.test.ts
           __tests__/lib/blog-agent/articleIndexRepository.postgres.test.ts
           __tests__/lib/blog-agent/runtime.postgres.test.ts
           __tests__/scripts/blog-agent-canary.postgres.test.ts
         env:
           BLOG_AGENT_TEST_DATABASE_URL: postgresql://blog_agent_test:blog_agent_test_password@127.0.0.1:5432/blog_agent_test
+          MIGRATION_TEST_DATABASE_URL: postgresql://blog_agent_test:blog_agent_test_password@127.0.0.1:5432/blog_agent_test
+          MIGRATION_TEST_BOOTSTRAP: '1'
 
   # ── 第4层：构建检查 ───────────────────────────────
   build:

@@ -13,6 +13,12 @@ export type DiscoveryPost = {
   visibility?: unknown;
 };
 
+export type DiscoverySeries = {
+  slug?: unknown;
+  status?: unknown;
+  updatedAt?: unknown;
+};
+
 type ArticleDiscoveryInput = {
   title: string;
   slug: string;
@@ -31,6 +37,14 @@ function isPublicPost(post: DiscoveryPost): boolean {
     post.visibility === "public" &&
     typeof post.slug === "string" &&
     post.slug.trim().length > 0
+  );
+}
+
+function isPublicSeries(series: DiscoverySeries): boolean {
+  return (
+    series.status === "published" &&
+    typeof series.slug === "string" &&
+    series.slug.trim().length > 0
   );
 }
 
@@ -173,6 +187,7 @@ export function summarizeExcerpt(value: unknown, limit = 180): string {
 
 export function buildSitemapEntries(
   posts: DiscoveryPost[],
+  series: DiscoverySeries[] = [],
 ): MetadataRoute.Sitemap {
   const staticEntries: MetadataRoute.Sitemap = MAIN_ROUTES.map((path) => ({
     url: `${SITE_URL}${path || "/"}`,
@@ -194,7 +209,17 @@ export function buildSitemapEntries(
       priority: 0.8,
     }));
 
-  return [...staticEntries, ...postEntries];
+  const seriesEntries: MetadataRoute.Sitemap = series
+    .filter(isPublicSeries)
+    .map((item) => ({
+      url: `${SITE_URL}/blog/series/${encodeURIComponent(String(item.slug))}`,
+      lastModified:
+        typeof item.updatedAt === "string" ? new Date(item.updatedAt) : undefined,
+      changeFrequency: "monthly",
+      priority: 0.75,
+    }));
+
+  return [...staticEntries, ...seriesEntries, ...postEntries];
 }
 
 export function renderRssFeed(posts: DiscoveryPost[]): string {

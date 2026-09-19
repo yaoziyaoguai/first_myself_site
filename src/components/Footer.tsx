@@ -25,8 +25,9 @@ export async function Footer() {
     <footer className="mt-12 border-t border-border bg-foreground text-background">
       <div className="site-shell grid gap-10 py-12 md:grid-cols-[1fr_auto] md:items-end">
         <div>
-          <p className="max-w-xl text-2xl font-medium leading-snug tracking-tight">{bioShort}</p>
-          <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-background/55">
+          <p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-background/55">JINKUN / FIELD NOTES</p>
+          <p className="mt-5 max-w-2xl text-pretty font-serif text-2xl font-medium leading-snug tracking-[-0.015em] md:text-3xl">{bioShort}</p>
+          <div className="mt-7 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-background/50">
             <p className="uppercase tracking-[0.16em]">
               © {new Date().getFullYear()} {name}
             </p>

@@ -48,7 +48,7 @@ export default function MainRootLayout({
   const siteJsonLd = buildSiteJsonLd();
 
   return (
-    <html lang="zh-CN">
+    <html data-scroll-behavior="smooth" lang="zh-CN">
       <body className="flex min-h-screen flex-col antialiased">
         <script
           type="application/ld+json"

@@ -21,6 +21,7 @@ import * as unansweredAgentQuestionsMigration from "@/payload/migrations/2026082
 import * as ownerAnalyticsFieldsMigration from "@/payload/migrations/20260826_010000_add_owner_analytics_fields";
 import * as agentQuestionLogMigration from "@/payload/migrations/20260827_000000_add_agent_question_log";
 import * as ownerAnalyticsIdentityMigration from "@/payload/migrations/20260828_000000_propagate_owner_analytics";
+import * as blogSeriesSchemaMigration from "@/payload/migrations/20260919_000000_add_blog_series";
 import {
   CONFIGURABLE_CONTENT_VERSION,
   backfillConfigurableContent,
@@ -82,6 +83,11 @@ describe("configurable portfolio content", () => {
         name: "20260828_000000_propagate_owner_analytics",
         up: ownerAnalyticsIdentityMigration.up,
         down: ownerAnalyticsIdentityMigration.down,
+      },
+      {
+        name: "20260919_000000_add_blog_series",
+        up: blogSeriesSchemaMigration.up,
+        down: blogSeriesSchemaMigration.down,
       },
     ]);
   });

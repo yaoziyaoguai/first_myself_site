@@ -40,11 +40,11 @@ export default async function ContactPage() {
         <p>{introText}</p>
       </header>
 
-      <div className="grid gap-8 border-t border-border pt-10 md:grid-cols-[minmax(0,1fr)_minmax(17rem,0.6fr)]">
-        <div className="space-y-4">
+      <div className="grid gap-12 border-t border-border pt-10 md:grid-cols-[minmax(0,1fr)_minmax(17rem,0.55fr)]">
+        <div className="border-y border-border">
           {contactMethods.map((method) => (
             <Link
-              className="group flex min-h-44 items-end justify-between gap-6 rounded-2xl border border-border bg-card p-7 transition-colors hover:bg-muted"
+              className="group flex min-h-40 items-end justify-between gap-6 border-b border-border py-7 transition-colors duration-200 last:border-b-0 hover:bg-card/70 md:px-4"
               href={method.href}
               key={`${method.title}-${method.href}`}
               rel={method.href.startsWith("http") ? "noopener noreferrer" : undefined}
@@ -54,23 +54,23 @@ export default async function ContactPage() {
                 <span className="block text-xs uppercase tracking-[0.18em] text-muted-foreground">
                   {method.title}
                 </span>
-                <span className="mt-5 block text-xl font-medium">{method.value}</span>
+                <span className="mt-5 block font-serif text-2xl font-medium">{method.value}</span>
                 {method.description ? (
                   <span className="mt-2 block text-sm leading-6 text-muted-foreground">
                     {method.description}
                   </span>
                 ) : null}
               </span>
-              <ArrowUpRight aria-hidden="true" className="shrink-0" />
+              <ArrowUpRight aria-hidden="true" className="shrink-0 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
             </Link>
           ))}
         </div>
 
-        <aside className="rounded-2xl bg-foreground p-7 text-background">
-          <p className="text-xs uppercase tracking-[0.18em] text-background/60">可以聊聊</p>
+        <aside className="border-t-2 border-primary pt-6">
+          <p className="font-mono text-[0.68rem] uppercase tracking-[0.16em] text-primary">可以聊聊</p>
           <ul className="mt-6 space-y-4">
             {discussionTopics.map((topic) => (
-              <li className="border-b border-background/15 pb-4 text-sm leading-6" key={topic.label}>
+              <li className="border-b border-border pb-4 text-sm leading-6 text-muted-foreground" key={topic.label}>
                 {topic.label}
               </li>
             ))}
