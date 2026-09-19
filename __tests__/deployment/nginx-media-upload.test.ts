@@ -104,14 +104,20 @@ afterEach(() => {
 describe("production Nginx media upload probe", () => {
   it("builds after updating the checkout and probes before switching containers", () => {
     const commands = workflow.split("\n").map((line) => line.trim());
-    const pullIndex = commands.indexOf("git pull --ff-only origin main");
+    const transportIndex = commands.indexOf(
+      'git_ssh_command="ssh -o Hostname=ssh.github.com -o HostKeyAlias=github.com -p 443"',
+    );
+    const pullIndex = commands.indexOf(
+      'GIT_SSH_COMMAND="$git_ssh_command" git pull --ff-only origin main',
+    );
     const buildIndex = commands.indexOf('"${compose[@]}" build app');
     const probeIndex = commands.indexOf(
       "bash scripts/verify-nginx-media-upload.sh",
     );
     const switchIndex = commands.indexOf('if ! "${compose[@]}" up -d; then');
 
-    expect(pullIndex).toBeGreaterThan(-1);
+    expect(transportIndex).toBeGreaterThan(-1);
+    expect(pullIndex).toBeGreaterThan(transportIndex);
     expect(buildIndex).toBeGreaterThan(pullIndex);
     expect(probeIndex).toBeGreaterThan(buildIndex);
     expect(switchIndex).toBeGreaterThan(probeIndex);
