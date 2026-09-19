@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { sortSeriesArticles, type SeriesArticle } from "@/lib/blogSeries";
 import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
 import { getPayloadAPI } from "@/lib/payload";
+import { formatSiteDate } from "@/lib/siteDate";
 
 export const dynamic = "force-dynamic";
 
@@ -98,7 +99,7 @@ export default async function BlogSeriesPage({ params }: PageProps) {
               : [];
             const publishedDate =
               typeof article.publishedDate === "string"
-                ? new Date(article.publishedDate).toISOString().slice(0, 10)
+                ? formatSiteDate(article.publishedDate)
                 : "";
 
             return (

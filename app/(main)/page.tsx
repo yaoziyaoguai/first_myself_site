@@ -6,6 +6,7 @@ import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
 import { resolveArray, resolveText } from "@/lib/contentFallback";
 import { summarizeExcerpt } from "@/lib/discovery";
 import { getPayloadAPI } from "@/lib/payload";
+import { formatSiteDate } from "@/lib/siteDate";
 
 export const dynamic = "force-dynamic";
 
@@ -77,7 +78,7 @@ export default async function Home() {
           <Link className="group border-t-2 border-primary pb-1 pt-5" href={`/blog/${featuredPost.slug}`}>
             <span className="flex items-center justify-between gap-4 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground">
               <span>Latest note</span>
-              <time>{featuredPost.publishedDate ? new Date(featuredPost.publishedDate).toISOString().slice(0, 10) : ""}</time>
+              <time>{featuredPost.publishedDate ? formatSiteDate(featuredPost.publishedDate) : ""}</time>
             </span>
             <span className="mt-7 block text-pretty font-serif text-[2rem] font-medium leading-[1.15] tracking-[-0.025em] transition-colors duration-200 group-hover:text-primary md:text-[2.45rem]">
               {featuredPost.title}
@@ -109,7 +110,7 @@ export default async function Home() {
           ) : recentPosts.map((post) => (
             <Link className="group article-row" href={`/blog/${post.slug}`} key={post.id}>
               <time className="font-mono text-[0.7rem] tracking-[0.08em] text-muted-foreground">
-                {post.publishedDate ? new Date(post.publishedDate).toISOString().slice(0, 10) : ""}
+                {post.publishedDate ? formatSiteDate(post.publishedDate) : ""}
               </time>
               <span>
                 <span className="article-row-title">{post.title}</span>
