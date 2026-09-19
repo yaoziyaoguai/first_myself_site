@@ -104,21 +104,25 @@ afterEach(() => {
 describe("production Nginx media upload probe", () => {
   it("builds after updating the checkout and probes before switching containers", () => {
     const commands = workflow.split("\n").map((line) => line.trim());
-    const transportIndex = commands.indexOf(
-      'git_ssh_command="ssh -o Hostname=ssh.github.com -o HostKeyAlias=github.com -p 443"',
+    const repositoryIndex = commands.indexOf(
+      'repository_url="https://github.com/yaoziyaoguai/first_myself_site.git"',
     );
-    const pullIndex = commands.indexOf(
-      'GIT_SSH_COMMAND="$git_ssh_command" git pull --ff-only origin main',
+    const fetchIndex = commands.indexOf(
+      'git fetch --prune "$repository_url" main',
     );
+    const checkoutIndex = commands.indexOf("git checkout main");
+    const mergeIndex = commands.indexOf("git merge --ff-only FETCH_HEAD");
     const buildIndex = commands.indexOf('"${compose[@]}" build app');
     const probeIndex = commands.indexOf(
       "bash scripts/verify-nginx-media-upload.sh",
     );
     const switchIndex = commands.indexOf('if ! "${compose[@]}" up -d; then');
 
-    expect(transportIndex).toBeGreaterThan(-1);
-    expect(pullIndex).toBeGreaterThan(transportIndex);
-    expect(buildIndex).toBeGreaterThan(pullIndex);
+    expect(repositoryIndex).toBeGreaterThan(-1);
+    expect(fetchIndex).toBeGreaterThan(repositoryIndex);
+    expect(checkoutIndex).toBeGreaterThan(fetchIndex);
+    expect(mergeIndex).toBeGreaterThan(checkoutIndex);
+    expect(buildIndex).toBeGreaterThan(mergeIndex);
     expect(probeIndex).toBeGreaterThan(buildIndex);
     expect(switchIndex).toBeGreaterThan(probeIndex);
   });

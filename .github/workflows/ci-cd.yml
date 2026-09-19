@@ -263,11 +263,11 @@ jobs:
               return 1
             }
 
-            # 阿里云到 GitHub 的 22 端口偶发超时，固定使用 GitHub 官方 SSH 443 入口。
-            git_ssh_command="ssh -o Hostname=ssh.github.com -o HostKeyAlias=github.com -p 443"
-            GIT_SSH_COMMAND="$git_ssh_command" git fetch origin main
+            # 阿里云当前无法访问 GitHub SSH 端口，公开仓库改用经过 TLS 校验的 HTTPS 拉取。
+            repository_url="https://github.com/yaoziyaoguai/first_myself_site.git"
+            git fetch --prune "$repository_url" main
             git checkout main
-            GIT_SSH_COMMAND="$git_ssh_command" git pull --ff-only origin main
+            git merge --ff-only FETCH_HEAD
             # 先 build（旧容器仍在运行，用户无感知）
             "${compose[@]}" build app
             # 发布工具会把大图优化到 400 KiB 以下；切换前确认线上实际媒体路径可接收该请求。
