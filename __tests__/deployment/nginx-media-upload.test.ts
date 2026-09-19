@@ -125,6 +125,7 @@ describe("production Nginx media upload probe", () => {
     const switchIndex = commands.indexOf('if ! "${compose[@]}" up -d; then');
 
     expect(workflow).toContain("git bundle create deploy-source.bundle HEAD");
+    expect(workflow).toContain("uses: docker/setup-buildx-action@v3");
     expect(workflow).toContain("--platform=linux/amd64");
     expect(workflow).toContain("--tag node:22-alpine");
     expect(workflow).toContain(

@@ -129,6 +129,8 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - name: Set up Docker Buildx exporter
+        uses: docker/setup-buildx-action@v3
       - name: Create verified deployment payload
         run: |
           set -euo pipefail
