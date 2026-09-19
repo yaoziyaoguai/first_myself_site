@@ -102,10 +102,16 @@ afterEach(() => {
 });
 
 describe("production Nginx media upload probe", () => {
-  it("builds from the uploaded Git bundle and probes before switching containers", () => {
+  it("builds from verified uploaded artifacts and probes before switching containers", () => {
     const commands = workflow.split("\n").map((line) => line.trim());
     const bundleIndex = commands.indexOf(
       'bundle_path="$bundle_directory/deploy-source.bundle"',
+    );
+    const checksumIndex = commands.indexOf(
+      'sha256sum --check "$(basename "$base_image_checksum")"',
+    );
+    const imageLoadIndex = commands.indexOf(
+      'gzip -dc "$base_image_archive" | docker load',
     );
     const fetchIndex = commands.indexOf(
       'git fetch "$bundle_path" HEAD',
@@ -119,10 +125,21 @@ describe("production Nginx media upload probe", () => {
     const switchIndex = commands.indexOf('if ! "${compose[@]}" up -d; then');
 
     expect(workflow).toContain("git bundle create deploy-source.bundle HEAD");
+    expect(workflow).toContain("--platform=linux/amd64");
+    expect(workflow).toContain("--tag node:22-alpine");
+    expect(workflow).toContain(
+      "--output type=docker,dest=node-22-alpine.tar",
+    );
+    expect(workflow).toContain(
+      "source: deploy-source.bundle,node-22-alpine.tar.gz,node-22-alpine.tar.gz.sha256",
+    );
     expect(workflow).toContain("appleboy/scp-action@v1.0.0");
     expect(workflow).toContain("fetch-depth: 0");
     expect(bundleIndex).toBeGreaterThan(-1);
+    expect(checksumIndex).toBeGreaterThan(bundleIndex);
+    expect(imageLoadIndex).toBeGreaterThan(checksumIndex);
     expect(fetchIndex).toBeGreaterThan(bundleIndex);
+    expect(fetchIndex).toBeGreaterThan(imageLoadIndex);
     expect(checkoutIndex).toBeGreaterThan(fetchIndex);
     expect(mergeIndex).toBeGreaterThan(checkoutIndex);
     expect(buildIndex).toBeGreaterThan(mergeIndex);
