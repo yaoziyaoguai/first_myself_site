@@ -136,24 +136,27 @@ jobs:
           set -euo pipefail
           git bundle create deploy-source.bundle HEAD
           git bundle verify deploy-source.bundle
-          printf 'FROM node:22-alpine\n' | docker buildx build \
+          docker buildx build \
             --platform=linux/amd64 \
-            --tag node:22-alpine \
-            --output type=docker,dest=node-22-alpine.tar \
-            -
-          gzip -1 node-22-alpine.tar
-          sha256sum node-22-alpine.tar.gz > node-22-alpine.tar.gz.sha256
-          gzip -t node-22-alpine.tar.gz
-          sha256sum --check node-22-alpine.tar.gz.sha256
-      - name: Upload deploy source
+            --tag first_myself_site:candidate \
+            --build-arg NEXT_PUBLIC_SERVER_URL=https://wangjinkun333.me \
+            --output type=docker,dest=first_myself_site-candidate.tar \
+            --file docker/Dockerfile \
+            .
+          gzip -1 first_myself_site-candidate.tar
+          sha256sum first_myself_site-candidate.tar.gz > first_myself_site-candidate.tar.gz.sha256
+          gzip -t first_myself_site-candidate.tar.gz
+          sha256sum --check first_myself_site-candidate.tar.gz.sha256
+      - name: Upload deployment payload
         uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: deploy-source.bundle,node-22-alpine.tar.gz,node-22-alpine.tar.gz.sha256
+          source: deploy-source.bundle,first_myself_site-candidate.tar.gz,first_myself_site-candidate.tar.gz.sha256
           target: /tmp/first_myself_site_deploy_${{ github.run_id }}
           overwrite: true
+          command_timeout: 30m
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         env:
@@ -181,14 +184,14 @@ jobs:
 
             bundle_directory="/tmp/first_myself_site_deploy_${{ github.run_id }}"
             bundle_path="$bundle_directory/deploy-source.bundle"
-            base_image_archive="$bundle_directory/node-22-alpine.tar.gz"
-            base_image_checksum="$bundle_directory/node-22-alpine.tar.gz.sha256"
+            candidate_image_archive="$bundle_directory/first_myself_site-candidate.tar.gz"
+            candidate_image_checksum="$bundle_directory/first_myself_site-candidate.tar.gz.sha256"
             cleanup_deploy_bundle() {
-              rm -f "$bundle_path" "$base_image_archive" "$base_image_checksum"
+              rm -f "$bundle_path" "$candidate_image_archive" "$candidate_image_checksum"
               rmdir "$bundle_directory" 2>/dev/null || true
             }
             trap cleanup_deploy_bundle EXIT
-            for artifact in "$bundle_path" "$base_image_archive" "$base_image_checksum"; do
+            for artifact in "$bundle_path" "$candidate_image_archive" "$candidate_image_checksum"; do
               if [ ! -f "$artifact" ]; then
                 echo "Uploaded deploy artifact is missing: $artifact" >&2
                 exit 1
@@ -196,11 +199,11 @@ jobs:
             done
             (
               cd "$bundle_directory"
-              sha256sum --check "$(basename "$base_image_checksum")"
+              sha256sum --check "$(basename "$candidate_image_checksum")"
             )
-            gzip -t "$base_image_archive"
-            gzip -dc "$base_image_archive" | docker load
-            docker image inspect node:22-alpine >/dev/null
+            gzip -t "$candidate_image_archive"
+            gzip -dc "$candidate_image_archive" | docker load
+            docker image inspect first_myself_site:candidate >/dev/null
 
             export BLOG_AGENT_ENABLED="${BLOG_AGENT_ENABLED:-false}"
             export BLOG_AGENT_GENERATION_ENABLED="${BLOG_AGENT_GENERATION_ENABLED:-false}"
@@ -315,12 +318,12 @@ jobs:
               return 1
             }
 
-            # 阿里云无法稳定访问 GitHub 和公共镜像站；Actions 将已校验的源码与基础镜像推送到服务器。
+            # 阿里云无法稳定访问 GitHub、镜像站和 npm；Actions 将已校验的源码与候选应用镜像推送到服务器。
             git fetch "$bundle_path" HEAD
             git checkout main
             git merge --ff-only FETCH_HEAD
-            # 先 build（旧容器仍在运行，用户无感知）
-            "${compose[@]}" build app
+            # 候选镜像已在 GitHub Runner 构建并校验；服务器不再执行任何依赖公网的构建步骤。
+            docker image inspect first_myself_site:candidate >/dev/null
             # 发布工具会把大图优化到 400 KiB 以下；切换前确认线上实际媒体路径可接收该请求。
             bash scripts/verify-nginx-media-upload.sh
             # 切换前备份当前数据库与媒体；备份失败时 set -e 会终止部署。

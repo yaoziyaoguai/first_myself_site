@@ -102,23 +102,23 @@ afterEach(() => {
 });
 
 describe("production Nginx media upload probe", () => {
-  it("builds from verified uploaded artifacts and probes before switching containers", () => {
+  it("deploys the verified candidate image and probes before switching containers", () => {
     const commands = workflow.split("\n").map((line) => line.trim());
     const bundleIndex = commands.indexOf(
       'bundle_path="$bundle_directory/deploy-source.bundle"',
     );
     const checksumIndex = commands.indexOf(
-      'sha256sum --check "$(basename "$base_image_checksum")"',
+      'sha256sum --check "$(basename "$candidate_image_checksum")"',
     );
     const imageLoadIndex = commands.indexOf(
-      'gzip -dc "$base_image_archive" | docker load',
+      'gzip -dc "$candidate_image_archive" | docker load',
     );
     const fetchIndex = commands.indexOf(
       'git fetch "$bundle_path" HEAD',
     );
     const checkoutIndex = commands.indexOf("git checkout main");
     const mergeIndex = commands.indexOf("git merge --ff-only FETCH_HEAD");
-    const buildIndex = commands.indexOf('"${compose[@]}" build app');
+    const serverBuildIndex = commands.indexOf('"${compose[@]}" build app');
     const probeIndex = commands.indexOf(
       "bash scripts/verify-nginx-media-upload.sh",
     );
@@ -127,12 +127,15 @@ describe("production Nginx media upload probe", () => {
     expect(workflow).toContain("git bundle create deploy-source.bundle HEAD");
     expect(workflow).toContain("uses: docker/setup-buildx-action@v3");
     expect(workflow).toContain("--platform=linux/amd64");
-    expect(workflow).toContain("--tag node:22-alpine");
+    expect(workflow).toContain("--tag first_myself_site:candidate");
     expect(workflow).toContain(
-      "--output type=docker,dest=node-22-alpine.tar",
+      "--build-arg NEXT_PUBLIC_SERVER_URL=https://wangjinkun333.me",
     );
     expect(workflow).toContain(
-      "source: deploy-source.bundle,node-22-alpine.tar.gz,node-22-alpine.tar.gz.sha256",
+      "--output type=docker,dest=first_myself_site-candidate.tar",
+    );
+    expect(workflow).toContain(
+      "source: deploy-source.bundle,first_myself_site-candidate.tar.gz,first_myself_site-candidate.tar.gz.sha256",
     );
     expect(workflow).toContain("appleboy/scp-action@v1.0.0");
     expect(workflow).toContain("fetch-depth: 0");
@@ -143,8 +146,8 @@ describe("production Nginx media upload probe", () => {
     expect(fetchIndex).toBeGreaterThan(imageLoadIndex);
     expect(checkoutIndex).toBeGreaterThan(fetchIndex);
     expect(mergeIndex).toBeGreaterThan(checkoutIndex);
-    expect(buildIndex).toBeGreaterThan(mergeIndex);
-    expect(probeIndex).toBeGreaterThan(buildIndex);
+    expect(serverBuildIndex).toBe(-1);
+    expect(probeIndex).toBeGreaterThan(mergeIndex);
     expect(switchIndex).toBeGreaterThan(probeIndex);
   });
 

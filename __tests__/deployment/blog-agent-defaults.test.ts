@@ -119,9 +119,12 @@ describe("Blog Agent production defaults", () => {
 
   it("runs the package canary through the managed production SSH deploy", () => {
     const workflow = source(".github/workflows/ci-cd.yml");
+    const deployStep = workflow.indexOf("      - name: Deploy via SSH");
+    const envStart = workflow.indexOf("          envs:", deployStep);
+    const envEnd = workflow.indexOf("          command_timeout:", envStart);
     const envForwarding = workflow.slice(
-      workflow.indexOf("          envs:"),
-      workflow.indexOf("          command_timeout:"),
+      envStart,
+      envEnd,
     );
     const targetFlags = workflow.indexOf(
       'target_blog_agent_enabled="$BLOG_AGENT_ENABLED"',
@@ -183,6 +186,9 @@ describe("Blog Agent production defaults", () => {
     expect(workflow).toContain('"--question=$BLOG_AGENT_CANARY_QUESTION"');
     expect(workflow).toContain("--require-package");
     expect(workflow).toContain("--require-code");
+    expect(deployStep).toBeGreaterThan(-1);
+    expect(envStart).toBeGreaterThan(deployStep);
+    expect(envEnd).toBeGreaterThan(envStart);
     expect(envForwarding).toContain("BLOG_AGENT_CANARY_SLUG");
     expect(envForwarding).toContain("BLOG_AGENT_CANARY_QUESTION");
     expect(targetFlags).toBeGreaterThan(-1);
