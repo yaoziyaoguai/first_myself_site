@@ -7,6 +7,7 @@ import * as migration_20260826_000000_add_unanswered_agent_questions from "./202
 import * as migration_20260826_010000_add_owner_analytics_fields from "./20260826_010000_add_owner_analytics_fields";
 import * as migration_20260827_000000_add_agent_question_log from "./20260827_000000_add_agent_question_log";
 import * as migration_20260828_000000_propagate_owner_analytics from "./20260828_000000_propagate_owner_analytics";
+import * as migration_20260919_000000_add_blog_series from "./20260919_000000_add_blog_series";
 
 export const migrations = [
   {
@@ -53,5 +54,10 @@ export const migrations = [
     up: migration_20260828_000000_propagate_owner_analytics.up,
     down: migration_20260828_000000_propagate_owner_analytics.down,
     name: "20260828_000000_propagate_owner_analytics",
+  },
+  {
+    up: migration_20260919_000000_add_blog_series.up,
+    down: migration_20260919_000000_add_blog_series.down,
+    name: "20260919_000000_add_blog_series",
   },
 ];

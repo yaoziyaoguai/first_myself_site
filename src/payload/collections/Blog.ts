@@ -89,7 +89,7 @@ const Blog: CollectionConfig = {
   slug: "blog",
   admin: {
     useAsTitle: "title",
-    defaultColumns: ["title", "status", "publishedDate"],
+    defaultColumns: ["title", "series", "status", "publishedDate"],
     listSearchableFields: ["title", "slug"],
   },
   hooks: {
@@ -227,6 +227,24 @@ const Blog: CollectionConfig = {
       label: "附件",
       hasMany: true,
       required: false,
+    },
+    {
+      name: "series",
+      type: "relationship",
+      relationTo: "blog-series",
+      label: "所属合集",
+      admin: {
+        description: "只有存在明确阅读顺序时才选择合集；普通主题继续使用标签。",
+      },
+    },
+    {
+      name: "seriesOrder",
+      type: "number",
+      label: "合集内顺序",
+      min: 1,
+      admin: {
+        description: "从 1 开始。未填写时按发布日期从早到晚排列。",
+      },
     },
     {
       name: "agentContextRequired",

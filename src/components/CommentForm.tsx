@@ -92,7 +92,7 @@ export function CommentForm({
               placeholder="匿名用户"
               maxLength={30}
               className={cn(
-                "w-full px-3 py-2 text-sm rounded-md border border-border bg-muted/50",
+                "min-h-11 w-full border border-border bg-card px-3 py-2 text-sm",
                 "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary",
                 "placeholder:text-foreground/50"
               )}
@@ -113,7 +113,7 @@ export function CommentForm({
               placeholder="your@email.com"
               maxLength={100}
               className={cn(
-                "w-full px-3 py-2 text-sm rounded-md border border-border bg-muted/50",
+                "min-h-11 w-full border border-border bg-card px-3 py-2 text-sm",
                 "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary",
                 "placeholder:text-foreground/50"
               )}
@@ -131,7 +131,7 @@ export function CommentForm({
           rows={compact ? 3 : 4}
           maxLength={MAX_CHARS}
           className={cn(
-            "w-full px-3 py-2 text-sm rounded-md border border-border bg-muted/50 resize-none",
+            "w-full resize-y border border-border bg-card px-3 py-3 text-sm leading-6",
             "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary",
             "placeholder:text-foreground/50"
           )}
@@ -159,7 +159,7 @@ export function CommentForm({
 
       {/* 错误信息 */}
       {error && (
-        <div className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">
+        <div className="border-l-2 border-destructive bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </div>
       )}

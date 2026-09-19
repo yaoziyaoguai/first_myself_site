@@ -79,4 +79,28 @@ describe("MarkdownArticle", () => {
     expect(screen.getByRole("heading", { name: "API 网关 ©" }))
       .toHaveAttribute("id", "api-网关");
   });
+
+  it("omits a leading markdown title that duplicates the page title", () => {
+    const { container } = render(
+      <MarkdownArticle
+        title="智能座舱 Agent 记忆：Benchmark 调研综述与演进建议"
+        markdown={"# 智能座舱Agent记忆_Benchmark调研综述与演进建议\n\n正文\n\n# 附录\n\n## 先定义边界"}
+      />,
+    );
+
+    expect(container.querySelector("h1")).not.toBeInTheDocument();
+    expect(container.querySelector("h2#附录")).toHaveTextContent("附录");
+    expect(container.querySelector("h2#先定义边界")).toHaveTextContent("先定义边界");
+  });
+
+  it("wraps wide tables in a keyboard-scrollable region", () => {
+    const { container } = render(
+      <MarkdownArticle markdown={"| 阶段 | 核心问题 | 产出 |\n| --- | --- | --- |\n| 1 | 建立基线 | 失败样本 |"} />,
+    );
+
+    const region = container.querySelector("[role='region']");
+    expect(region).toHaveAttribute("aria-label", "可横向滚动的表格");
+    expect(region).toHaveAttribute("tabindex", "0");
+    expect(region?.querySelector("table")).toBeInTheDocument();
+  });
 });

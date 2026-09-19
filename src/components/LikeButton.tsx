@@ -107,7 +107,7 @@ export function LikeButton({
         size="sm"
         className={cn(
           sizeClasses[size],
-          "transition-all duration-200",
+          "transition-[color,background-color,border-color,transform] duration-200",
           status.hasLiked && "bg-primary text-primary-foreground hover:bg-primary/90"
         )}
         onClick={handleLike}
@@ -119,14 +119,14 @@ export function LikeButton({
           <Heart
             className={cn(
               iconSizes[size],
-              "mr-1 transition-all duration-200",
+              "mr-1 transition-[color,fill] duration-200",
               status.hasLiked && "fill-current"
             )}
           />
         )}
         <span>
           {loading
-            ? "加载中..."
+            ? "加载中…"
             : status.hasLiked
             ? "已点赞"
             : "点赞"}

@@ -36,9 +36,8 @@ describe("owner analytics identity migration", () => {
   });
 
   it("is registered after the Agent question-log migration", () => {
-    expect(migrations.map(({ name }) => name).slice(-2)).toEqual([
-      "20260827_000000_add_agent_question_log",
-      "20260828_000000_propagate_owner_analytics",
-    ]);
+    const names = migrations.map(({ name }) => name);
+    expect(names.indexOf("20260828_000000_propagate_owner_analytics"))
+      .toBeGreaterThan(names.indexOf("20260827_000000_add_agent_question_log"));
   });
 });

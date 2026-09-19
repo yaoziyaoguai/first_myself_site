@@ -32,13 +32,22 @@ const posts = [
 
 describe("discovery metadata", () => {
   it("builds the main routes and public article URLs only", () => {
-    const entries = buildSitemapEntries(posts);
+    const entries = buildSitemapEntries(posts, [
+      {
+        slug: "building-an-agent",
+        status: "published",
+        updatedAt: "2026-08-03T00:00:00.000Z",
+      },
+      { slug: "draft-series", status: "draft" },
+    ]);
     const urls = entries.map((entry) => entry.url);
 
     expect(urls).toContain(`${SITE_URL}/`);
     expect(urls).toContain(`${SITE_URL}/blog/agent-notes`);
+    expect(urls).toContain(`${SITE_URL}/blog/series/building-an-agent`);
     expect(urls).not.toContain(`${SITE_URL}/admin`);
     expect(urls).not.toContain(`${SITE_URL}/blog/private-note`);
+    expect(urls).not.toContain(`${SITE_URL}/blog/series/draft-series`);
     expect(
       entries.find((entry) => entry.url.endsWith("/blog/agent-notes"))
         ?.lastModified,

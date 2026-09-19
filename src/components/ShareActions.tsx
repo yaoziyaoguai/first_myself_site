@@ -58,30 +58,34 @@ export function ShareActions({ url, title, summary }: ShareActionsProps) {
   };
 
   return (
-    <div className="mt-10 pt-6 border-t border-border">
-      <div className="flex flex-col gap-3">
+    <div className="mt-10 border-t border-border pt-7">
+      <div className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-end">
         <div>
-          <p className="text-sm font-medium mb-1">喜欢这篇文章？分享给更多人</p>
-          <p className="text-xs text-muted-foreground">复制链接或分享到社交媒体</p>
+          <p className="font-serif text-lg font-medium">分享这篇文章</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">复制链接，或分享到你常用的地方。</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           {canNativeShare && (
             <button
               onClick={handleNativeShare}
-              className="inline-flex items-center px-3 py-1.5 text-sm rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+              className="inline-flex min-h-11 items-center rounded-full border border-border bg-background px-4 text-sm transition-colors duration-200 hover:border-primary/45 hover:text-primary"
+              type="button"
             >
               分享
             </button>
           )}
           <button
             onClick={handleCopy}
-            className="inline-flex items-center px-3 py-1.5 text-sm rounded-md border border-border bg-muted hover:bg-accent hover:text-accent-foreground transition-colors"
+            className="inline-flex min-h-11 items-center rounded-full border border-border bg-muted px-4 text-sm transition-colors duration-200 hover:border-primary/45 hover:text-primary"
+            type="button"
+            aria-live="polite"
           >
             {copied ? "已复制 ✓" : "复制链接"}
           </button>
           <button
             onClick={shareToX}
-            className="inline-flex items-center px-3 py-1.5 text-sm rounded-md border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+            className="inline-flex min-h-11 items-center rounded-full border border-border bg-background px-4 text-sm transition-colors duration-200 hover:border-primary/45 hover:text-primary"
+            type="button"
           >
             分享到 X
           </button>

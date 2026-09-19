@@ -199,9 +199,9 @@ export function CommentSection({
   return (
     <div className={cn("space-y-6", className)}>
       {/* 标题 */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <MessageSquare className="w-5 h-5" />
-        <h3 className="text-lg font-semibold">
+        <h3 className="font-serif text-2xl font-medium">
           评论
           {totalCount > 0 && (
             <span className="text-muted-foreground ml-2">({totalCount})</span>
@@ -212,8 +212,8 @@ export function CommentSection({
       <Separator />
 
       {/* 评论表单 */}
-      <div className="bg-muted/30 rounded-lg p-4">
-        <h4 className="text-sm font-medium mb-3">发表评论</h4>
+      <div className="border-y border-border bg-card/45 py-6 sm:px-6">
+        <h4 className="mb-4 text-sm font-medium">发表评论</h4>
         <CommentForm
           onSubmit={handleSubmitComment}
           isSubmitting={submitting}
