@@ -125,6 +125,23 @@ jobs:
       group: production-deploy
       cancel-in-progress: false
     steps:
+      - name: Checkout deploy source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Create verified Git bundle
+        run: |
+          git bundle create deploy-source.bundle HEAD
+          git bundle verify deploy-source.bundle
+      - name: Upload deploy source
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: deploy-source.bundle
+          target: /tmp/first_myself_site_deploy_${{ github.run_id }}
+          overwrite: true
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         env:
@@ -149,6 +166,18 @@ jobs:
           script: |
             set -euo pipefail
             cd "${{ secrets.PROJECT_PATH }}"
+
+            bundle_directory="/tmp/first_myself_site_deploy_${{ github.run_id }}"
+            bundle_path="$bundle_directory/deploy-source.bundle"
+            cleanup_deploy_bundle() {
+              rm -f "$bundle_path"
+              rmdir "$bundle_directory" 2>/dev/null || true
+            }
+            trap cleanup_deploy_bundle EXIT
+            if [ ! -f "$bundle_path" ]; then
+              echo "Uploaded deploy bundle is missing" >&2
+              exit 1
+            fi
 
             export BLOG_AGENT_ENABLED="${BLOG_AGENT_ENABLED:-false}"
             export BLOG_AGENT_GENERATION_ENABLED="${BLOG_AGENT_GENERATION_ENABLED:-false}"
@@ -263,9 +292,8 @@ jobs:
               return 1
             }
 
-            # 阿里云当前无法访问 GitHub SSH 端口，公开仓库改用经过 TLS 校验的 HTTPS 拉取。
-            repository_url="https://github.com/yaoziyaoguai/first_myself_site.git"
-            git fetch --prune "$repository_url" main
+            # 阿里云无法主动连接 GitHub；Actions 将已校验的 main 历史作为 bundle 推送到服务器。
+            git fetch "$bundle_path" HEAD
             git checkout main
             git merge --ff-only FETCH_HEAD
             # 先 build（旧容器仍在运行，用户无感知）
