@@ -50,9 +50,18 @@ describe("production migration deployment", () => {
     expect(workflow).toContain("cancel-in-progress: false");
   });
 
-  it("backs up, removes only the legacy dev marker, then replaces the app", () => {
-    const buildIndex = workflow.indexOf('"${compose[@]}" build app');
-    const backupIndex = workflow.indexOf("./scripts/backup.sh", buildIndex);
+  it("loads the verified candidate, backs up, migrates, then replaces the app", () => {
+    const candidateLoadIndex = workflow.indexOf(
+      'gzip -dc "$candidate_image_archive" | docker load',
+    );
+    const candidateVerificationIndex = workflow.indexOf(
+      "docker image inspect first_myself_site:candidate >/dev/null",
+      candidateLoadIndex,
+    );
+    const backupIndex = workflow.indexOf(
+      "./scripts/backup.sh",
+      candidateVerificationIndex,
+    );
     const cleanupIndex = workflow.indexOf(
       "to_regclass('payload_migrations')",
       backupIndex,
@@ -63,11 +72,13 @@ describe("production migration deployment", () => {
     );
     const cutoverIndex = workflow.indexOf('"${compose[@]}" up -d', migrationIndex);
 
-    expect(buildIndex).toBeGreaterThan(-1);
-    expect(backupIndex).toBeGreaterThan(buildIndex);
+    expect(candidateLoadIndex).toBeGreaterThan(-1);
+    expect(candidateVerificationIndex).toBeGreaterThan(candidateLoadIndex);
+    expect(backupIndex).toBeGreaterThan(candidateVerificationIndex);
     expect(cleanupIndex).toBeGreaterThan(backupIndex);
     expect(migrationIndex).toBeGreaterThan(cleanupIndex);
     expect(cutoverIndex).toBeGreaterThan(migrationIndex);
+    expect(workflow).not.toContain('"${compose[@]}" build app');
     expect(workflow).toContain("set -euo pipefail");
     expect(workflow).toContain(
       `DELETE FROM "payload_migrations"\n                  WHERE "batch" = -1 AND "name" = 'dev'`,
