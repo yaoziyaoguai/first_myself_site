@@ -102,13 +102,13 @@ afterEach(() => {
 });
 
 describe("production Nginx media upload probe", () => {
-  it("builds after updating the checkout and probes before switching containers", () => {
+  it("builds from the uploaded Git bundle and probes before switching containers", () => {
     const commands = workflow.split("\n").map((line) => line.trim());
-    const repositoryIndex = commands.indexOf(
-      'repository_url="https://github.com/yaoziyaoguai/first_myself_site.git"',
+    const bundleIndex = commands.indexOf(
+      'bundle_path="$bundle_directory/deploy-source.bundle"',
     );
     const fetchIndex = commands.indexOf(
-      'git fetch --prune "$repository_url" main',
+      'git fetch "$bundle_path" HEAD',
     );
     const checkoutIndex = commands.indexOf("git checkout main");
     const mergeIndex = commands.indexOf("git merge --ff-only FETCH_HEAD");
@@ -118,8 +118,11 @@ describe("production Nginx media upload probe", () => {
     );
     const switchIndex = commands.indexOf('if ! "${compose[@]}" up -d; then');
 
-    expect(repositoryIndex).toBeGreaterThan(-1);
-    expect(fetchIndex).toBeGreaterThan(repositoryIndex);
+    expect(workflow).toContain("git bundle create deploy-source.bundle HEAD");
+    expect(workflow).toContain("appleboy/scp-action@v1.0.0");
+    expect(workflow).toContain("fetch-depth: 0");
+    expect(bundleIndex).toBeGreaterThan(-1);
+    expect(fetchIndex).toBeGreaterThan(bundleIndex);
     expect(checkoutIndex).toBeGreaterThan(fetchIndex);
     expect(mergeIndex).toBeGreaterThan(checkoutIndex);
     expect(buildIndex).toBeGreaterThan(mergeIndex);
