@@ -32,6 +32,7 @@ export default async function BlogPage() {
   });
   const articles = result.docs as unknown as SeriesArticle[];
   const collections = buildSeriesCollections(articles);
+  const showSeries = collections.length > 0 || canViewPrivateBlog(viewer);
 
   return (
     <div className="site-shell page-space">
@@ -47,7 +48,7 @@ export default async function BlogPage() {
 
       {articles.length > 0 ? <nav aria-label="文章浏览方式" className="mb-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-border pb-5">
         <a className="text-link" href="#all-articles-heading">全部文章 · {articles.length}</a>
-        <a className="text-link" href="#series-heading">文章合集 · {collections.length}</a>
+        {showSeries ? <a className="text-link" href="#series-heading">文章合集 · {collections.length}</a> : null}
         {canViewPrivateBlog(viewer) ? (
           <Link className="text-link md:ml-auto" href="/admin/collections/blog-series">管理合集 ↗</Link>
         ) : null}
@@ -57,7 +58,7 @@ export default async function BlogPage() {
         <div className="empty-state">{siteDefaults.blog.emptyMessage}</div>
       ) : (
         <>
-            <section aria-labelledby="series-heading" className="mb-20 md:mb-28">
+          {showSeries ? <section aria-labelledby="series-heading" className="mb-20 md:mb-28">
               <div className="mb-7 grid gap-4 md:grid-cols-[1fr_minmax(18rem,32rem)] md:items-end">
                 <div>
                   <p className="eyebrow">CURATED SERIES</p>
@@ -72,12 +73,8 @@ export default async function BlogPage() {
 
               {collections.length === 0 ? (
                 <div className="border-y border-border py-8 text-sm leading-7 text-muted-foreground">
-                  {canViewPrivateBlog(viewer) ? (
-                    <>
-                      <p>还没有可展示的合集。创建合集后，在合集里选择文章、调整顺序，再保存为「展示合集」。至少需要 1 篇已发布且公开的文章。</p>
-                      <Link className="text-link mt-4" href="/admin/collections/blog-series/create">创建第一个合集 →</Link>
-                    </>
-                  ) : <p>合集正在整理中，可以先浏览下面的全部文章。</p>}
+                  <p>还没有可展示的合集。创建合集后，在合集里选择文章、调整顺序，再保存为「展示合集」。至少需要 1 篇已发布且公开的文章。</p>
+                  <Link className="text-link mt-4" href="/admin/collections/blog-series/create">创建第一个合集 →</Link>
                 </div>
               ) : <div className="border-y border-border">
                 {collections.map(({ series, articles: seriesArticles }, index) => (
@@ -109,7 +106,7 @@ export default async function BlogPage() {
                   </article>
                 ))}
               </div>}
-            </section>
+            </section> : null}
 
           <section aria-labelledby="all-articles-heading">
             <div className="mb-7 flex items-end justify-between gap-6">
