@@ -7,7 +7,7 @@ import {
   buildSeriesCollections,
   type SeriesArticle,
 } from "@/lib/blogSeries";
-import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
+import { buildBlogFrontendWhere, canViewPrivateBlog } from "@/lib/blogVisibility";
 import { summarizeExcerpt } from "@/lib/discovery";
 import { getPayloadAPI } from "@/lib/payload";
 import { formatSiteDate } from "@/lib/siteDate";
@@ -45,37 +45,53 @@ export default async function BlogPage() {
         <p className="max-w-xl text-base leading-8 text-muted-foreground">{siteDefaults.blog.description}</p>
       </header>
 
+      {articles.length > 0 ? <nav aria-label="文章浏览方式" className="mb-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-border pb-5">
+        <a className="text-link" href="#all-articles-heading">全部文章 · {articles.length}</a>
+        <a className="text-link" href="#series-heading">文章合集 · {collections.length}</a>
+        {canViewPrivateBlog(viewer) ? (
+          <Link className="text-link md:ml-auto" href="/admin/collections/blog-series">管理合集 ↗</Link>
+        ) : null}
+      </nav> : null}
+
       {result.docs.length === 0 ? (
         <div className="empty-state">{siteDefaults.blog.emptyMessage}</div>
       ) : (
         <>
-          {collections.length > 0 ? (
             <section aria-labelledby="series-heading" className="mb-20 md:mb-28">
               <div className="mb-7 grid gap-4 md:grid-cols-[1fr_minmax(18rem,32rem)] md:items-end">
                 <div>
                   <p className="eyebrow">CURATED SERIES</p>
-                  <h2 className="mt-3 font-serif text-3xl font-medium tracking-[-0.035em] md:text-4xl" id="series-heading">
-                    专题合集
+                  <h2 className="mt-3 scroll-mt-28 font-serif text-3xl font-medium tracking-[-0.035em] md:text-4xl" id="series-heading">
+                    文章合集
                   </h2>
                 </div>
                 <p className="text-sm leading-7 text-muted-foreground md:text-right">
-                  把同一条实践路径上的文章按阅读顺序整理起来，而不是让它们淹没在时间流里。
+                  按主题一起读，也可以从目录中选择感兴趣的一篇。
                 </p>
               </div>
 
-              <div className="border-y border-border">
+              {collections.length === 0 ? (
+                <div className="border-y border-border py-8 text-sm leading-7 text-muted-foreground">
+                  {canViewPrivateBlog(viewer) ? (
+                    <>
+                      <p>还没有可展示的合集。创建合集后，在合集里选择文章、调整顺序，再保存为「展示合集」。至少需要 1 篇已发布且公开的文章。</p>
+                      <Link className="text-link mt-4" href="/admin/collections/blog-series/create">创建第一个合集 →</Link>
+                    </>
+                  ) : <p>合集正在整理中，可以先浏览下面的全部文章。</p>}
+                </div>
+              ) : <div className="border-y border-border">
                 {collections.map(({ series, articles: seriesArticles }, index) => (
-                  <Link
-                    className="group grid gap-6 border-b border-border py-8 last:border-b-0 hover:bg-card/70 md:grid-cols-[5rem_minmax(14rem,0.75fr)_minmax(18rem,1fr)_auto] md:items-start md:px-4 md:py-10"
-                    href={`/blog/series/${series.slug}`}
+                  <article
+                    className="group grid gap-6 border-b border-border py-8 last:border-b-0 hover:bg-card/70 lg:grid-cols-[5rem_minmax(14rem,0.75fr)_minmax(18rem,1fr)_auto] lg:items-start md:px-4 md:py-10"
                     key={series.id}
                   >
                     <span className="font-mono text-[0.7rem] text-primary">{String(index + 1).padStart(2, "0")}</span>
                     <span>
-                      <span className="block font-serif text-2xl font-medium leading-tight tracking-[-0.025em] transition-colors duration-200 group-hover:text-primary md:text-3xl">{series.title}</span>
+                      <Link href={`/blog/series/${series.slug}`} className="block font-serif text-2xl font-medium leading-tight tracking-[-0.025em] hover:text-primary md:text-3xl">{series.title}</Link>
                       <span className="mt-3 block font-mono text-[0.68rem] uppercase tracking-[0.12em] text-muted-foreground">
                         {series.progress === "completed" ? "已完结" : "持续更新"} · {seriesArticles.length} 篇
                       </span>
+                      <Link className="text-link mt-5" href={`/blog/${String(seriesArticles[0].slug)}`}>从第一篇开始读 →</Link>
                     </span>
                     <div>
                       <p className="text-sm leading-7 text-muted-foreground">{series.description}</p>
@@ -83,23 +99,23 @@ export default async function BlogPage() {
                         {seriesArticles.slice(0, 3).map((article, articleIndex) => (
                           <li className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-2 text-xs leading-5 text-foreground/80" key={article.id}>
                             <span className="font-mono text-muted-foreground">{String(articleIndex + 1).padStart(2, "0")}</span>
-                            <span>{String(article.title ?? "未命名文章")}</span>
+                            <Link className="py-1 hover:text-primary hover:underline" href={`/blog/${String(article.slug)}`}>{String(article.title ?? "未命名文章")}</Link>
                           </li>
                         ))}
                       </ol>
+                      <Link className="text-link mt-4" href={`/blog/series/${series.slug}`}>查看全部 {seriesArticles.length} 篇 →</Link>
                     </div>
-                    <ArrowUpRight aria-hidden="true" className="hidden transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 md:block" size={18} />
-                  </Link>
+                    <ArrowUpRight aria-hidden="true" className="hidden transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 lg:block" size={18} />
+                  </article>
                 ))}
-              </div>
+              </div>}
             </section>
-          ) : null}
 
           <section aria-labelledby="all-articles-heading">
             <div className="mb-7 flex items-end justify-between gap-6">
               <div>
                 <p className="eyebrow">ALL NOTES</p>
-                <h2 className="mt-3 font-serif text-3xl font-medium tracking-[-0.035em]" id="all-articles-heading">
+                <h2 className="mt-3 scroll-mt-28 font-serif text-3xl font-medium tracking-[-0.035em]" id="all-articles-heading">
                   全部文章
                 </h2>
               </div>

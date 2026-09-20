@@ -35,6 +35,7 @@ function text(value: unknown): string {
 }
 
 function order(value: unknown): number {
+  if (value === null || value === undefined || value === "") return Number.MAX_SAFE_INTEGER;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER;
 }
@@ -66,7 +67,7 @@ export function sortSeriesArticles(articles: SeriesArticle[]): SeriesArticle[] {
 
 export function buildSeriesCollections(
   articles: SeriesArticle[],
-  minimumArticles = 2,
+  minimumArticles = 1,
 ): BlogSeriesCollection[] {
   const grouped = new Map<string, BlogSeriesCollection>();
 

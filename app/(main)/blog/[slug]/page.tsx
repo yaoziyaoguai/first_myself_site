@@ -237,6 +237,29 @@ export default async function BlogPostPage({ params }: PageProps) {
 
         <div className="my-10 h-px bg-border md:my-14" />
 
+        {series ? (
+          <details className="mx-auto mb-10 max-w-[46rem] border-y border-border bg-card px-5">
+            <summary className="cursor-pointer py-5 text-sm leading-7">
+              <span className="font-medium">合集目录：{series.title}</span>
+              <span className="ml-3 text-muted-foreground">第 {seriesIndex + 1} / {seriesArticles.length} 篇</span>
+            </summary>
+            <nav aria-label="合集文章目录" className="border-t border-border py-3">
+              <ol>
+                {seriesArticles.map((article, index) => (
+                  <li key={article.id}>
+                    <Link href={`/blog/${String(article.slug)}`} aria-current={index === seriesIndex ? "page" : undefined}
+                      className={`flex min-h-11 items-start gap-3 py-3 text-sm leading-6 hover:text-primary ${index === seriesIndex ? "font-medium text-primary" : "text-muted-foreground"}`}>
+                      <span className="shrink-0 font-mono">{String(index + 1).padStart(2, "0")}</span>
+                      <span>{String(article.title)}{index === seriesIndex ? "（正在阅读）" : ""}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+              <Link className="text-link mt-2" href={`/blog/series/${series.slug}`}>查看合集介绍 →</Link>
+            </nav>
+          </details>
+        ) : null}
+
         {/* 文章内容渲染 - 优先使用 Markdown，回退到 RichText */}
         <div className="prose prose-neutral mx-auto max-w-[46rem]">
           {markdownContent ? (
@@ -252,7 +275,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 
         <div className="mx-auto my-14 h-px max-w-[46rem] bg-border" />
 
-        {series && (previousArticle || nextArticle) ? (
+        {series ? (
           <nav aria-label={`${series.title}合集导航`} className="mx-auto mb-12 max-w-[46rem]">
             <div className="mb-4 flex items-center justify-between gap-4">
               <Link className="text-sm font-medium text-primary" href={`/blog/series/${series.slug}`}>
@@ -262,7 +285,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                 {seriesIndex + 1} / {seriesArticles.length}
               </span>
             </div>
-            <div className="grid gap-px overflow-hidden border border-border bg-border sm:grid-cols-2">
+            {previousArticle || nextArticle ? <div className="grid gap-px overflow-hidden border border-border bg-border sm:grid-cols-2">
               {previousArticle ? (
                 <Link className="bg-card p-5 transition-colors hover:bg-accent/45" href={`/blog/${String(previousArticle.slug)}`}>
                   <span className="block text-xs text-muted-foreground">上一篇</span>
@@ -281,7 +304,8 @@ export default async function BlogPostPage({ params }: PageProps) {
                   </span>
                 </Link>
               ) : null}
-            </div>
+            </div> : null}
+            {!nextArticle ? <p className="mt-4 text-sm leading-7 text-muted-foreground">已读到合集当前最后一篇。<Link className="text-primary underline underline-offset-4" href="/blog">看看其他文章 →</Link></p> : null}
           </nav>
         ) : null}
 

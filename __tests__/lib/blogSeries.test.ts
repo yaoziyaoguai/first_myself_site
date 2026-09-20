@@ -33,7 +33,7 @@ describe("blog series", () => {
     expect(articles.map((article) => article.id)).toEqual([1, 3, 2]);
   });
 
-  it("builds collections only after they contain enough public chapters", () => {
+  it("shows a published collection starting with its first visible article", () => {
     const collections = buildSeriesCollections([
       { id: 2, title: "第二篇", series: agentSeries, seriesOrder: 2 },
       { id: 1, title: "第一篇", series: agentSeries, seriesOrder: 1 },
@@ -44,8 +44,16 @@ describe("blog series", () => {
       },
     ]);
 
-    expect(collections).toHaveLength(1);
+    expect(collections).toHaveLength(2);
     expect(collections[0].series.slug).toBe("building-an-agent");
     expect(collections[0].articles.map((article) => article.id)).toEqual([1, 2]);
+  });
+
+  it("places articles without an explicit order after ordered articles, then by date", () => {
+    expect(sortSeriesArticles([
+      { id: 3, seriesOrder: null, publishedDate: "2026-04-20" },
+      { id: 2, seriesOrder: null, publishedDate: "2026-04-10" },
+      { id: 1, seriesOrder: 1, publishedDate: "2026-04-30" },
+    ]).map(({ id }) => id)).toEqual([1, 2, 3]);
   });
 });
