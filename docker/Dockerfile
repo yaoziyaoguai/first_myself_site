@@ -17,9 +17,8 @@ FROM node:22-alpine AS deps
 
 WORKDIR /app
 
-# 安装构建依赖（native 模块编译需要）
-RUN sed -i 's|https://dl-cdn.alpinelinux.org/alpine|https://mirrors.aliyun.com/alpine|g' /etc/apk/repositories \
-    && apk add --no-cache libc6-compat python3 make g++
+# 镜像由 GitHub Runner 构建，保留 Alpine 官方源，避免跨境访问镜像站拖慢安装。
+RUN apk add --no-cache libc6-compat python3 make g++
 # 仓库使用 npm 锁文件，构建必须与 CI 安装同一依赖图。
 COPY package.json package-lock.json ./
 RUN npm ci
