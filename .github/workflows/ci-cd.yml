@@ -7,6 +7,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   # ── 第1层：代码规范检查 ──────────────────────────
   lint:
@@ -129,9 +132,23 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - name: Check latest main commit
+        id: latest-main
+        shell: bash
+        run: |
+          set -euo pipefail
+          latest_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          if [ "$latest_sha" = "$GITHUB_SHA" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping superseded commit $GITHUB_SHA; latest main is $latest_sha"
+          fi
       - name: Set up Docker Buildx exporter
+        if: steps.latest-main.outputs.deploy == 'true'
         uses: docker/setup-buildx-action@v3
       - name: Create verified deployment payload
+        if: steps.latest-main.outputs.deploy == 'true'
         run: |
           set -euo pipefail
           git bundle create deploy-source.bundle HEAD
@@ -148,6 +165,7 @@ jobs:
           gzip -t first_myself_site-candidate.tar.gz
           sha256sum --check first_myself_site-candidate.tar.gz.sha256
       - name: Upload deployment payload
+        if: steps.latest-main.outputs.deploy == 'true'
         uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -158,6 +176,7 @@ jobs:
           overwrite: true
           command_timeout: 30m
       - name: Deploy via SSH
+        if: steps.latest-main.outputs.deploy == 'true'
         uses: appleboy/ssh-action@v1.0.3
         env:
           BLOG_AGENT_API_KEY: ${{ secrets.BLOG_AGENT_API_KEY }}
