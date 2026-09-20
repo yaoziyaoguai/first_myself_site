@@ -235,7 +235,12 @@ const Blog: CollectionConfig = {
       type: "relationship",
       relationTo: "blog-series",
       label: "所属合集",
+      access: {
+        create: ({ req }) => req.user?.role === "admin",
+        update: ({ req }) => req.user?.role === "admin",
+      },
       admin: {
+        condition: (_, __, { user }) => user?.role === "admin",
         description: "可选。也可以到「内容管理 → 文章合集」，一次选入多篇文章并调整阅读顺序。",
       },
     },
@@ -244,8 +249,12 @@ const Blog: CollectionConfig = {
       type: "number",
       label: "合集内顺序",
       min: 1,
+      access: {
+        create: ({ req }) => req.user?.role === "admin",
+        update: ({ req }) => req.user?.role === "admin",
+      },
       admin: {
-        condition: (_, siblingData) => Boolean(siblingData.series),
+        condition: (_, siblingData, { user }) => user?.role === "admin" && Boolean(siblingData.series),
         description: "从 1 开始。未填写时按发布日期从早到晚排列。",
       },
     },
