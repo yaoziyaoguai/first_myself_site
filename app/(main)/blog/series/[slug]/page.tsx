@@ -5,6 +5,7 @@ import { ArrowUpRight } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { sortSeriesArticles, type SeriesArticle } from "@/lib/blogSeries";
 import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
+import { summarizeExcerpt } from "@/lib/discovery";
 import { getPayloadAPI } from "@/lib/payload";
 import { formatSiteDate } from "@/lib/siteDate";
 
@@ -82,6 +83,9 @@ export default async function BlogSeriesPage({ params }: PageProps) {
           <p className="mt-6 max-w-3xl text-base leading-8 text-muted-foreground md:text-lg">
             {series.description}
           </p>
+          {articles[0] ? (
+            <Link className="text-link mt-6" href={`/blog/${String(articles[0].slug)}`}>从第一篇开始读 →</Link>
+          ) : null}
         </div>
         <div className="border-l border-border pl-5 font-mono text-xs leading-6 text-muted-foreground md:text-right">
           <p>{series.progress === "completed" ? "已完结" : "持续更新"}</p>
@@ -116,7 +120,7 @@ export default async function BlogSeriesPage({ params }: PageProps) {
                       {String(article.title ?? "未命名文章")}
                     </span>
                     <span className="mt-3 block max-w-3xl text-sm leading-7 text-muted-foreground">
-                      {String(article.excerpt ?? "")}
+                      {summarizeExcerpt(article.excerpt, 170)}
                     </span>
                     <span className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[0.68rem] text-muted-foreground">
                       <time>{publishedDate}</time>

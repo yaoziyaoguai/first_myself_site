@@ -87,7 +87,9 @@ const privateAgentFieldAccess = {
 
 const Blog: CollectionConfig = {
   slug: "blog",
+  labels: { singular: "文章", plural: "文章" },
   admin: {
+    group: "内容管理",
     useAsTitle: "title",
     defaultColumns: ["title", "series", "status", "publishedDate"],
     listSearchableFields: ["title", "slug"],
@@ -234,7 +236,7 @@ const Blog: CollectionConfig = {
       relationTo: "blog-series",
       label: "所属合集",
       admin: {
-        description: "只有存在明确阅读顺序时才选择合集；普通主题继续使用标签。",
+        description: "可选。也可以到「内容管理 → 文章合集」，一次选入多篇文章并调整阅读顺序。",
       },
     },
     {
@@ -243,6 +245,7 @@ const Blog: CollectionConfig = {
       label: "合集内顺序",
       min: 1,
       admin: {
+        condition: (_, siblingData) => Boolean(siblingData.series),
         description: "从 1 开始。未填写时按发布日期从早到晚排列。",
       },
     },
