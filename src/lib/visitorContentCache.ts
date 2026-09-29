@@ -1,4 +1,3 @@
-import { getPayloadAPI } from "@/lib/payload";
 import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
 
 /**
@@ -12,10 +11,24 @@ import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
  * private 文章与草稿永远不会进入共享缓存；未登录查询固定使用访客 where。
  * 后台编辑者自己预览时走直查，看到的永远是最新内容。
  *
- * 实现注：`next/cache` 必须惰性动态加载。集合/全局配置文件会 import 本模块，
- * 而 Payload CLI（`payload run`）在纯 node 环境加载真实配置做冒烟——
- * 静态引入 next/cache 会把 Next 服务端内部拖进非 Next 运行时导致挂起。
+ * 实现注（两条惰性加载边界，勿改回静态引入）：
+ * 1. `next/cache`：集合/全局配置文件会 import 本模块，而 Payload CLI
+ *    （`payload run`）在纯 node 环境加载真实配置做冒烟——静态引入会把
+ *    Next 服务端内部拖进非 Next 运行时导致挂起。
+ * 2. `@/lib/payload`：本模块被集合配置（Blog.ts 等）引用，若静态引入
+ *    `@/lib/payload`（它引 @payload-config）会形成求值期循环：
+ *    payload.config → Blog → 本模块 → @/lib/payload → payload.config（partial），
+ *    使 config.collections 里出现 undefined，在 CI 的测试导入顺序下必炸。
+ *    函数体内动态 import 只在首次调用时解析，此时模块图已完整，
+ *    且 vitest 对 "@/lib/payload" 的 mock 对动态 import 同样生效。
  */
+
+async function getPayloadInstance() {
+  // 动态引入保持两个性质：不与集合配置形成求值期循环；vitest 对
+  // "@/lib/payload" 的模块 mock 对动态 import 同样生效（BlogPage 等测试依赖此缝）
+  const { getPayloadAPI } = await import("@/lib/payload");
+  return getPayloadAPI();
+}
 
 const CACHE_TAG = "content";
 const REVALIDATE_SECONDS = 60;
@@ -31,12 +44,8 @@ export function revalidateVisitorContent() {
   );
 }
 
-interface Viewer {
-  id: unknown;
-  [key: string]: unknown;
-}
-
-type MaybeViewer = Viewer | null | undefined;
+// 与 buildBlogFrontendWhere 的 viewer 形参保持同一类型，避免手写结构类型产生偏差
+type MaybeViewer = Parameters<typeof buildBlogFrontendWhere>[0];
 
 interface ListOpts {
   limit: number;
@@ -46,7 +55,7 @@ interface ListOpts {
 }
 
 async function findBlogPostsDirect(opts: ListOpts) {
-  const payload = await getPayloadAPI();
+  const payload = await getPayloadInstance();
   const where = buildBlogFrontendWhere(null);
   return payload.find({
     collection: "blog",
@@ -61,7 +70,7 @@ async function findBlogPostsDirect(opts: ListOpts) {
 }
 
 async function findBlogPostBySlugDirect(slug: string) {
-  const payload = await getPayloadAPI();
+  const payload = await getPayloadInstance();
   const result = await payload.find({
     collection: "blog",
     where: { ...buildBlogFrontendWhere(null), slug: { equals: slug } },
@@ -103,7 +112,7 @@ async function findBlogPostBySlugCached(slug: string) {
 }
 
 async function findHomeGlobalDirect() {
-  const payload = await getPayloadAPI();
+  const payload = await getPayloadInstance();
   return payload.findGlobal({ slug: "home" });
 }
 
@@ -120,7 +129,7 @@ async function findHomeGlobalCached() {
 }
 
 async function findProjectsDirect() {
-  const payload = await getPayloadAPI();
+  const payload = await getPayloadInstance();
   return payload.find({ collection: "projects", sort: "sortOrder", limit: 4 });
 }
 
@@ -139,7 +148,7 @@ async function findProjectsCached() {
 /** 列表查询：登录态直查，访客走缓存 */
 export async function findBlogPostsForViewer(viewer: MaybeViewer, opts: ListOpts) {
   if (viewer || BYPASS_CACHE) {
-    const payload = await getPayloadAPI();
+    const payload = await getPayloadInstance();
     const where = buildBlogFrontendWhere(viewer);
     return payload.find({
       collection: "blog",
@@ -158,7 +167,7 @@ export async function findBlogPostsForViewer(viewer: MaybeViewer, opts: ListOpts
 /** 单篇文章查询：登录态直查，访客走缓存 */
 export async function findBlogPostBySlugForViewer(viewer: MaybeViewer, slug: string) {
   if (viewer || BYPASS_CACHE) {
-    const payload = await getPayloadAPI();
+    const payload = await getPayloadInstance();
     const result = await payload.find({
       collection: "blog",
       where: { ...buildBlogFrontendWhere(viewer), slug: { equals: slug } },
