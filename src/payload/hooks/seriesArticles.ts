@@ -2,7 +2,7 @@ import { APIError, type CollectionAfterChangeHook, type FieldHook } from "payloa
 import { sortSeriesArticles } from "@/lib/blogSeries";
 
 export const readSeriesArticles: FieldHook = async ({ data, req }) => {
-  if (!data?.id || !["admin", "editor"].includes(req.user?.role ?? "")) return [];
+  if (!data?.id || req.user?.role !== "admin") return [];
   const { docs } = await req.payload.find({
     collection: "blog",
     where: { series: { equals: data.id } },

@@ -3,7 +3,7 @@ import { readSeriesArticles, saveSeriesArticles } from "@/payload/hooks/seriesAr
 
 const find = vi.fn();
 const update = vi.fn();
-const req = { user: { role: "editor" }, payload: { find, update }, transactionID: "shared-transaction" };
+const req = { user: { role: "admin" }, payload: { find, update }, transactionID: "shared-transaction" };
 const save = (data: Record<string, unknown>) => saveSeriesArticles({ data, doc: { id: 10 }, req } as never);
 
 describe("editing articles from a series", () => {
@@ -21,6 +21,7 @@ describe("editing articles from a series", () => {
     expect(find).toHaveBeenCalledWith(expect.objectContaining({ depth: 0, overrideAccess: false, req }));
     find.mockClear();
     expect(await readSeriesArticles({ data: { id: 10 }, req: { ...req, user: null } } as never)).toEqual([]);
+    expect(await readSeriesArticles({ data: { id: 10 }, req: { ...req, user: { role: "editor" } } } as never)).toEqual([]);
     expect(find).not.toHaveBeenCalled();
   });
 

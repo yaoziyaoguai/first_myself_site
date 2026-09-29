@@ -28,6 +28,24 @@ describe("article discovery with empty series", () => {
     expect(screen.getByRole("link", { name: "创建第一个合集 →" })).toHaveAttribute("href", "/admin/collections/blog-series/create");
   });
 
+  it.each(["editor", "viewer"])("hides series management and empty-state creation from %s", async (role) => {
+    currentUser.mockResolvedValue({ id: 2, role });
+    render(await BlogPage());
+    expect(screen.queryByRole("link", { name: "管理合集 ↗" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "创建第一个合集 →" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "文章合集" })).not.toBeInTheDocument();
+  });
+
+  it.each(["editor", "viewer"])("keeps published series readable without management links for %s", async (role) => {
+    currentUser.mockResolvedValue({ id: 2, role });
+    find.mockResolvedValue({ docs: [{ id: 1, title: "已有文章", slug: "existing-article", tags: [],
+      series: { id: 1, title: "真实合集", slug: "real-series", description: "按顺序阅读", status: "published" },
+    }] });
+    render(await BlogPage());
+    expect(screen.getByRole("link", { name: "从第一篇开始读 →" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "管理合集 ↗" })).not.toBeInTheDocument();
+  });
+
   it("shows the first published series and reading entry to visitors", async () => {
     find.mockResolvedValue({ docs: [{ id: 1, title: "已有文章", slug: "existing-article", tags: [],
       series: { id: 1, title: "真实合集", slug: "real-series", description: "按顺序阅读", status: "published" },

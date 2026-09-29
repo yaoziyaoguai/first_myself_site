@@ -2,7 +2,7 @@ import type { CollectionConfig } from "payload";
 import { randomUUID } from "node:crypto";
 import { readSeriesArticles, saveSeriesArticles } from "../hooks/seriesArticles";
 
-const canEdit = (role: unknown) => role === "admin" || role === "editor";
+const canEdit = (role: unknown) => role === "admin";
 
 const BlogSeries: CollectionConfig = {
   slug: "blog-series",
@@ -11,6 +11,7 @@ const BlogSeries: CollectionConfig = {
     plural: "文章合集",
   },
   admin: {
+    hidden: ({ user }) => !canEdit(user?.role),
     useAsTitle: "title",
     defaultColumns: ["title", "progress", "featured", "status", "sortOrder"],
     description: "填写名称和说明 → 选择文章并排序 → 将「前台展示」设为「展示合集」并保存。访客会在文章页看到合集，也能从文章进入整套目录。",

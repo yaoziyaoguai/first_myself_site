@@ -7,7 +7,6 @@ import {
   buildSeriesCollections,
   type SeriesArticle,
 } from "@/lib/blogSeries";
-import { canViewPrivateBlog } from "@/lib/blogVisibility";
 import { summarizeExcerpt } from "@/lib/discovery";
 import { findBlogPostsForViewer } from "@/lib/visitorContentCache";
 import { formatSiteDate } from "@/lib/siteDate";
@@ -29,7 +28,8 @@ export default async function BlogPage() {
   });
   const articles = result.docs as unknown as SeriesArticle[];
   const collections = buildSeriesCollections(articles);
-  const showSeries = collections.length > 0 || canViewPrivateBlog(viewer);
+  const canManageSeries = viewer?.role === "admin";
+  const showSeries = collections.length > 0 || canManageSeries;
 
   return (
     <div className="site-shell page-space">
@@ -46,7 +46,7 @@ export default async function BlogPage() {
       {articles.length > 0 ? <nav aria-label="文章浏览方式" className="mb-10 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-border pb-5">
         <a className="text-link" href="#all-articles-heading">全部文章 · {articles.length}</a>
         {showSeries ? <a className="text-link" href="#series-heading">文章合集 · {collections.length}</a> : null}
-        {canViewPrivateBlog(viewer) ? (
+        {canManageSeries ? (
           <Link prefetch={false} className="text-link md:ml-auto" href="/admin/collections/blog-series">管理合集 ↗</Link>
         ) : null}
       </nav> : null}
