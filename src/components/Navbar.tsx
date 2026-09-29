@@ -19,7 +19,7 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-border/80 bg-background/95 backdrop-blur-md">
       <div className="site-shell flex h-[4.75rem] items-center justify-between">
-        <Link className="group inline-flex min-h-11 items-center gap-3" href="/">
+        <Link prefetch={false} className="group inline-flex min-h-11 items-center gap-3" href="/">
           <span className="grid size-8 place-items-center rounded-[0.45rem] border border-primary/25 bg-primary text-[0.68rem] font-semibold tracking-[-0.02em] text-primary-foreground transition-transform duration-200 group-hover:-rotate-3">
             JW
           </span>
@@ -34,7 +34,7 @@ export function Navbar() {
             const active =
               link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
             return (
-              <Link
+              <Link prefetch={false}
                 aria-current={active ? "page" : undefined}
                 className={`relative inline-flex min-h-11 items-center px-3 text-sm transition-colors duration-200 after:absolute after:inset-x-3 after:bottom-1.5 after:h-px after:origin-left after:bg-primary after:transition-transform after:duration-200 ${
                   active
@@ -71,7 +71,7 @@ export function Navbar() {
             {navLinks.map((link, index) => {
               const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
               return (
-              <Link
+              <Link prefetch={false}
                 aria-current={active ? "page" : undefined}
                 className={`flex min-h-12 items-center justify-between border-b border-border/70 text-sm ${active ? "text-primary" : "text-foreground"}`}
                 href={link.href}

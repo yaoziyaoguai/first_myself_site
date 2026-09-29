@@ -68,3 +68,9 @@ media/*
 nginx.conf
 .env.docker.prod
 resume
+
+# 性能冲刺的本地产物（种子、基线副本、npm 缓存）
+.local/
+
+# 视觉回归参照可从任一健康构建重新 capture，不入库
+perf/bench/golden/

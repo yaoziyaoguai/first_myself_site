@@ -1,0 +1,650 @@
+{
+ "started": "2026-09-29 10:29:36",
+ "finished": "2026-09-29 10:29:51",
+ "config": {
+  "runs": 15,
+  "profile": "fast4g",
+  "cpu": 1,
+  "width": 1440,
+  "height": 900,
+  "ready": "(() => { const h1 = document.querySelector('article h1'); const prose = document.querySelector('.prose'); return !!h1 && h1.textContent.trim().length > 3 && !!prose && prose.textContent.trim().length > 200; })()",
+  "type_check": null
+ },
+ "paired": false,
+ "results": {
+  "A": {
+   "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+   "summary": {
+    "n": 15,
+    "n_ok": 15,
+    "ready": {
+     "p50": 291.9,
+     "p75": 319.8,
+     "p95": 438.5
+    },
+    "lcp": {
+     "p50": 360,
+     "p75": 386,
+     "p95": 528
+    },
+    "fcp": {
+     "p50": 360,
+     "p75": 386,
+     "p95": 528
+    },
+    "dcl": {
+     "p50": 420.7,
+     "p75": 440.7,
+     "p95": 547.5
+    },
+    "load": {
+     "p50": 660.5,
+     "p75": 687.1,
+     "p95": 815.1
+    },
+    "longtask": {
+     "p50": 53,
+     "p75": 55.5,
+     "p95": 70.7
+    },
+    "requests": {
+     "p50": 26,
+     "p75": 26,
+     "p95": 26
+    },
+    "bytes_total": {
+     "p50": 280229,
+     "p75": 280230,
+     "p95": 280232
+    }
+   },
+   "runs": [
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 433.59999990463257,
+     "lcp": 556,
+     "longtask": 105,
+     "fcp": 556,
+     "dcl": 541.3999999761581,
+     "load": 818.2999999523163,
+     "requests": 26,
+     "bytes_total": 280217,
+     "bytes_by_type": {
+      "link": 20258,
+      "script": 205666,
+      "fetch": 10895
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/api/likes?targetId=1&targetType=blog",
+       "responseEnd": 933
+      },
+      {
+       "name": "http://127.0.0.1:3200/contact?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 927
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/comments?targetId=1&targetType=blog&page=1",
+       "responseEnd": 922
+      },
+      {
+       "name": "http://127.0.0.1:3200/about?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 919
+      },
+      {
+       "name": "http://127.0.0.1:3200/projects?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 913
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 320.39999997615814,
+     "lcp": 388,
+     "longtask": 53,
+     "fcp": 388,
+     "dcl": 448.89999997615814,
+     "load": 687.8000000715256,
+     "requests": 26,
+     "bytes_total": 280230,
+     "bytes_by_type": {
+      "link": 20258,
+      "script": 205666,
+      "fetch": 10898
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/contact?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 800
+      },
+      {
+       "name": "http://127.0.0.1:3200/about?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 794
+      },
+      {
+       "name": "http://127.0.0.1:3200/projects?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 792
+      },
+      {
+       "name": "http://127.0.0.1:3200/blog?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 782
+      },
+      {
+       "name": "http://127.0.0.1:3200/?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 768
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 318.5,
+     "lcp": 384,
+     "longtask": 51,
+     "fcp": 384,
+     "dcl": 432.5,
+     "load": 681.7000000476837,
+     "requests": 26,
+     "bytes_total": 280225,
+     "bytes_by_type": {
+      "link": 20258,
+      "script": 205666,
+      "fetch": 10893
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/contact?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 795
+      },
+      {
+       "name": "http://127.0.0.1:3200/about?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 788
+      },
+      {
+       "name": "http://127.0.0.1:3200/projects?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 778
+      },
+      {
+       "name": "http://127.0.0.1:3200/blog?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 771
+      },
+      {
+       "name": "http://127.0.0.1:3200/?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 766
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 273.2999999523163,
+     "lcp": 340,
+     "longtask": 52,
+     "fcp": 340,
+     "dcl": 396,
+     "load": 637.6000000238419,
+     "requests": 26,
+     "bytes_total": 280232,
+     "bytes_by_type": {
+      "link": 20258,
+      "script": 205666,
+      "fetch": 10900
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/contact?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 749
+      },
+      {
+       "name": "http://127.0.0.1:3200/about?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 743
+      },
+      {
+       "name": "http://127.0.0.1:3200/projects?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 731
+      },
+      {
+       "name": "http://127.0.0.1:3200/blog?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 726
+      },
+      {
+       "name": "http://127.0.0.1:3200/?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 721
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 290.2999999523163,
+     "lcp": 360,
+     "longtask": 54,
+     "fcp": 360,
+     "dcl": 416.5,
+     "load": 657.7000000476837,
+     "requests": 26,
+     "bytes_total": 280231,
+     "bytes_by_type": {
+      "link": 20258,
+      "script": 205666,
+      "fetch": 10899
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/contact?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 767
+      },
+      {
+       "name": "http://127.0.0.1:3200/about?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 760
+      },
+      {
+       "name": "http://127.0.0.1:3200/projects?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 749
+      },
+      {
+       "name": "http://127.0.0.1:3200/blog?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 743
+      },
+      {
+       "name": "http://127.0.0.1:3200/?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 738
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 286.1999999284744,
+     "lcp": 356,
+     "longtask": 53,
+     "fcp": 356,
+     "dcl": 401.10000002384186,
+     "load": 654.3999999761581,
+     "requests": 26,
+     "bytes_total": 280227,
+     "bytes_by_type": {
+      "link": 20258,
+      "script": 205666,
+      "fetch": 10895
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/contact?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 767
+      },
+      {
+       "name": "http://127.0.0.1:3200/about?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 761
+      },
+      {
+       "name": "http://127.0.0.1:3200/projects?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 758
+      },
+      {
+       "name": "http://127.0.0.1:3200/blog?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 755
+      },
+      {
+       "name": "http://127.0.0.1:3200/?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 731
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 284.3000000715256,
+     "lcp": 348,
+     "longtask": 50,
+     "fcp": 348,
+     "dcl": 398.39999997615814,
+     "load": 649.3000000715256,
+     "requests": 26,
+     "bytes_total": 280230,
+     "bytes_by_type": {
+      "link": 20258,
+      "script": 205666,
+      "fetch": 10898
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/contact?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 763
+      },
+      {
+       "name": "http://127.0.0.1:3200/about?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 758
+      },
+      {
+       "name": "http://127.0.0.1:3200/projects?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 754
+      },
+      {
+       "name": "http://127.0.0.1:3200/blog?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 749
+      },
+      {
+       "name": "http://127.0.0.1:3200/?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 732
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 263.5,
+     "lcp": 328,
+     "longtask": 52,
+     "fcp": 328,
+     "dcl": 374.39999997615814,
+     "load": 631.2000000476837,
+     "requests": 26,
+     "bytes_total": 280229,
+     "bytes_by_type": {
+      "link": 20258,
+      "script": 205666,
+      "fetch": 10897
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/contact?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 744
+      },
+      {
+       "name": "http://127.0.0.1:3200/about?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 740
+      },
+      {
+       "name": "http://127.0.0.1:3200/projects?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 734
+      },
+      {
+       "name": "http://127.0.0.1:3200/blog?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 728
+      },
+      {
+       "name": "http://127.0.0.1:3200/?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 708
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 261.2999999523163,
+     "lcp": 328,
+     "longtask": 54,
+     "fcp": 328,
+     "dcl": 389.5,
+     "load": 625.8999999761581,
+     "requests": 26,
+     "bytes_total": 280232,
+     "bytes_by_type": {
+      "link": 20258,
+      "script": 205666,
+      "fetch": 10900
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/contact?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 735
+      },
+      {
+       "name": "http://127.0.0.1:3200/about?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 726
+      },
+      {
+       "name": "http://127.0.0.1:3200/projects?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 721
+      },
+      {
+       "name": "http://127.0.0.1:3200/blog?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 714
+      },
+      {
+       "name": "http://127.0.0.1:3200/?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 706
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 291.89999997615814,
+     "lcp": 360,
+     "longtask": 56,
+     "fcp": 360,
+     "dcl": 420.6999999284744,
+     "load": 660.5,
+     "requests": 26,
+     "bytes_total": 280227,
+     "bytes_by_type": {
+      "link": 20258,
+      "script": 205666,
+      "fetch": 10895
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/contact?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 775
+      },
+      {
+       "name": "http://127.0.0.1:3200/about?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 768
+      },
+      {
+       "name": "http://127.0.0.1:3200/projects?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 758
+      },
+      {
+       "name": "http://127.0.0.1:3200/blog?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 754
+      },
+      {
+       "name": "http://127.0.0.1:3200/?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 745
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 393.5,
+     "lcp": 464,
+     "longtask": 56,
+     "fcp": 464,
+     "dcl": 507.5,
+     "load": 758.8000000715256,
+     "requests": 26,
+     "bytes_total": 280224,
+     "bytes_by_type": {
+      "link": 20258,
+      "script": 205666,
+      "fetch": 10892
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/contact?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 873
+      },
+      {
+       "name": "http://127.0.0.1:3200/about?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 870
+      },
+      {
+       "name": "http://127.0.0.1:3200/projects?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 864
+      },
+      {
+       "name": "http://127.0.0.1:3200/blog?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 859
+      },
+      {
+       "name": "http://127.0.0.1:3200/?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 838
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 450.10000002384186,
+     "lcp": 516,
+     "longtask": 53,
+     "fcp": 516,
+     "dcl": 561.6000000238419,
+     "load": 813.7999999523163,
+     "requests": 26,
+     "bytes_total": 280225,
+     "bytes_by_type": {
+      "link": 20258,
+      "script": 205666,
+      "fetch": 10893
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/contact?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 921
+      },
+      {
+       "name": "http://127.0.0.1:3200/about?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 915
+      },
+      {
+       "name": "http://127.0.0.1:3200/projects?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 906
+      },
+      {
+       "name": "http://127.0.0.1:3200/blog?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 900
+      },
+      {
+       "name": "http://127.0.0.1:3200/?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 895
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 319.10000002384186,
+     "lcp": 384,
+     "longtask": 52,
+     "fcp": 384,
+     "dcl": 429.7999999523163,
+     "load": 686.3999999761581,
+     "requests": 26,
+     "bytes_total": 280229,
+     "bytes_by_type": {
+      "link": 20258,
+      "script": 205666,
+      "fetch": 10897
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/contact?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 815
+      },
+      {
+       "name": "http://127.0.0.1:3200/about?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 807
+      },
+      {
+       "name": "http://127.0.0.1:3200/projects?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 796
+      },
+      {
+       "name": "http://127.0.0.1:3200/blog?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 792
+      },
+      {
+       "name": "http://127.0.0.1:3200/?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 787
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 284.60000002384186,
+     "lcp": 352,
+     "longtask": 55,
+     "fcp": 352,
+     "dcl": 397.6999999284744,
+     "load": 649.6000000238419,
+     "requests": 26,
+     "bytes_total": 280229,
+     "bytes_by_type": {
+      "link": 20258,
+      "script": 205666,
+      "fetch": 10897
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/contact?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 775
+      },
+      {
+       "name": "http://127.0.0.1:3200/about?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 772
+      },
+      {
+       "name": "http://127.0.0.1:3200/projects?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 769
+      },
+      {
+       "name": "http://127.0.0.1:3200/blog?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 764
+      },
+      {
+       "name": "http://127.0.0.1:3200/?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 734
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 310.7000000476837,
+     "lcp": 380,
+     "longtask": 56,
+     "fcp": 380,
+     "dcl": 425.7000000476837,
+     "load": 675.5,
+     "requests": 26,
+     "bytes_total": 280228,
+     "bytes_by_type": {
+      "link": 20258,
+      "script": 205666,
+      "fetch": 10896
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/contact?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 788
+      },
+      {
+       "name": "http://127.0.0.1:3200/about?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 781
+      },
+      {
+       "name": "http://127.0.0.1:3200/projects?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 771
+      },
+      {
+       "name": "http://127.0.0.1:3200/blog?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 768
+      },
+      {
+       "name": "http://127.0.0.1:3200/?_rsc=PnxFQjfhscowU2xW",
+       "responseEnd": 759
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

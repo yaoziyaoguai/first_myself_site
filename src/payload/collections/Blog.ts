@@ -1,4 +1,5 @@
 import type { CollectionConfig } from "payload";
+import { revalidateVisitorContent } from "@/lib/visitorContentCache";
 
 type BlogAgentState = Record<string, unknown>;
 
@@ -145,6 +146,21 @@ const Blog: CollectionConfig = {
         data: data as BlogAgentState | undefined,
         originalDoc: originalDoc as BlogAgentState | undefined,
       }),
+    ],
+    // 文章增删改后让前台访客数据缓存失效（失败只影响时效，60s 兜底仍在）
+    afterChange: [
+      async () => {
+        await revalidateVisitorContent().catch((error) => {
+          console.warn("[cache] revalidate after blog change failed:", error);
+        });
+      },
+    ],
+    afterDelete: [
+      async () => {
+        await revalidateVisitorContent().catch((error) => {
+          console.warn("[cache] revalidate after blog delete failed:", error);
+        });
+      },
     ],
   },
   fields: [

@@ -1,0 +1,455 @@
+{
+ "started": "2026-09-29 10:30:47",
+ "finished": "2026-09-29 10:30:57",
+ "config": {
+  "runs": 10,
+  "profile": "fast4g",
+  "cpu": 1,
+  "width": 1440,
+  "height": 900,
+  "ready": "(() => { const h1 = document.querySelector('h1'); const blocks = document.querySelectorAll('.site-shell p, .site-shell .topic-pill'); return !!h1 && h1.textContent.trim().length > 3 && blocks.length >= 4; })()",
+  "type_check": null
+ },
+ "paired": false,
+ "results": {
+  "A": {
+   "url": "https://wangjinkun333.me/",
+   "summary": {
+    "n": 10,
+    "n_ok": 10,
+    "ready": {
+     "p50": 266.4,
+     "p75": 290.8,
+     "p95": 345.9
+    },
+    "lcp": {
+     "p50": 326,
+     "p75": 345,
+     "p95": 436.2
+    },
+    "fcp": {
+     "p50": 326,
+     "p75": 345,
+     "p95": 436.2
+    },
+    "dcl": {
+     "p50": 299.1,
+     "p75": 323.4,
+     "p95": 411.2
+    },
+    "load": {
+     "p50": 537.4,
+     "p75": 565,
+     "p95": 658.5
+    },
+    "longtask": {
+     "p50": 0,
+     "p75": 48.8,
+     "p95": 84.3
+    },
+    "requests": {
+     "p50": 27,
+     "p75": 27,
+     "p95": 27
+    },
+    "bytes_total": {
+     "p50": 187453,
+     "p75": 187453.8,
+     "p95": 187454.6
+    }
+   },
+   "runs": [
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 380.2000000476837,
+     "lcp": 492,
+     "longtask": 92,
+     "fcp": 492,
+     "dcl": 473.2000000476837,
+     "load": 711.2000000476837,
+     "requests": 23,
+     "bytes_total": 180708,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 138123,
+      "fetch": 11520
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/contact?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 926
+      },
+      {
+       "name": "https://wangjinkun333.me/about?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 914
+      },
+      {
+       "name": "https://wangjinkun333.me/projects?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 912
+      },
+      {
+       "name": "https://wangjinkun333.me/blog?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 909
+      },
+      {
+       "name": "https://wangjinkun333.me/?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 897
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 284.09999990463257,
+     "lcp": 332,
+     "longtask": 0,
+     "fcp": 332,
+     "dcl": 317.7999999523163,
+     "load": 568.7999999523163,
+     "requests": 27,
+     "bytes_total": 187454,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 138123,
+      "fetch": 18266
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/blog/aliyun-ecs-openai-proton-openvpn?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 824
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/gpt-oracle-web-reliable-browser-consultation?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 819
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/github-account-suspension-reinstatement?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 817
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/dev-co-for-beginners?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 814
+      },
+      {
+       "name": "https://wangjinkun333.me/contact?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 722
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 268.5,
+     "lcp": 316,
+     "longtask": 0,
+     "fcp": 316,
+     "dcl": 300,
+     "load": 523.7999999523163,
+     "requests": 27,
+     "bytes_total": 187449,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 138123,
+      "fetch": 18261
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/blog/aliyun-ecs-openai-proton-openvpn?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 774
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/gpt-oracle-web-reliable-browser-consultation?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 771
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/github-account-suspension-reinstatement?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 761
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/dev-co-for-beginners?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 731
+      },
+      {
+       "name": "https://wangjinkun333.me/contact?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 684
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 303.89999997615814,
+     "lcp": 348,
+     "longtask": 0,
+     "fcp": 348,
+     "dcl": 335.5,
+     "load": 553.8000000715256,
+     "requests": 27,
+     "bytes_total": 187455,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 138123,
+      "fetch": 18267
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/blog/aliyun-ecs-openai-proton-openvpn?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 812
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/gpt-oracle-web-reliable-browser-consultation?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 809
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/github-account-suspension-reinstatement?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 806
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/dev-co-for-beginners?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 794
+      },
+      {
+       "name": "https://wangjinkun333.me/about?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 711
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 228.40000009536743,
+     "lcp": 276,
+     "longtask": 0,
+     "fcp": 276,
+     "dcl": 263.5,
+     "load": 522.7000000476837,
+     "requests": 25,
+     "bytes_total": 184090,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 138123,
+      "fetch": 14902
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/blog/github-account-suspension-reinstatement?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 806
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/dev-co-for-beginners?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 803
+      },
+      {
+       "name": "https://wangjinkun333.me/contact?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 800
+      },
+      {
+       "name": "https://wangjinkun333.me/projects?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 669
+      },
+      {
+       "name": "https://wangjinkun333.me/about?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 666
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 264.2999999523163,
+     "lcp": 312,
+     "longtask": 0,
+     "fcp": 312,
+     "dcl": 298.2999999523163,
+     "load": 525.7999999523163,
+     "requests": 27,
+     "bytes_total": 187452,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 138123,
+      "fetch": 18264
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/blog/aliyun-ecs-openai-proton-openvpn?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 758
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/gpt-oracle-web-reliable-browser-consultation?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 755
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/github-account-suspension-reinstatement?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 746
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/dev-co-for-beginners?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 741
+      },
+      {
+       "name": "https://wangjinkun333.me/contact?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 695
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 255.10000002384186,
+     "lcp": 308,
+     "longtask": 0,
+     "fcp": 308,
+     "dcl": 293.5,
+     "load": 526.2000000476837,
+     "requests": 27,
+     "bytes_total": 187453,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 138123,
+      "fetch": 18265
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/blog/aliyun-ecs-openai-proton-openvpn?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 746
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/gpt-oracle-web-reliable-browser-consultation?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 744
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/github-account-suspension-reinstatement?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 740
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/dev-co-for-beginners?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 729
+      },
+      {
+       "name": "https://wangjinkun333.me/contact?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 681
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 293.10000002384186,
+     "lcp": 336,
+     "longtask": 0,
+     "fcp": 336,
+     "dcl": 325.2000000476837,
+     "load": 548.5,
+     "requests": 27,
+     "bytes_total": 187453,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 138123,
+      "fetch": 18265
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/blog/aliyun-ecs-openai-proton-openvpn?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 804
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/gpt-oracle-web-reliable-browser-consultation?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 784
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/dev-co-for-beginners?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 781
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/github-account-suspension-reinstatement?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 778
+      },
+      {
+       "name": "https://wangjinkun333.me/contact?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 766
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 225.70000004768372,
+     "lcp": 320,
+     "longtask": 65,
+     "fcp": 320,
+     "dcl": 291.39999997615814,
+     "load": 521.1000000238419,
+     "requests": 27,
+     "bytes_total": 187453,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 138123,
+      "fetch": 18265
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/blog/gpt-oracle-web-reliable-browser-consultation?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 749
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/aliyun-ecs-openai-proton-openvpn?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 746
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/github-account-suspension-reinstatement?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 743
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/dev-co-for-beginners?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 731
+      },
+      {
+       "name": "https://wangjinkun333.me/contact?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 674
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 226.80000007152557,
+     "lcp": 368,
+     "longtask": 75,
+     "fcp": 368,
+     "dcl": 217,
+     "load": 594,
+     "requests": 27,
+     "bytes_total": 187454,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 138123,
+      "fetch": 18266
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/blog/aliyun-ecs-openai-proton-openvpn?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 843
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/gpt-oracle-web-reliable-browser-consultation?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 834
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/github-account-suspension-reinstatement?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 832
+      },
+      {
+       "name": "https://wangjinkun333.me/blog/dev-co-for-beginners?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 825
+      },
+      {
+       "name": "https://wangjinkun333.me/contact?_rsc=tXyZJ52UQVBCVsD3",
+       "responseEnd": 808
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

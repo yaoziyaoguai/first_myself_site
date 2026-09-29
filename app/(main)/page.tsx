@@ -1,28 +1,28 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { siteDefaults, type ContentCard, type Direction } from "@/content/siteDefaults";
-import { isAdmin } from "@/lib/auth";
-import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
+import { isAdmin, getCurrentUser } from "@/lib/auth";
 import { resolveArray, resolveText } from "@/lib/contentFallback";
 import { summarizeExcerpt } from "@/lib/discovery";
-import { getPayloadAPI } from "@/lib/payload";
+import {
+  findBlogPostsForViewer,
+  findHomeGlobalForViewer,
+  findProjectsForViewer,
+} from "@/lib/visitorContentCache";
 import { formatSiteDate } from "@/lib/siteDate";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const payload = await getPayloadAPI();
-  const [home, postsResult, projectsResult, admin] = await Promise.all([
-    payload.findGlobal({ slug: "home" }),
-    payload.find({
-      collection: "blog",
-      where: buildBlogFrontendWhere(null),
+  const [viewer, admin] = await Promise.all([getCurrentUser(), isAdmin()]);
+  const [home, postsResult, projectsResult] = await Promise.all([
+    findHomeGlobalForViewer(viewer),
+    findBlogPostsForViewer(viewer, {
       sort: "-publishedDate",
       limit: 4,
       depth: 0,
     }),
-    payload.find({ collection: "projects", sort: "sortOrder", limit: 4 }),
-    isAdmin(),
+    findProjectsForViewer(viewer),
   ]);
 
   const title = resolveText(home?.title, siteDefaults.identity.name);
@@ -75,7 +75,7 @@ export default async function Home() {
         </div>
 
         {featuredPost ? (
-          <Link className="group border-t-2 border-primary pb-1 pt-5" href={`/blog/${featuredPost.slug}`}>
+          <Link prefetch={false} className="group border-t-2 border-primary pb-1 pt-5" href={`/blog/${featuredPost.slug}`}>
             <span className="flex items-center justify-between gap-4 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground">
               <span>Latest note</span>
               <time>{featuredPost.publishedDate ? formatSiteDate(featuredPost.publishedDate) : ""}</time>
@@ -93,7 +93,7 @@ export default async function Home() {
         ) : (
           <div className="border-t-2 border-primary pt-5">
             <p className="text-sm leading-7 text-muted-foreground">这是一个持续更新的学习现场。文章记录理解，项目用来验证理解。</p>
-            <Link className="text-link mt-5" href="/blog">前往文章列表 →</Link>
+            <Link prefetch={false} className="text-link mt-5" href="/blog">前往文章列表 →</Link>
           </div>
         )}
       </section>
@@ -102,13 +102,13 @@ export default async function Home() {
         <div>
           <p className="section-number">01</p>
           <h2 className="section-title">近期文章</h2>
-          <Link className="text-link mt-4" href="/blog">浏览全部文章 →</Link>
+          <Link prefetch={false} className="text-link mt-4" href="/blog">浏览全部文章 →</Link>
         </div>
         <div className="border-y border-border">
           {recentPosts.length === 0 ? (
             <div className="py-10 text-sm leading-7 text-muted-foreground">{siteDefaults.blog.emptyMessage}</div>
           ) : recentPosts.map((post) => (
-            <Link className="group article-row" href={`/blog/${post.slug}`} key={post.id}>
+            <Link prefetch={false} className="group article-row" href={`/blog/${post.slug}`} key={post.id}>
               <time className="font-mono text-[0.7rem] tracking-[0.08em] text-muted-foreground">
                 {post.publishedDate ? formatSiteDate(post.publishedDate) : ""}
               </time>
@@ -128,11 +128,11 @@ export default async function Home() {
         <div>
           <p className="section-number">02</p>
           <h2 className="section-title">项目与实验</h2>
-          <Link className="text-link mt-4" href="/projects">查看全部项目 →</Link>
+          <Link prefetch={false} className="text-link mt-4" href="/projects">查看全部项目 →</Link>
         </div>
         <div className="grid border-y border-border md:grid-cols-2">
           {projects.slice(0, 2).map((project, index) => (
-            <Link
+            <Link prefetch={false}
               className={`group flex min-h-72 flex-col py-8 transition-colors duration-200 hover:bg-card/70 md:p-8 ${index === 0 ? "border-b border-border md:border-b-0 md:border-r" : ""}`}
               href={project.href}
               key={String(project.id)}
@@ -159,7 +159,7 @@ export default async function Home() {
         <div>
           <p className="section-number">03</p>
           <h2 className="section-title">最近在学习</h2>
-          {admin ? <Link className="text-link mt-4" href="/admin/globals/home">管理最近学习 →</Link> : null}
+          {admin ? <Link prefetch={false} className="text-link mt-4" href="/admin/globals/home">管理最近学习 →</Link> : null}
         </div>
         <div className="divide-y divide-border border-y border-border">
           {learningAreas.map((area) => (

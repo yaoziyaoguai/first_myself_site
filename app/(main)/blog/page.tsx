@@ -7,9 +7,8 @@ import {
   buildSeriesCollections,
   type SeriesArticle,
 } from "@/lib/blogSeries";
-import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
 import { summarizeExcerpt } from "@/lib/discovery";
-import { getPayloadAPI } from "@/lib/payload";
+import { findBlogPostsForViewer } from "@/lib/visitorContentCache";
 import { formatSiteDate } from "@/lib/siteDate";
 
 export const dynamic = "force-dynamic";
@@ -22,10 +21,7 @@ export const metadata: Metadata = {
 
 export default async function BlogPage() {
   const viewer = await getCurrentUser();
-  const payload = await getPayloadAPI();
-  const result = await payload.find({
-    collection: "blog",
-    where: buildBlogFrontendWhere(viewer),
+  const result = await findBlogPostsForViewer(viewer, {
     sort: "-publishedDate",
     limit: 100,
     depth: 1,
@@ -51,7 +47,7 @@ export default async function BlogPage() {
         <a className="text-link" href="#all-articles-heading">全部文章 · {articles.length}</a>
         {showSeries ? <a className="text-link" href="#series-heading">文章合集 · {collections.length}</a> : null}
         {canManageSeries ? (
-          <Link className="text-link md:ml-auto" href="/admin/collections/blog-series">管理合集 ↗</Link>
+          <Link prefetch={false} className="text-link md:ml-auto" href="/admin/collections/blog-series">管理合集 ↗</Link>
         ) : null}
       </nav> : null}
 
@@ -75,7 +71,7 @@ export default async function BlogPage() {
               {collections.length === 0 ? (
                 <div className="border-y border-border py-8 text-sm leading-7 text-muted-foreground">
                   <p>还没有可展示的合集。创建合集后，在合集里选择文章、调整顺序，再保存为「展示合集」。至少需要 1 篇已发布且公开的文章。</p>
-                  <Link className="text-link mt-4" href="/admin/collections/blog-series/create">创建第一个合集 →</Link>
+                  <Link prefetch={false} className="text-link mt-4" href="/admin/collections/blog-series/create">创建第一个合集 →</Link>
                 </div>
               ) : <div className="border-y border-border">
                 {collections.map(({ series, articles: seriesArticles }, index) => (
@@ -85,11 +81,11 @@ export default async function BlogPage() {
                   >
                     <span className="font-mono text-[0.7rem] text-primary">{String(index + 1).padStart(2, "0")}</span>
                     <span>
-                      <Link href={`/blog/series/${series.slug}`} className="block font-serif text-2xl font-medium leading-tight tracking-[-0.025em] hover:text-primary md:text-3xl">{series.title}</Link>
+                      <Link prefetch={false} href={`/blog/series/${series.slug}`} className="block font-serif text-2xl font-medium leading-tight tracking-[-0.025em] hover:text-primary md:text-3xl">{series.title}</Link>
                       <span className="mt-3 block font-mono text-[0.68rem] uppercase tracking-[0.12em] text-muted-foreground">
                         {series.progress === "completed" ? "已完结" : "持续更新"} · {seriesArticles.length} 篇
                       </span>
-                      <Link className="text-link mt-5" href={`/blog/${String(seriesArticles[0].slug)}`}>从第一篇开始读 →</Link>
+                      <Link prefetch={false} className="text-link mt-5" href={`/blog/${String(seriesArticles[0].slug)}`}>从第一篇开始读 →</Link>
                     </span>
                     <div>
                       <p className="text-sm leading-7 text-muted-foreground">{series.description}</p>
@@ -97,11 +93,11 @@ export default async function BlogPage() {
                         {seriesArticles.slice(0, 3).map((article, articleIndex) => (
                           <li className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-2 text-xs leading-5 text-foreground/80" key={article.id}>
                             <span className="font-mono text-muted-foreground">{String(articleIndex + 1).padStart(2, "0")}</span>
-                            <Link className="py-1 hover:text-primary hover:underline" href={`/blog/${String(article.slug)}`}>{String(article.title ?? "未命名文章")}</Link>
+                            <Link prefetch={false} className="py-1 hover:text-primary hover:underline" href={`/blog/${String(article.slug)}`}>{String(article.title ?? "未命名文章")}</Link>
                           </li>
                         ))}
                       </ol>
-                      <Link className="text-link mt-4" href={`/blog/series/${series.slug}`}>查看全部 {seriesArticles.length} 篇 →</Link>
+                      <Link prefetch={false} className="text-link mt-4" href={`/blog/series/${series.slug}`}>查看全部 {seriesArticles.length} 篇 →</Link>
                     </div>
                     <ArrowUpRight aria-hidden="true" className="hidden transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 lg:block" size={18} />
                   </article>
@@ -125,7 +121,7 @@ export default async function BlogPage() {
               {result.docs.map((post, index) => {
                 const tags = post.tags ?? [];
                 return (
-              <Link
+              <Link prefetch={false}
                 className="group article-row"
                 href={`/blog/${post.slug}`}
                 key={post.id}
