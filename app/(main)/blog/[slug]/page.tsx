@@ -1,13 +1,16 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { cache } from "react";
 import { ArrowUpRight } from "lucide-react";
-import { getPayloadAPI } from "@/lib/payload";
 import { isAdmin, getCurrentUser } from "@/lib/auth";
 import {
-  buildBlogFrontendWhere,
   canUsePublicInteractions,
 } from "@/lib/blogVisibility";
+import {
+  findBlogPostBySlugForViewer,
+  findBlogPostsForViewer,
+} from "@/lib/visitorContentCache";
 import { RichText } from "@payloadcms/richtext-lexical/react";
 import { defaultJSXConverters } from "@payloadcms/richtext-lexical/react";
 import { CommentSection } from "@/components/CommentSection";
@@ -51,22 +54,20 @@ function readArticleTags(value: unknown): string[] {
   });
 }
 
+// 同一请求内 generateMetadata 与页面组件都要查这篇文章，用 React cache 去重
+const findPost = cache(
+  async (viewer: Awaited<ReturnType<typeof getCurrentUser>>, decodedSlug: string) =>
+    // 访客走数据缓存（见 visitorContentCache 的安全边界说明），登录态直查
+    findBlogPostBySlugForViewer(viewer, decodedSlug),
+);
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug);
   // metadata 同样要按登录态决定 where：作者本人访问 private 文章时，
   // 应该拿到真实标题/摘要，而不是「文章未找到」。
   const viewer = await getCurrentUser();
-  const payload = await getPayloadAPI();
-  const result = await payload.find({
-    collection: "blog",
-    where: {
-      ...buildBlogFrontendWhere(viewer),
-      slug: { equals: decodedSlug },
-    },
-    limit: 1,
-  });
-  const post = result.docs[0];
+  const post = await findPost(viewer, decodedSlug);
 
   // 站点默认描述
   const defaultDescription = siteDefaults.blog.description;
@@ -100,16 +101,7 @@ export default async function BlogPostPage({ params }: PageProps) {
   // 草稿（status != published）即使是作者也不在前台展示，符合 publish 工作流；
   // 后台编辑入口在 admin UI（下方 editUrl 提供快捷跳转）。
   const viewer = await getCurrentUser();
-  const payload = await getPayloadAPI();
-  const result = await payload.find({
-    collection: "blog",
-    where: {
-      ...buildBlogFrontendWhere(viewer),
-      slug: { equals: decodedSlug },
-    },
-    limit: 1,
-  });
-  const post = result.docs[0];
+  const post = await findPost(viewer, decodedSlug);
 
   if (!post) {
     notFound();
@@ -137,14 +129,10 @@ export default async function BlogPostPage({ params }: PageProps) {
   const seriesArticles = series
     ? sortSeriesArticles(
         (
-          await payload.find({
-            collection: "blog",
-            where: {
-              ...buildBlogFrontendWhere(viewer),
-              series: { equals: series.id },
-            },
+          await findBlogPostsForViewer(viewer, {
             limit: 100,
             depth: 0,
+            seriesId: series.id,
           })
         ).docs as unknown as SeriesArticle[],
       )
@@ -160,12 +148,10 @@ export default async function BlogPostPage({ params }: PageProps) {
   const relatedArticles = series
     ? []
     : (
-        await payload.find({
-          collection: "blog",
-          where: buildBlogFrontendWhere(viewer),
-          sort: "-publishedDate",
+        await findBlogPostsForViewer(viewer, {
           limit: 4,
           depth: 0,
+          sort: "-publishedDate",
         })
       ).docs.filter((article) => String(article.id) !== String(post.id)).slice(0, 3);
   const articleJsonLd = buildArticleJsonLd({
@@ -186,14 +172,14 @@ export default async function BlogPostPage({ params }: PageProps) {
       />
       <article id="blog-article-top" className="mx-auto max-w-[64rem]">
         <HashAnchorScroller />
-        <Link href="/blog" className="text-link mb-8 md:mb-12">
+        <Link prefetch={false} href="/blog" className="text-link mb-8 md:mb-12">
           ← 返回文章列表
         </Link>
 
         <header className="max-w-[58rem]">
           <p className="eyebrow mb-6">ARTICLE / 技术实践</p>
           {series ? (
-            <Link
+            <Link prefetch={false}
               className="mb-5 inline-flex min-h-8 items-center rounded-full border border-primary/25 bg-accent/55 px-3 text-xs font-medium text-primary"
               href={`/blog/series/${series.slug}`}
             >
@@ -247,7 +233,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               <ol>
                 {seriesArticles.map((article, index) => (
                   <li key={article.id}>
-                    <Link href={`/blog/${String(article.slug)}`} aria-current={index === seriesIndex ? "page" : undefined}
+                    <Link prefetch={false} href={`/blog/${String(article.slug)}`} aria-current={index === seriesIndex ? "page" : undefined}
                       className={`flex min-h-11 items-start gap-3 py-3 text-sm leading-6 hover:text-primary ${index === seriesIndex ? "font-medium text-primary" : "text-muted-foreground"}`}>
                       <span className="shrink-0 font-mono">{String(index + 1).padStart(2, "0")}</span>
                       <span>{String(article.title)}{index === seriesIndex ? "（正在阅读）" : ""}</span>
@@ -255,7 +241,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                   </li>
                 ))}
               </ol>
-              <Link className="text-link mt-2" href={`/blog/series/${series.slug}`}>查看合集介绍 →</Link>
+              <Link prefetch={false} className="text-link mt-2" href={`/blog/series/${series.slug}`}>查看合集介绍 →</Link>
             </nav>
           </details>
         ) : null}
@@ -278,7 +264,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         {series ? (
           <nav aria-label={`${series.title}合集导航`} className="mx-auto mb-12 max-w-[46rem]">
             <div className="mb-4 flex items-center justify-between gap-4">
-              <Link className="text-sm font-medium text-primary" href={`/blog/series/${series.slug}`}>
+              <Link prefetch={false} className="text-sm font-medium text-primary" href={`/blog/series/${series.slug}`}>
                 查看合集
               </Link>
               <span className="font-mono text-xs text-muted-foreground">
@@ -287,7 +273,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             </div>
             {previousArticle || nextArticle ? <div className="grid gap-px overflow-hidden border border-border bg-border sm:grid-cols-2">
               {previousArticle ? (
-                <Link className="bg-card p-5 transition-colors hover:bg-accent/45" href={`/blog/${String(previousArticle.slug)}`}>
+                <Link prefetch={false} className="bg-card p-5 transition-colors hover:bg-accent/45" href={`/blog/${String(previousArticle.slug)}`}>
                   <span className="block text-xs text-muted-foreground">上一篇</span>
                   <span className="mt-2 block text-sm font-medium leading-6">
                     {String(previousArticle.title ?? "未命名文章")}
@@ -297,7 +283,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                 <span className="hidden bg-card sm:block" />
               )}
               {nextArticle ? (
-                <Link className="bg-card p-5 text-right transition-colors hover:bg-accent/45" href={`/blog/${String(nextArticle.slug)}`}>
+                <Link prefetch={false} className="bg-card p-5 text-right transition-colors hover:bg-accent/45" href={`/blog/${String(nextArticle.slug)}`}>
                   <span className="block text-xs text-muted-foreground">下一篇</span>
                   <span className="mt-2 block text-sm font-medium leading-6">
                     {String(nextArticle.title ?? "未命名文章")}
@@ -305,7 +291,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                 </Link>
               ) : null}
             </div> : null}
-            {!nextArticle ? <p className="mt-4 text-sm leading-7 text-muted-foreground">已读到合集当前最后一篇。<Link className="text-primary underline underline-offset-4" href="/blog">看看其他文章 →</Link></p> : null}
+            {!nextArticle ? <p className="mt-4 text-sm leading-7 text-muted-foreground">已读到合集当前最后一篇。<Link prefetch={false} className="text-primary underline underline-offset-4" href="/blog">看看其他文章 →</Link></p> : null}
           </nav>
         ) : null}
 
@@ -337,11 +323,11 @@ export default async function BlogPostPage({ params }: PageProps) {
                 <p className="eyebrow">KEEP READING</p>
                 <h2 className="mt-3 font-serif text-2xl font-medium" id="related-heading">继续阅读</h2>
               </div>
-              <Link className="text-link" href="/blog">全部文章</Link>
+              <Link prefetch={false} className="text-link" href="/blog">全部文章</Link>
             </div>
             <div>
               {relatedArticles.map((article) => (
-                <Link className="group grid gap-3 border-b border-border py-6 sm:grid-cols-[1fr_auto]" href={`/blog/${article.slug}`} key={article.id}>
+                <Link prefetch={false} className="group grid gap-3 border-b border-border py-6 sm:grid-cols-[1fr_auto]" href={`/blog/${article.slug}`} key={article.id}>
                   <span>
                     <span className="block font-serif text-xl font-medium leading-snug transition-colors duration-200 group-hover:text-primary">{article.title}</span>
                     <span className="mt-2 block text-sm text-muted-foreground">{article.readingTime}</span>

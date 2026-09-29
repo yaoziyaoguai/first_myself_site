@@ -1,4 +1,5 @@
 import type { CollectionConfig } from "payload";
+import { revalidateVisitorContent } from "@/lib/visitorContentCache";
 
 const Projects: CollectionConfig = {
   slug: "projects",
@@ -19,6 +20,21 @@ const Projects: CollectionConfig = {
           data.slug = data.slug.trim();
         }
         return data;
+      },
+    ],
+    // 项目增删改后让首页访客数据缓存失效（60s 兜底仍在）
+    afterChange: [
+      async () => {
+        await revalidateVisitorContent().catch((error) => {
+          console.warn("[cache] revalidate after projects change failed:", error);
+        });
+      },
+    ],
+    afterDelete: [
+      async () => {
+        await revalidateVisitorContent().catch((error) => {
+          console.warn("[cache] revalidate after projects delete failed:", error);
+        });
       },
     ],
   },
