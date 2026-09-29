@@ -1,0 +1,650 @@
+{
+ "started": "2026-09-29 14:48:41",
+ "finished": "2026-09-29 14:48:55",
+ "config": {
+  "runs": 15,
+  "profile": "fast4g",
+  "cpu": 1,
+  "width": 1440,
+  "height": 900,
+  "ready": "(() => { const h1 = document.querySelector('article h1'); const prose = document.querySelector('.prose'); return !!h1 && h1.textContent.trim().length > 3 && !!prose && prose.textContent.trim().length > 200; })()",
+  "type_check": null
+ },
+ "paired": false,
+ "results": {
+  "A": {
+   "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+   "summary": {
+    "n": 15,
+    "n_ok": 15,
+    "ready": {
+     "p50": 261,
+     "p75": 266.8,
+     "p95": 284.5
+    },
+    "lcp": {
+     "p50": 324,
+     "p75": 334,
+     "p95": 354
+    },
+    "fcp": {
+     "p50": 324,
+     "p75": 334,
+     "p95": 354
+    },
+    "dcl": {
+     "p50": 380.3,
+     "p75": 388.8,
+     "p95": 408.7
+    },
+    "load": {
+     "p50": 627,
+     "p75": 634.8,
+     "p95": 651.9
+    },
+    "longtask": {
+     "p50": 51,
+     "p75": 52.5,
+     "p95": 61.5
+    },
+    "requests": {
+     "p50": 16,
+     "p75": 16,
+     "p95": 16
+    },
+    "bytes_total": {
+     "p50": 270632,
+     "p75": 270632,
+     "p95": 270632
+    }
+   },
+   "runs": [
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 274.2000000476837,
+     "lcp": 368,
+     "longtask": 79,
+     "fcp": 368,
+     "dcl": 405.5,
+     "load": 645.1000000238419,
+     "requests": 16,
+     "bytes_total": 270632,
+     "bytes_by_type": {
+      "link": 20332,
+      "script": 205675,
+      "fetch": 1313
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/api/analytics",
+       "responseEnd": 696
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/comments?targetId=1&targetType=blog&page=1",
+       "responseEnd": 694
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/likes?targetId=1&targetType=blog",
+       "responseEnd": 690
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/auth/check",
+       "responseEnd": 687
+      },
+      {
+       "name": "http://127.0.0.1:3200/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 616
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 272.09999990463257,
+     "lcp": 340,
+     "longtask": 54,
+     "fcp": 340,
+     "dcl": 387,
+     "load": 640.6999999284744,
+     "requests": 16,
+     "bytes_total": 270632,
+     "bytes_by_type": {
+      "link": 20332,
+      "script": 205675,
+      "fetch": 1313
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/api/comments?targetId=1&targetType=blog&page=1",
+       "responseEnd": 692
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/likes?targetId=1&targetType=blog",
+       "responseEnd": 690
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/auth/check",
+       "responseEnd": 686
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/analytics",
+       "responseEnd": 684
+      },
+      {
+       "name": "http://127.0.0.1:3200/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 612
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 284.5,
+     "lcp": 348,
+     "longtask": 50,
+     "fcp": 348,
+     "dcl": 416,
+     "load": 650.6000000238419,
+     "requests": 16,
+     "bytes_total": 270632,
+     "bytes_by_type": {
+      "link": 20332,
+      "script": 205675,
+      "fetch": 1313
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/api/comments?targetId=1&targetType=blog&page=1",
+       "responseEnd": 697
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/likes?targetId=1&targetType=blog",
+       "responseEnd": 695
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/analytics",
+       "responseEnd": 693
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/auth/check",
+       "responseEnd": 689
+      },
+      {
+       "name": "http://127.0.0.1:3200/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 626
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 284.5,
+     "lcp": 348,
+     "longtask": 52,
+     "fcp": 348,
+     "dcl": 401.7000000476837,
+     "load": 654.7999999523163,
+     "requests": 16,
+     "bytes_total": 270632,
+     "bytes_by_type": {
+      "link": 20332,
+      "script": 205675,
+      "fetch": 1313
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/api/comments?targetId=1&targetType=blog&page=1",
+       "responseEnd": 707
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/likes?targetId=1&targetType=blog",
+       "responseEnd": 704
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/auth/check",
+       "responseEnd": 701
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/analytics",
+       "responseEnd": 698
+      },
+      {
+       "name": "http://127.0.0.1:3200/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 627
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 257.5,
+     "lcp": 320,
+     "longtask": 0,
+     "fcp": 320,
+     "dcl": 372.3000000715256,
+     "load": 626.2000000476837,
+     "requests": 16,
+     "bytes_total": 270632,
+     "bytes_by_type": {
+      "link": 20332,
+      "script": 205675,
+      "fetch": 1313
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/api/comments?targetId=1&targetType=blog&page=1",
+       "responseEnd": 677
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/likes?targetId=1&targetType=blog",
+       "responseEnd": 675
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/analytics",
+       "responseEnd": 672
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/auth/check",
+       "responseEnd": 668
+      },
+      {
+       "name": "http://127.0.0.1:3200/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 598
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 261.5,
+     "lcp": 324,
+     "longtask": 0,
+     "fcp": 324,
+     "dcl": 375.2000000476837,
+     "load": 628.8999999761581,
+     "requests": 16,
+     "bytes_total": 270632,
+     "bytes_by_type": {
+      "link": 20332,
+      "script": 205675,
+      "fetch": 1313
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/api/comments?targetId=1&targetType=blog&page=1",
+       "responseEnd": 675
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/likes?targetId=1&targetType=blog",
+       "responseEnd": 672
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/analytics",
+       "responseEnd": 669
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/auth/check",
+       "responseEnd": 666
+      },
+      {
+       "name": "http://127.0.0.1:3200/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 601
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 261,
+     "lcp": 328,
+     "longtask": 52,
+     "fcp": 328,
+     "dcl": 371.60000002384186,
+     "load": 626.3000000715256,
+     "requests": 16,
+     "bytes_total": 270632,
+     "bytes_by_type": {
+      "link": 20332,
+      "script": 205675,
+      "fetch": 1313
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/api/analytics",
+       "responseEnd": 674
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/comments?targetId=1&targetType=blog&page=1",
+       "responseEnd": 672
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/likes?targetId=1&targetType=blog",
+       "responseEnd": 668
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/auth/check",
+       "responseEnd": 665
+      },
+      {
+       "name": "http://127.0.0.1:3200/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 599
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 256.60000002384186,
+     "lcp": 320,
+     "longtask": 0,
+     "fcp": 320,
+     "dcl": 369.60000002384186,
+     "load": 623,
+     "requests": 16,
+     "bytes_total": 270632,
+     "bytes_by_type": {
+      "link": 20332,
+      "script": 205675,
+      "fetch": 1313
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/api/comments?targetId=1&targetType=blog&page=1",
+       "responseEnd": 681
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/likes?targetId=1&targetType=blog",
+       "responseEnd": 679
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/auth/check",
+       "responseEnd": 675
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/analytics",
+       "responseEnd": 672
+      },
+      {
+       "name": "http://127.0.0.1:3200/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 596
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 254.89999997615814,
+     "lcp": 320,
+     "longtask": 51,
+     "fcp": 320,
+     "dcl": 383.1999999284744,
+     "load": 624.6999999284744,
+     "requests": 16,
+     "bytes_total": 270632,
+     "bytes_by_type": {
+      "link": 20332,
+      "script": 205675,
+      "fetch": 1313
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/api/comments?targetId=1&targetType=blog&page=1",
+       "responseEnd": 672
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/likes?targetId=1&targetType=blog",
+       "responseEnd": 669
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/auth/check",
+       "responseEnd": 666
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/analytics",
+       "responseEnd": 663
+      },
+      {
+       "name": "http://127.0.0.1:3200/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 600
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 261.5,
+     "lcp": 328,
+     "longtask": 54,
+     "fcp": 328,
+     "dcl": 374.7999999523163,
+     "load": 627.7999999523163,
+     "requests": 16,
+     "bytes_total": 270632,
+     "bytes_by_type": {
+      "link": 20332,
+      "script": 205675,
+      "fetch": 1313
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/api/comments?targetId=1&targetType=blog&page=1",
+       "responseEnd": 675
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/likes?targetId=1&targetType=blog",
+       "responseEnd": 673
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/analytics",
+       "responseEnd": 669
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/auth/check",
+       "responseEnd": 666
+      },
+      {
+       "name": "http://127.0.0.1:3200/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 600
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 244.39999997615814,
+     "lcp": 304,
+     "longtask": 0,
+     "fcp": 304,
+     "dcl": 388.6999999284744,
+     "load": 625.0999999046326,
+     "requests": 16,
+     "bytes_total": 270632,
+     "bytes_by_type": {
+      "link": 20332,
+      "script": 205675,
+      "fetch": 1313
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/api/comments?targetId=1&targetType=blog&page=1",
+       "responseEnd": 669
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/likes?targetId=1&targetType=blog",
+       "responseEnd": 666
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/auth/check",
+       "responseEnd": 664
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/analytics",
+       "responseEnd": 660
+      },
+      {
+       "name": "http://127.0.0.1:3200/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 597
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 261,
+     "lcp": 324,
+     "longtask": 0,
+     "fcp": 324,
+     "dcl": 378.10000002384186,
+     "load": 627,
+     "requests": 16,
+     "bytes_total": 270632,
+     "bytes_by_type": {
+      "link": 20332,
+      "script": 205675,
+      "fetch": 1313
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/api/comments?targetId=1&targetType=blog&page=1",
+       "responseEnd": 672
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/likes?targetId=1&targetType=blog",
+       "responseEnd": 669
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/auth/check",
+       "responseEnd": 666
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/analytics",
+       "responseEnd": 663
+      },
+      {
+       "name": "http://127.0.0.1:3200/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 600
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 259.10000002384186,
+     "lcp": 324,
+     "longtask": 52,
+     "fcp": 324,
+     "dcl": 380.2999999523163,
+     "load": 627.5,
+     "requests": 16,
+     "bytes_total": 270632,
+     "bytes_by_type": {
+      "link": 20332,
+      "script": 205675,
+      "fetch": 1313
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/api/comments?targetId=1&targetType=blog&page=1",
+       "responseEnd": 679
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/likes?targetId=1&targetType=blog",
+       "responseEnd": 675
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/auth/check",
+       "responseEnd": 672
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/analytics",
+       "responseEnd": 670
+      },
+      {
+       "name": "http://127.0.0.1:3200/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 598
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 258,
+     "lcp": 324,
+     "longtask": 53,
+     "fcp": 324,
+     "dcl": 369.6999999284744,
+     "load": 623.7999999523163,
+     "requests": 16,
+     "bytes_total": 270632,
+     "bytes_by_type": {
+      "link": 20332,
+      "script": 205675,
+      "fetch": 1313
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/api/analytics",
+       "responseEnd": 669
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/comments?targetId=1&targetType=blog&page=1",
+       "responseEnd": 666
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/likes?targetId=1&targetType=blog",
+       "responseEnd": 664
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/auth/check",
+       "responseEnd": 660
+      },
+      {
+       "name": "http://127.0.0.1:3200/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 597
+      }
+     ]
+    },
+    {
+     "url": "http://127.0.0.1:3200/blog/%E6%92%92%E5%A4%A7%E6%96%B9",
+     "ok": true,
+     "ready": 261.3000000715256,
+     "lcp": 320,
+     "longtask": 0,
+     "fcp": 320,
+     "dcl": 388.90000009536743,
+     "load": 625.3000000715256,
+     "requests": 16,
+     "bytes_total": 270632,
+     "bytes_by_type": {
+      "link": 20332,
+      "script": 205675,
+      "fetch": 1313
+     },
+     "slowest": [
+      {
+       "name": "http://127.0.0.1:3200/api/comments?targetId=1&targetType=blog&page=1",
+       "responseEnd": 675
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/likes?targetId=1&targetType=blog",
+       "responseEnd": 672
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/auth/check",
+       "responseEnd": 669
+      },
+      {
+       "name": "http://127.0.0.1:3200/api/analytics",
+       "responseEnd": 666
+      },
+      {
+       "name": "http://127.0.0.1:3200/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 600
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

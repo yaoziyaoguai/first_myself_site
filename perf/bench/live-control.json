@@ -1,0 +1,445 @@
+{
+ "started": "2026-09-29 10:31:58",
+ "finished": "2026-09-29 10:32:16",
+ "config": {
+  "runs": 10,
+  "profile": "fast4g",
+  "cpu": 1,
+  "width": 1440,
+  "height": 900,
+  "ready": "document.readyState !== 'loading' && !!document.body && document.body.innerText.trim().length > 0",
+  "type_check": null
+ },
+ "paired": false,
+ "results": {
+  "A": {
+   "url": "https://vercel.com/",
+   "summary": {
+    "n": 10,
+    "n_ok": 10,
+    "ready": {
+     "p50": 1134,
+     "p75": 1201.8,
+     "p95": 1395.9
+    },
+    "lcp": {
+     "p50": 1142,
+     "p75": 1207,
+     "p95": 1402
+    },
+    "fcp": {
+     "p50": 1124,
+     "p75": 1191,
+     "p95": 1381.6
+    },
+    "dcl": {
+     "p50": 1132.4,
+     "p75": 1201.2,
+     "p95": 1395.3
+    },
+    "load": {
+     "p50": null,
+     "p75": null,
+     "p95": null
+    },
+    "longtask": {
+     "p50": 0,
+     "p75": 0,
+     "p95": 57.2
+    },
+    "requests": {
+     "p50": 23,
+     "p75": 24,
+     "p95": 26.1
+    },
+    "bytes_total": {
+     "p50": 371263.5,
+     "p75": 375847,
+     "p95": 390393.8
+    }
+   },
+   "runs": [
+    {
+     "url": "https://vercel.com/",
+     "ok": true,
+     "ready": 1449,
+     "lcp": 1456,
+     "longtask": 104,
+     "fcp": 1432,
+     "dcl": 1448.3999999761581,
+     "load": null,
+     "requests": 27,
+     "bytes_total": 399288,
+     "bytes_by_type": {
+      "link": 265850,
+      "script": 74811
+     },
+     "slowest": [
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/428gv74qq_i37.js",
+       "responseEnd": 1988
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/3bexdf9kq2g2d.js",
+       "responseEnd": 1985
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/1ftmq4hoo9m32.js",
+       "responseEnd": 1970
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/turbopack-3csi9g22wyjxj.js",
+       "responseEnd": 1934
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/2lf9bfy-j44jd.js",
+       "responseEnd": 1928
+      }
+     ]
+    },
+    {
+     "url": "https://vercel.com/",
+     "ok": true,
+     "ready": 1125.7000000476837,
+     "lcp": 1132,
+     "longtask": 0,
+     "fcp": 1116,
+     "dcl": 1124.2000000476837,
+     "load": null,
+     "requests": 23,
+     "bytes_total": 359511,
+     "bytes_by_type": {
+      "link": 265850,
+      "script": 35034
+     },
+     "slowest": [
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/0swrgpz-boy_z.js",
+       "responseEnd": 1665
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/2wk26a4g5ahw9.js",
+       "responseEnd": 1588
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/1ftmq4hoo9m32.js",
+       "responseEnd": 1439
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/turbopack-3csi9g22wyjxj.js",
+       "responseEnd": 1408
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/0eanly04ur1kk.js",
+       "responseEnd": 1400
+      }
+     ]
+    },
+    {
+     "url": "https://vercel.com/",
+     "ok": true,
+     "ready": 1138,
+     "lcp": 1144,
+     "longtask": 0,
+     "fcp": 1124,
+     "dcl": 1134.9000000953674,
+     "load": null,
+     "requests": 24,
+     "bytes_total": 374314,
+     "bytes_by_type": {
+      "link": 265850,
+      "script": 49638
+     },
+     "slowest": [
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/1ftmq4hoo9m32.js",
+       "responseEnd": 1672
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/0hlnklfuztox-.js",
+       "responseEnd": 1670
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/0fpknz2apea94.js",
+       "responseEnd": 1621
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/3ahots679mhjd.js",
+       "responseEnd": 1567
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/3bru940qgo2b7.js",
+       "responseEnd": 1559
+      }
+     ]
+    },
+    {
+     "url": "https://vercel.com/",
+     "ok": true,
+     "ready": 1125.5,
+     "lcp": 1132,
+     "longtask": 0,
+     "fcp": 1116,
+     "dcl": 1125.2000000476837,
+     "load": null,
+     "requests": 24,
+     "bytes_total": 376358,
+     "bytes_by_type": {
+      "link": 265850,
+      "script": 51682
+     },
+     "slowest": [
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/3bexdf9kq2g2d.js",
+       "responseEnd": 1658
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/1xyytlzi16z3d.js",
+       "responseEnd": 1650
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/3bru940qgo2b7.js",
+       "responseEnd": 1627
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/3oim_6tsv0p5n.js",
+       "responseEnd": 1598
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/2a59wjnd2-wl6.js",
+       "responseEnd": 1587
+      }
+     ]
+    },
+    {
+     "url": "https://vercel.com/",
+     "ok": true,
+     "ready": 1330.9000000953674,
+     "lcp": 1336,
+     "longtask": 0,
+     "fcp": 1320,
+     "dcl": 1330.3000000715256,
+     "load": null,
+     "requests": 25,
+     "bytes_total": 379523,
+     "bytes_by_type": {
+      "link": 265850,
+      "script": 55046
+     },
+     "slowest": [
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/3bru940qgo2b7.js",
+       "responseEnd": 1864
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/3bexdf9kq2g2d.js",
+       "responseEnd": 1850
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/1ftmq4hoo9m32.js",
+       "responseEnd": 1836
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/0hlnklfuztox-.js",
+       "responseEnd": 1809
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/0fpknz2apea94.js",
+       "responseEnd": 1804
+      }
+     ]
+    },
+    {
+     "url": "https://vercel.com/",
+     "ok": true,
+     "ready": 1130,
+     "lcp": 1136,
+     "longtask": 0,
+     "fcp": 1116,
+     "dcl": 1129.8000000715256,
+     "load": null,
+     "requests": 23,
+     "bytes_total": 360787,
+     "bytes_by_type": {
+      "link": 265850,
+      "script": 36111
+     },
+     "slowest": [
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/1xyytlzi16z3d.js",
+       "responseEnd": 1675
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/1ftmq4hoo9m32.js",
+       "responseEnd": 1658
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/1w0y05kxy1gmv.js",
+       "responseEnd": 1621
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/0fpknz2apea94.js",
+       "responseEnd": 1618
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/turbopack-3csi9g22wyjxj.js",
+       "responseEnd": 1443
+      }
+     ]
+    },
+    {
+     "url": "https://vercel.com/",
+     "ok": true,
+     "ready": 1218.3000000715256,
+     "lcp": 1224,
+     "longtask": 0,
+     "fcp": 1208,
+     "dcl": 1218.1000000238419,
+     "load": null,
+     "requests": 23,
+     "bytes_total": 363208,
+     "bytes_by_type": {
+      "link": 265850,
+      "script": 38731
+     },
+     "slowest": [
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/2a59wjnd2-wl6.js",
+       "responseEnd": 1718
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/2kug1iqyfsdcp.js",
+       "responseEnd": 1658
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/1ftmq4hoo9m32.js",
+       "responseEnd": 1595
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/25h9_k7d0otn_.js",
+       "responseEnd": 1546
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/3ahots679mhjd.js",
+       "responseEnd": 1420
+      }
+     ]
+    },
+    {
+     "url": "https://vercel.com/",
+     "ok": true,
+     "ready": 1118.5,
+     "lcp": 1140,
+     "longtask": 0,
+     "fcp": 1124,
+     "dcl": 1113.8000000715256,
+     "load": null,
+     "requests": 23,
+     "bytes_total": 369539,
+     "bytes_by_type": {
+      "link": 265850,
+      "script": 44863
+     },
+     "slowest": [
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/3q1-uvku1js5p.js",
+       "responseEnd": 1653
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/3ahots679mhjd.js",
+       "responseEnd": 1552
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/3bru940qgo2b7.js",
+       "responseEnd": 1538
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/1ftmq4hoo9m32.js",
+       "responseEnd": 1518
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/3oim_6tsv0p5n.js",
+       "responseEnd": 1392
+      }
+     ]
+    },
+    {
+     "url": "https://vercel.com/",
+     "ok": true,
+     "ready": 1072.2999999523163,
+     "lcp": 1080,
+     "longtask": 0,
+     "fcp": 1064,
+     "dcl": 1072.1000000238419,
+     "load": null,
+     "requests": 23,
+     "bytes_total": 372988,
+     "bytes_by_type": {
+      "link": 258435,
+      "script": 55926
+     },
+     "slowest": [
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/1xyytlzi16z3d.js",
+       "responseEnd": 1607
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/turbopack-3csi9g22wyjxj.js",
+       "responseEnd": 1558
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/0fpknz2apea94.js",
+       "responseEnd": 1547
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/0-_85a348o_u7.js",
+       "responseEnd": 1541
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/3bru940qgo2b7.js",
+       "responseEnd": 1527
+      }
+     ]
+    },
+    {
+     "url": "https://vercel.com/",
+     "ok": true,
+     "ready": 1152.1999999284744,
+     "lcp": 1156,
+     "longtask": 0,
+     "fcp": 1140,
+     "dcl": 1150.5,
+     "load": null,
+     "requests": 22,
+     "bytes_total": 354424,
+     "bytes_by_type": {
+      "link": 265850,
+      "script": 29748
+     },
+     "slowest": [
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/25h9_k7d0otn_.js",
+       "responseEnd": 1667
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/2kug1iqyfsdcp.js",
+       "responseEnd": 1629
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/3bru940qgo2b7.js",
+       "responseEnd": 1609
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/3ahots679mhjd.js",
+       "responseEnd": 1578
+      },
+      {
+       "name": "https://vercel.com/vc-ap-vercel-marketing/_next/static/immutable/chunks/1ftmq4hoo9m32.js",
+       "responseEnd": 1463
+      }
+     ]
+    }
+   ]
+  }
+ }
+}
