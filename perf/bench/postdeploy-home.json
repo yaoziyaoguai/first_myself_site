@@ -1,0 +1,445 @@
+{
+ "started": "2026-09-29 22:13:22",
+ "finished": "2026-09-29 22:13:38",
+ "config": {
+  "runs": 10,
+  "profile": "fast4g",
+  "cpu": 1,
+  "width": 1440,
+  "height": 900,
+  "ready": "(() => { const h1 = document.querySelector('h1'); const blocks = document.querySelectorAll('.site-shell p, .site-shell .topic-pill'); return !!h1 && h1.textContent.trim().length > 3 && blocks.length >= 4; })()",
+  "type_check": null
+ },
+ "paired": false,
+ "results": {
+  "A": {
+   "url": "https://wangjinkun333.me/",
+   "summary": {
+    "n": 10,
+    "n_ok": 10,
+    "ready": {
+     "p50": 864.4,
+     "p75": 973.3,
+     "p95": 1291
+    },
+    "lcp": {
+     "p50": 954,
+     "p75": 1023,
+     "p95": 1338.2
+    },
+    "fcp": {
+     "p50": 954,
+     "p75": 1023,
+     "p95": 1338.2
+    },
+    "dcl": {
+     "p50": 941,
+     "p75": 1008,
+     "p95": 1324.3
+    },
+    "load": {
+     "p50": 1403.9,
+     "p75": 1650,
+     "p95": 1823.8
+    },
+    "longtask": {
+     "p50": 0,
+     "p75": 0,
+     "p95": 72
+    },
+    "requests": {
+     "p50": 9,
+     "p75": 9,
+     "p95": 9
+    },
+    "bytes_total": {
+     "p50": 169227,
+     "p75": 169227,
+     "p95": 169227
+    }
+   },
+   "runs": [
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 869.5,
+     "lcp": 1020,
+     "longtask": 131,
+     "fcp": 1020,
+     "dcl": 1002.1000000238419,
+     "load": 1403.8999999761581,
+     "requests": 9,
+     "bytes_total": 169227,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 138132
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 1366
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/2orf9w0j-xyst.js",
+       "responseEnd": 1343
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0d2z75i6iy2ql.js",
+       "responseEnd": 1217
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0if-vqkhyn-zc.js",
+       "responseEnd": 1166
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/33t46atd3n2zd.js",
+       "responseEnd": 1114
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 790.8000000715256,
+     "lcp": 848,
+     "longtask": 0,
+     "fcp": 848,
+     "dcl": 836.3000000715256,
+     "load": 1303.8999999761581,
+     "requests": 9,
+     "bytes_total": 169227,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 138132
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 1259
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/2orf9w0j-xyst.js",
+       "responseEnd": 1227
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0d2z75i6iy2ql.js",
+       "responseEnd": 1087
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/turbopack-39qkzxmsjjf82.js",
+       "responseEnd": 1041
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/33t46atd3n2zd.js",
+       "responseEnd": 1032
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 1281.7999999523163,
+     "lcp": 1336,
+     "longtask": 0,
+     "fcp": 1336,
+     "dcl": 1321,
+     "load": 1824.8999999761581,
+     "requests": 9,
+     "bytes_total": 169227,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 138132
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 1791
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/2orf9w0j-xyst.js",
+       "responseEnd": 1782
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0d2z75i6iy2ql.js",
+       "responseEnd": 1719
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/33t46atd3n2zd.js",
+       "responseEnd": 1620
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/turbopack-39qkzxmsjjf82.js",
+       "responseEnd": 1559
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 773.3000000715256,
+     "lcp": 812,
+     "longtask": 0,
+     "fcp": 812,
+     "dcl": 800.2000000476837,
+     "load": 1192.9000000953674,
+     "requests": 9,
+     "bytes_total": 169227,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 138132
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 1165
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/2orf9w0j-xyst.js",
+       "responseEnd": 1095
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0d2z75i6iy2ql.js",
+       "responseEnd": 1027
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/33t46atd3n2zd.js",
+       "responseEnd": 1013
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/turbopack-39qkzxmsjjf82.js",
+       "responseEnd": 969
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 794.2000000476837,
+     "lcp": 840,
+     "longtask": 0,
+     "fcp": 840,
+     "dcl": 824.5,
+     "load": null,
+     "requests": 8,
+     "bytes_total": 97254,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 66159
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/2orf9w0j-xyst.js",
+       "responseEnd": 1325
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0d2z75i6iy2ql.js",
+       "responseEnd": 1208
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/33t46atd3n2zd.js",
+       "responseEnd": 1138
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/turbopack-39qkzxmsjjf82.js",
+       "responseEnd": 1110
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0if-vqkhyn-zc.js",
+       "responseEnd": 1052
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 1298.5,
+     "lcp": 1340,
+     "longtask": 0,
+     "fcp": 1340,
+     "dcl": 1327,
+     "load": 1821.3999999761581,
+     "requests": 9,
+     "bytes_total": 169227,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 138132
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 1794
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/2orf9w0j-xyst.js",
+       "responseEnd": 1778
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0d2z75i6iy2ql.js",
+       "responseEnd": 1702
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/turbopack-39qkzxmsjjf82.js",
+       "responseEnd": 1585
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/33t46atd3n2zd.js",
+       "responseEnd": 1576
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 977.8000000715256,
+     "lcp": 1024,
+     "longtask": 0,
+     "fcp": 1024,
+     "dcl": 1009.9000000953674,
+     "load": null,
+     "requests": 7,
+     "bytes_total": 54369,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 23274
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0d2z75i6iy2ql.js",
+       "responseEnd": 1367
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/33t46atd3n2zd.js",
+       "responseEnd": 1290
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/turbopack-39qkzxmsjjf82.js",
+       "responseEnd": 1277
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0if-vqkhyn-zc.js",
+       "responseEnd": 1224
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0wf2rmyoojkx7.js",
+       "responseEnd": 1153
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 772.3999999761581,
+     "lcp": 824,
+     "longtask": 0,
+     "fcp": 824,
+     "dcl": 812.5,
+     "load": 1295.3000000715256,
+     "requests": 9,
+     "bytes_total": 169227,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 138132
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 1265
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/2orf9w0j-xyst.js",
+       "responseEnd": 1241
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0d2z75i6iy2ql.js",
+       "responseEnd": 1095
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/33t46atd3n2zd.js",
+       "responseEnd": 1053
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/turbopack-39qkzxmsjjf82.js",
+       "responseEnd": 1033
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 959.5999999046326,
+     "lcp": 1000,
+     "longtask": 0,
+     "fcp": 1000,
+     "dcl": 987.5,
+     "load": 1478.6999999284744,
+     "requests": 9,
+     "bytes_total": 169227,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 138132
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 1453
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/2orf9w0j-xyst.js",
+       "responseEnd": 1425
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0d2z75i6iy2ql.js",
+       "responseEnd": 1307
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/33t46atd3n2zd.js",
+       "responseEnd": 1249
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/turbopack-39qkzxmsjjf82.js",
+       "responseEnd": 1216
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/",
+     "ok": true,
+     "ready": 859.2000000476837,
+     "lcp": 908,
+     "longtask": 0,
+     "fcp": 908,
+     "dcl": 894.5,
+     "load": null,
+     "requests": 9,
+     "bytes_total": 169227,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 138132
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/3yop9j7styc42.js",
+       "responseEnd": 1396
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/2orf9w0j-xyst.js",
+       "responseEnd": 1362
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0d2z75i6iy2ql.js",
+       "responseEnd": 1256
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/33t46atd3n2zd.js",
+       "responseEnd": 1186
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/turbopack-39qkzxmsjjf82.js",
+       "responseEnd": 1156
+      }
+     ]
+    }
+   ]
+  }
+ }
+}
