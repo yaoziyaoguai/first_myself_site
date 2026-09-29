@@ -1,0 +1,413 @@
+{
+ "started": "2026-09-29 22:13:54",
+ "finished": "2026-09-29 22:14:27",
+ "config": {
+  "runs": 10,
+  "profile": "fast4g",
+  "cpu": 1,
+  "width": 1440,
+  "height": 900,
+  "ready": "(() => { const h1 = document.querySelector('article h1'); const prose = document.querySelector('.prose'); return !!h1 && h1.textContent.trim().length > 3 && !!prose && prose.textContent.trim().length > 200; })()",
+  "type_check": null
+ },
+ "paired": false,
+ "results": {
+  "A": {
+   "url": "https://wangjinkun333.me/blog/dev-co-for-beginners",
+   "summary": {
+    "n": 10,
+    "n_ok": 10,
+    "ready": {
+     "p50": 2415.1,
+     "p75": 3350.4,
+     "p95": 4294.4
+    },
+    "lcp": {
+     "p50": 2490,
+     "p75": 3416,
+     "p95": 4371.8
+    },
+    "fcp": {
+     "p50": 2490,
+     "p75": 3416,
+     "p95": 4371.8
+    },
+    "dcl": {
+     "p50": 2475.5,
+     "p75": 3386.2,
+     "p95": 4349.5
+    },
+    "load": {
+     "p50": null,
+     "p75": null,
+     "p95": null
+    },
+    "longtask": {
+     "p50": 56,
+     "p75": 57.8,
+     "p95": 64.6
+    },
+    "requests": {
+     "p50": 5,
+     "p75": 8,
+     "p95": 8.5
+    },
+    "bytes_total": {
+     "p50": 63647,
+     "p75": 75193,
+     "p95": 98779.7
+    }
+   },
+   "runs": [
+    {
+     "url": "https://wangjinkun333.me/blog/dev-co-for-beginners",
+     "ok": true,
+     "ready": 1906.6999999284744,
+     "lcp": 1980,
+     "longtask": 57,
+     "fcp": 1980,
+     "dcl": 1964.7999999523163,
+     "load": null,
+     "requests": 5,
+     "bytes_total": 63647,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 13262
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/turbopack-39qkzxmsjjf82.js",
+       "responseEnd": 2250
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0wf2rmyoojkx7.js",
+       "responseEnd": 2156
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0if-vqkhyn-zc.js",
+       "responseEnd": 2142
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/1t-r3z-r0p38g.css",
+       "responseEnd": 1904
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/blog/dev-co-for-beginners",
+     "ok": true,
+     "ready": 3511.399999976158,
+     "lcp": 3576,
+     "longtask": 0,
+     "fcp": 3576,
+     "dcl": 3561,
+     "load": null,
+     "requests": 5,
+     "bytes_total": 63647,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 13262
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/turbopack-39qkzxmsjjf82.js",
+       "responseEnd": 3882
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0if-vqkhyn-zc.js",
+       "responseEnd": 3858
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0wf2rmyoojkx7.js",
+       "responseEnd": 3736
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/1t-r3z-r0p38g.css",
+       "responseEnd": 3507
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/blog/dev-co-for-beginners",
+     "ok": true,
+     "ready": 4103.100000023842,
+     "lcp": 4176,
+     "longtask": 56,
+     "fcp": 4176,
+     "dcl": 4159.100000023842,
+     "load": null,
+     "requests": 4,
+     "bytes_total": 59064,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 8679
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0if-vqkhyn-zc.js",
+       "responseEnd": 4622
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0wf2rmyoojkx7.js",
+       "responseEnd": 4436
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/1t-r3z-r0p38g.css",
+       "responseEnd": 4101
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/blog/dev-co-for-beginners",
+     "ok": true,
+     "ready": 2867.4000000953674,
+     "lcp": 2936,
+     "longtask": 50,
+     "fcp": 2936,
+     "dcl": 2861.9000000953674,
+     "load": null,
+     "requests": 8,
+     "bytes_total": 75193,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 24808
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/40zv_3wvz8_ae.js",
+       "responseEnd": 3344
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0d2z75i6iy2ql.js",
+       "responseEnd": 3338
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/33t46atd3n2zd.js",
+       "responseEnd": 3293
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/turbopack-39qkzxmsjjf82.js",
+       "responseEnd": 3201
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0if-vqkhyn-zc.js",
+       "responseEnd": 3084
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/blog/dev-co-for-beginners",
+     "ok": true,
+     "ready": 2458.5,
+     "lcp": 2528,
+     "longtask": 55,
+     "fcp": 2528,
+     "dcl": 2512.899999976158,
+     "load": null,
+     "requests": 5,
+     "bytes_total": 63647,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 13262
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/turbopack-39qkzxmsjjf82.js",
+       "responseEnd": 2875
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0if-vqkhyn-zc.js",
+       "responseEnd": 2760
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0wf2rmyoojkx7.js",
+       "responseEnd": 2717
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/1t-r3z-r0p38g.css",
+       "responseEnd": 2452
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/blog/dev-co-for-beginners",
+     "ok": true,
+     "ready": 2371.6999999284744,
+     "lcp": 2452,
+     "longtask": 66,
+     "fcp": 2452,
+     "dcl": 2438.0999999046326,
+     "load": null,
+     "requests": 5,
+     "bytes_total": 63647,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 13262
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/turbopack-39qkzxmsjjf82.js",
+       "responseEnd": 2769
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0wf2rmyoojkx7.js",
+       "responseEnd": 2628
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0if-vqkhyn-zc.js",
+       "responseEnd": 2603
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/1t-r3z-r0p38g.css",
+       "responseEnd": 2366
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/blog/dev-co-for-beginners",
+     "ok": true,
+     "ready": 4451,
+     "lcp": 4532,
+     "longtask": 54,
+     "fcp": 4532,
+     "dcl": 4505.299999952316,
+     "load": null,
+     "requests": 4,
+     "bytes_total": 59064,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 8679
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0if-vqkhyn-zc.js",
+       "responseEnd": 4795
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0wf2rmyoojkx7.js",
+       "responseEnd": 4609
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/1t-r3z-r0p38g.css",
+       "responseEnd": 4449
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/blog/dev-co-for-beginners",
+     "ok": true,
+     "ready": 1745.2999999523163,
+     "lcp": 1820,
+     "longtask": 63,
+     "fcp": 1820,
+     "dcl": 1808.2999999523163,
+     "load": null,
+     "requests": 9,
+     "bytes_total": 118078,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 67693
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/2orf9w0j-xyst.js",
+       "responseEnd": 2286
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/40zv_3wvz8_ae.js",
+       "responseEnd": 2197
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0d2z75i6iy2ql.js",
+       "responseEnd": 2120
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/33t46atd3n2zd.js",
+       "responseEnd": 2051
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/turbopack-39qkzxmsjjf82.js",
+       "responseEnd": 2039
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/blog/dev-co-for-beginners",
+     "ok": true,
+     "ready": 1557.9000000953674,
+     "lcp": 1632,
+     "longtask": 58,
+     "fcp": 1632,
+     "dcl": 1617.1000000238419,
+     "load": null,
+     "requests": 8,
+     "bytes_total": 75193,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 24808
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0d2z75i6iy2ql.js",
+       "responseEnd": 1977
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/40zv_3wvz8_ae.js",
+       "responseEnd": 1956
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/33t46atd3n2zd.js",
+       "responseEnd": 1925
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0if-vqkhyn-zc.js",
+       "responseEnd": 1830
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/turbopack-39qkzxmsjjf82.js",
+       "responseEnd": 1821
+      }
+     ]
+    },
+    {
+     "url": "https://wangjinkun333.me/blog/dev-co-for-beginners",
+     "ok": true,
+     "ready": 1625.9000000953674,
+     "lcp": 1696,
+     "longtask": 56,
+     "fcp": 1696,
+     "dcl": 1681.9000000953674,
+     "load": null,
+     "requests": 8,
+     "bytes_total": 75193,
+     "bytes_by_type": {
+      "link": 20266,
+      "script": 24808
+     },
+     "slowest": [
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0d2z75i6iy2ql.js",
+       "responseEnd": 2153
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/40zv_3wvz8_ae.js",
+       "responseEnd": 2126
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/33t46atd3n2zd.js",
+       "responseEnd": 2044
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/turbopack-39qkzxmsjjf82.js",
+       "responseEnd": 1904
+      },
+      {
+       "name": "https://wangjinkun333.me/_next/static/chunks/0if-vqkhyn-zc.js",
+       "responseEnd": 1858
+      }
+     ]
+    }
+   ]
+  }
+ }
+}
