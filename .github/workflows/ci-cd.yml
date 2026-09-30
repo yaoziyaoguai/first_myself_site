@@ -123,6 +123,8 @@ jobs:
   deploy:
     name: Deploy to Server
     runs-on: ubuntu-latest
+    # 首次在 ECS 暖依赖与构建缓存会明显慢于后续发布；保留整体上限，避免无限占用 runner。
+    timeout-minutes: 70
     # 依赖变更已在 PR 上审查；main 部署不再重复请求外部 npm audit 服务。
     needs: build
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
@@ -186,7 +188,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           envs: BLOG_AGENT_API_KEY,BLOG_AGENT_ENABLED,BLOG_AGENT_GENERATION_ENABLED,BLOG_AGENT_BASE_URL,BLOG_AGENT_MODEL,DASHSCOPE_API_KEY,BLOG_AGENT_EMBEDDING_BASE_URL,BLOG_AGENT_EMBEDDING_MODEL,BLOG_AGENT_EMBEDDING_DIMENSIONS,BLOG_AGENT_EMBEDDING_TIMEOUT_MS,BLOG_AGENT_CANARY_SLUG,BLOG_AGENT_CANARY_QUESTION
-          command_timeout: 30m
+          command_timeout: 60m
           script: |
             set -euo pipefail
             cd "${{ secrets.PROJECT_PATH }}"
