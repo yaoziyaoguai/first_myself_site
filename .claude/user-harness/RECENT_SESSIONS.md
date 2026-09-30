@@ -51,6 +51,29 @@
 
 ## 最近 Sessions（从新到旧）
 
+### 2026-09-30 Session-006
+
+**目标**：审计并收口性能冲刺，将有效改动安全合入 `main`，通过 GitHub Actions 部署阿里云，并清理长期积累的本地仓库状态。
+
+**完成**：
+- 审计前序性能实验，保留文章查询去重、访客内容缓存和 prefetch 治理，补齐权限边界、失效 fail-closed 与真 PostgreSQL 回滚测试
+- 把性能工具升级为 fail-closed 测量：真实导航、CDP 请求账本、连续 1 秒安静窗口、完整 SHA 和批次完整性校验
+- PR #56 全部门禁通过并合入；GitHub Actions 使用 Git bundle 和预构建镜像成功部署阿里云
+- 生产验证覆盖健康检查、容器镜像、Agent 双开关与 canary、Nginx/TLS、重定向、robots、sitemap、canonical 和 JSON-LD
+- 用真实浏览器检查桌面与 390px 手机首页、文章列表和长文章；导航、手机菜单、Agent 展开、桌面拖拽缩放均通过，测试页面无控制台错误或横向溢出
+- 留下生产 fast4g 绝对基线：主页 TTFB p75 528.2ms、文章列表 683.5ms、长文章 1338.1ms；因历史样本协议和时段不同，不宣称严格前后对比
+- 将旧 worktree、分支、stash 和未跟踪文件先做校验归档，再把根 checkout 收敛为干净、仅含 `main` 的状态
+
+**改动**：文章读取与缓存、Payload 失效钩子、相关测试、`perf/` 测量工具及说明；恢复归档位于工作区外的 `repo-archives/first_myself_site-cleanup-20260930T143408+0800`。
+
+**遗留**：部署包约 581 MB、上传约 90 分钟；Dependabot 快照有 37 个依赖告警；异地备份、恢复演练、外部 uptime/TLS 监控和模型 Key 轮换仍需后续处理。
+
+**下一步**：先收缩运行时镜像与部署包，再分批治理依赖告警；随后补异地备份和外部监控。
+
+**对当前状态的影响**：性能改动已从实验分支进入生产，验证和回滚证据闭环；仓库回到可继续开发的干净 `main` 基线。
+
+---
+
 ### 2026-08-23 Session-005
 
 **目标**：为每篇 Blog 增加严格文章边界的 Agent 问答，并通过 GitHub 链路安全发布到阿里云。
@@ -160,32 +183,5 @@
 
 ---
 
-### 2026-04-11 Session-001
-
-**目标**：建立极简版跨 session 项目记忆 Harness，替代上一版复杂方案
-
-**完成**：
-- 清理了上一版复杂方案（5+ 个文件）
-- 建立了新的极简方案（STATUS.md + RECENT_SESSIONS.md）
-- 设计了 roll-up 机制和启动加载协议
-- 更新了 CLAUDE.md 作为入口
-
-**改动**：
-- 删除：USER_MEMORY.md, USER_STATUS.md, USER_SUMMARY.md, USER_INDEX.md, USER_SESSION_TEMPLATE.md, USER_HISTORY/
-- 新增：STATUS.md, RECENT_SESSIONS.md
-- 更新：CLAUDE.md
-
-**遗留**：无
-
-**下一步**：
-- 验证 Harness 是否正常工作
-- 在下一个实际开发 session 中试用 roll-up 机制
-
-**对当前状态的影响**：
-- 建立了新的项目记忆机制
-- 当前项目状态已记录到 STATUS.md
-
----
-
 **总条数**：5/5
-**最后更新**：2026-08-23
+**最后更新**：2026-09-30
