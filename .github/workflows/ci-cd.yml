@@ -80,6 +80,7 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm test
+      - run: npm run test:perf-tools
       - name: Verify Blog Agent migration, cache, and quotas
         run: >-
           npx vitest run
@@ -88,6 +89,7 @@ jobs:
           __tests__/payload/agent-question-log-migration.postgres.test.ts
           __tests__/payload/owner-analytics-identity-migration.postgres.test.ts
           __tests__/payload/blog-series-migration.postgres.test.ts
+          __tests__/payload/content-cache-invalidation.postgres.test.ts
           __tests__/lib/blog-agent/articleIndexRepository.postgres.test.ts
           __tests__/lib/blog-agent/runtime.postgres.test.ts
           __tests__/scripts/blog-agent-canary.postgres.test.ts

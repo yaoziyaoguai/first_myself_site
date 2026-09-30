@@ -59,6 +59,7 @@ async function findBlogPostsDirect(opts: ListOpts) {
   const where = buildBlogFrontendWhere(null);
   return payload.find({
     collection: "blog",
+    overrideAccess: false,
     where:
       opts.seriesId !== undefined
         ? { ...where, series: { equals: opts.seriesId } }
@@ -73,6 +74,7 @@ async function findBlogPostBySlugDirect(slug: string) {
   const payload = await getPayloadInstance();
   const result = await payload.find({
     collection: "blog",
+    overrideAccess: false,
     where: { ...buildBlogFrontendWhere(null), slug: { equals: slug } },
     limit: 1,
   });

@@ -13,6 +13,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:perf-tools": "node --test perf/bench/bench.test.mjs && python3 perf/bench/test_ratchet.py",
+    "perf:bench": "node perf/bench/bench.mjs",
+    "perf:check": "python3 perf/bench/ratchet.py check",
     "blog-agent:canary": "tsx scripts/blog-agent-canary.ts",
     "payload": "payload",
     "seed": "npx tsx src/payload/seed.ts"
@@ -53,6 +56,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
     "jsdom": "^29.0.1",
+    "playwright": "1.55.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.2"
