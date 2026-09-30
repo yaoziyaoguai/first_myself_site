@@ -18,7 +18,7 @@
 ## 固定环境
 
 - 基线：`39ef2610b775dac45ee0659853a1e1f9aa213caa`（独立 detached worktree）
-- 应用候选：`c9588b84947ac219d9470f2ff57f21594633a305`
+- 应用候选：`44e81150cfef550aa8c1493ea0f206809d4dbc35`
 - 浏览器：Google Chrome 154 / Playwright 1.55.0
 - 视口：桌面 1440×900，手机 390×844
 - 网络：`fast4g`，冷浏览器上下文，禁用 HTTP cache

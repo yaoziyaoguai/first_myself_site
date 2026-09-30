@@ -2,9 +2,9 @@
   "protocol_version": "perf-v2",
   "entries": {
     "lab-home-desktop::ttfb_ms_p75": {
-      "baseline_value": 52.2,
+      "baseline_value": 40.3,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "c5fe5c34fd418b30c2b1a53c67a11c9d719202926cf41b458b0f95dcad68da03",
       "policy": {
@@ -13,9 +13,9 @@
       }
     },
     "lab-home-desktop::usable_ms_p75": {
-      "baseline_value": 253.3,
+      "baseline_value": 250.3,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "c5fe5c34fd418b30c2b1a53c67a11c9d719202926cf41b458b0f95dcad68da03",
       "policy": {
@@ -24,9 +24,9 @@
       }
     },
     "lab-home-desktop::full_load_ms_p75": {
-      "baseline_value": 1579.7,
+      "baseline_value": 1586.3,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "c5fe5c34fd418b30c2b1a53c67a11c9d719202926cf41b458b0f95dcad68da03",
       "policy": {
@@ -35,9 +35,9 @@
       }
     },
     "lab-home-desktop::requests_started_p75": {
-      "baseline_value": 12.0,
+      "baseline_value": 11.0,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "c5fe5c34fd418b30c2b1a53c67a11c9d719202926cf41b458b0f95dcad68da03",
       "policy": {
@@ -46,9 +46,9 @@
       }
     },
     "lab-home-desktop::encoded_bytes_p75": {
-      "baseline_value": 207128.0,
+      "baseline_value": 206132.0,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "c5fe5c34fd418b30c2b1a53c67a11c9d719202926cf41b458b0f95dcad68da03",
       "policy": {
@@ -57,9 +57,9 @@
       }
     },
     "lab-blog-desktop::ttfb_ms_p75": {
-      "baseline_value": 49.8,
+      "baseline_value": 36.5,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "299b41299b8ae3020982df87f338e38a64142625fe3f9b5848a05b8d8d634071",
       "policy": {
@@ -68,9 +68,9 @@
       }
     },
     "lab-blog-desktop::usable_ms_p75": {
-      "baseline_value": 252.9,
+      "baseline_value": 248.2,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "299b41299b8ae3020982df87f338e38a64142625fe3f9b5848a05b8d8d634071",
       "policy": {
@@ -79,9 +79,9 @@
       }
     },
     "lab-blog-desktop::full_load_ms_p75": {
-      "baseline_value": 1590.4,
+      "baseline_value": 1590.3,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "299b41299b8ae3020982df87f338e38a64142625fe3f9b5848a05b8d8d634071",
       "policy": {
@@ -90,9 +90,9 @@
       }
     },
     "lab-blog-desktop::requests_started_p75": {
-      "baseline_value": 12.0,
+      "baseline_value": 11.0,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "299b41299b8ae3020982df87f338e38a64142625fe3f9b5848a05b8d8d634071",
       "policy": {
@@ -101,9 +101,9 @@
       }
     },
     "lab-blog-desktop::encoded_bytes_p75": {
-      "baseline_value": 204161.0,
+      "baseline_value": 203168.0,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "299b41299b8ae3020982df87f338e38a64142625fe3f9b5848a05b8d8d634071",
       "policy": {
@@ -112,9 +112,9 @@
       }
     },
     "lab-home-mobile::ttfb_ms_p75": {
-      "baseline_value": 57.0,
+      "baseline_value": 45.0,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "f300cfb918fb08500e2f8290a92af4d1b97665799e1d2c6cb645b250bc668015",
       "policy": {
@@ -123,9 +123,9 @@
       }
     },
     "lab-home-mobile::usable_ms_p75": {
-      "baseline_value": 263.1,
+      "baseline_value": 251.1,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "f300cfb918fb08500e2f8290a92af4d1b97665799e1d2c6cb645b250bc668015",
       "policy": {
@@ -134,9 +134,9 @@
       }
     },
     "lab-home-mobile::full_load_ms_p75": {
-      "baseline_value": 1584.3,
+      "baseline_value": 1585.1,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "f300cfb918fb08500e2f8290a92af4d1b97665799e1d2c6cb645b250bc668015",
       "policy": {
@@ -145,9 +145,9 @@
       }
     },
     "lab-home-mobile::requests_started_p75": {
-      "baseline_value": 12.0,
+      "baseline_value": 11.0,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "f300cfb918fb08500e2f8290a92af4d1b97665799e1d2c6cb645b250bc668015",
       "policy": {
@@ -156,9 +156,9 @@
       }
     },
     "lab-home-mobile::encoded_bytes_p75": {
-      "baseline_value": 207128.0,
+      "baseline_value": 206132.0,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "f300cfb918fb08500e2f8290a92af4d1b97665799e1d2c6cb645b250bc668015",
       "policy": {
@@ -167,9 +167,9 @@
       }
     },
     "lab-blog-mobile::ttfb_ms_p75": {
-      "baseline_value": 50.3,
+      "baseline_value": 37.7,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "d06147709c9c85ed3fcd0a2ec728ca6646de2e9ee3b4d8f90a9d525ebcac6f89",
       "policy": {
@@ -178,9 +178,9 @@
       }
     },
     "lab-blog-mobile::usable_ms_p75": {
-      "baseline_value": 254.9,
+      "baseline_value": 246.5,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "d06147709c9c85ed3fcd0a2ec728ca6646de2e9ee3b4d8f90a9d525ebcac6f89",
       "policy": {
@@ -189,9 +189,9 @@
       }
     },
     "lab-blog-mobile::full_load_ms_p75": {
-      "baseline_value": 1588.0,
+      "baseline_value": 1583.2,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "d06147709c9c85ed3fcd0a2ec728ca6646de2e9ee3b4d8f90a9d525ebcac6f89",
       "policy": {
@@ -202,7 +202,7 @@
     "lab-blog-mobile::requests_started_p75": {
       "baseline_value": 11.0,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "d06147709c9c85ed3fcd0a2ec728ca6646de2e9ee3b4d8f90a9d525ebcac6f89",
       "policy": {
@@ -213,7 +213,7 @@
     "lab-blog-mobile::encoded_bytes_p75": {
       "baseline_value": 203168.0,
       "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
-      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "tool_sha": "2af8d04143ab797695535241ab26314f68fd8a1ef3628c333fec3e15a918c966",
       "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
       "environment_id": "d06147709c9c85ed3fcd0a2ec728ca6646de2e9ee3b4d8f90a9d525ebcac6f89",
       "policy": {
