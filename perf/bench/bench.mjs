@@ -112,6 +112,12 @@ export function functionalNavigationMatches(href, before, target) {
   return href !== before && (!target || href.includes(target));
 }
 
+export function hasNetworkIdleWindow(snapshot, now, idleMs = IDLE_WINDOW_MS) {
+  return snapshot.requests_inflight === 0 &&
+    Number.isFinite(snapshot.last_activity_ms) &&
+    now - snapshot.last_activity_ms >= idleMs;
+}
+
 function isFullGitSha(value) {
   return typeof value === "string" && /^[0-9a-f]{40}$/i.test(value);
 }
@@ -286,15 +292,9 @@ async function waitForFontsAndViewportImages(page, deadline) {
 }
 
 async function waitForNetworkIdle(page, ledger, deadline) {
-  let idleSince = null;
   while (Date.now() < deadline) {
     const snapshot = ledger.snapshot();
-    if (snapshot.requests_inflight === 0) {
-      idleSince ??= Date.now();
-      if (Date.now() - idleSince >= IDLE_WINDOW_MS) return true;
-    } else {
-      idleSince = null;
-    }
+    if (hasNetworkIdleWindow(snapshot, nodePerformance.now())) return true;
     await page.waitForTimeout(Math.min(50, remainingMs(deadline)));
   }
   return false;

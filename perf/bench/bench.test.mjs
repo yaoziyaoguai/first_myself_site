@@ -4,6 +4,7 @@ import {
   createNetworkLedger,
   evaluateRunCompleteness,
   functionalNavigationMatches,
+  hasNetworkIdleWindow,
   parseArgs,
   percentile,
   summarizeRuns,
@@ -59,6 +60,21 @@ test("keeps delayed resources in the ledger until they finish", () => {
   assert.equal(snapshot.requests_failed, 0);
   assert.equal(snapshot.requests_inflight, 0);
   assert.equal(snapshot.encoded_bytes, 1024);
+});
+
+test("requires a full quiet window after the most recent network activity", () => {
+  assert.equal(hasNetworkIdleWindow({
+    requests_inflight: 0,
+    last_activity_ms: 900,
+  }, 1_000, 1_000), false);
+  assert.equal(hasNetworkIdleWindow({
+    requests_inflight: 0,
+    last_activity_ms: 900,
+  }, 1_900, 1_000), true);
+  assert.equal(hasNetworkIdleWindow({
+    requests_inflight: 1,
+    last_activity_ms: 100,
+  }, 2_000, 1_000), false);
 });
 
 test("excludes only persistent connection types", () => {
