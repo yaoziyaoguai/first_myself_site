@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   createNetworkLedger,
   evaluateRunCompleteness,
+  functionalNavigationMatches,
   parseArgs,
   percentile,
   summarizeRuns,
@@ -127,4 +128,17 @@ test("requires explicit fixture, sentinel, output, and paired SHAs", () => {
     "--fixture", "seed-v1",
     "--fixture-hash", "abc",
   ]), /--app-sha-a/);
+});
+
+test("functional navigation must leave the current URL before matching a target", () => {
+  const before = "https://example.test/blog/an-article?analytics=off";
+  assert.equal(functionalNavigationMatches(before, before, "/blog"), false);
+  assert.equal(
+    functionalNavigationMatches("https://example.test/blog", before, "/blog"),
+    true,
+  );
+  assert.equal(
+    functionalNavigationMatches("https://example.test/about", before, "/blog"),
+    false,
+  );
 });

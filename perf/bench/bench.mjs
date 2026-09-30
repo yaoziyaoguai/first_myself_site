@@ -108,6 +108,10 @@ export function summarizeRuns(runs) {
   return summary;
 }
 
+export function functionalNavigationMatches(href, before, target) {
+  return href !== before && (!target || href.includes(target));
+}
+
 export function createNetworkLedger(now = () => nodePerformance.now()) {
   const records = [];
   const active = new Map();
@@ -408,9 +412,7 @@ async function runFunctionalPass(browser, url, args) {
       const target = args["click-target"];
       await Promise.all([
         page.waitForURL(
-          target
-            ? (urlValue) => urlValue.href.includes(target)
-            : (urlValue) => urlValue.href !== before,
+          (urlValue) => functionalNavigationMatches(urlValue.href, before, target),
           { timeout: args.timeout * 1_000 },
         ),
         page.locator(selector).click(),
