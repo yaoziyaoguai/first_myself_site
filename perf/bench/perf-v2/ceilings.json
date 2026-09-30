@@ -1,0 +1,225 @@
+{
+  "protocol_version": "perf-v2",
+  "entries": {
+    "lab-home-desktop::ttfb_ms_p75": {
+      "baseline_value": 52.2,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "c5fe5c34fd418b30c2b1a53c67a11c9d719202926cf41b458b0f95dcad68da03",
+      "policy": {
+        "absolute_tolerance": 50.0,
+        "relative_tolerance": 0.1
+      }
+    },
+    "lab-home-desktop::usable_ms_p75": {
+      "baseline_value": 253.3,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "c5fe5c34fd418b30c2b1a53c67a11c9d719202926cf41b458b0f95dcad68da03",
+      "policy": {
+        "absolute_tolerance": 50.0,
+        "relative_tolerance": 0.1
+      }
+    },
+    "lab-home-desktop::full_load_ms_p75": {
+      "baseline_value": 1579.7,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "c5fe5c34fd418b30c2b1a53c67a11c9d719202926cf41b458b0f95dcad68da03",
+      "policy": {
+        "absolute_tolerance": 50.0,
+        "relative_tolerance": 0.1
+      }
+    },
+    "lab-home-desktop::requests_started_p75": {
+      "baseline_value": 12.0,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "c5fe5c34fd418b30c2b1a53c67a11c9d719202926cf41b458b0f95dcad68da03",
+      "policy": {
+        "absolute_tolerance": 0.0,
+        "relative_tolerance": 0.0
+      }
+    },
+    "lab-home-desktop::encoded_bytes_p75": {
+      "baseline_value": 207128.0,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "c5fe5c34fd418b30c2b1a53c67a11c9d719202926cf41b458b0f95dcad68da03",
+      "policy": {
+        "absolute_tolerance": 0.0,
+        "relative_tolerance": 0.05
+      }
+    },
+    "lab-blog-desktop::ttfb_ms_p75": {
+      "baseline_value": 49.8,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "299b41299b8ae3020982df87f338e38a64142625fe3f9b5848a05b8d8d634071",
+      "policy": {
+        "absolute_tolerance": 50.0,
+        "relative_tolerance": 0.1
+      }
+    },
+    "lab-blog-desktop::usable_ms_p75": {
+      "baseline_value": 252.9,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "299b41299b8ae3020982df87f338e38a64142625fe3f9b5848a05b8d8d634071",
+      "policy": {
+        "absolute_tolerance": 50.0,
+        "relative_tolerance": 0.1
+      }
+    },
+    "lab-blog-desktop::full_load_ms_p75": {
+      "baseline_value": 1590.4,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "299b41299b8ae3020982df87f338e38a64142625fe3f9b5848a05b8d8d634071",
+      "policy": {
+        "absolute_tolerance": 50.0,
+        "relative_tolerance": 0.1
+      }
+    },
+    "lab-blog-desktop::requests_started_p75": {
+      "baseline_value": 12.0,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "299b41299b8ae3020982df87f338e38a64142625fe3f9b5848a05b8d8d634071",
+      "policy": {
+        "absolute_tolerance": 0.0,
+        "relative_tolerance": 0.0
+      }
+    },
+    "lab-blog-desktop::encoded_bytes_p75": {
+      "baseline_value": 204161.0,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "299b41299b8ae3020982df87f338e38a64142625fe3f9b5848a05b8d8d634071",
+      "policy": {
+        "absolute_tolerance": 0.0,
+        "relative_tolerance": 0.05
+      }
+    },
+    "lab-home-mobile::ttfb_ms_p75": {
+      "baseline_value": 57.0,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "f300cfb918fb08500e2f8290a92af4d1b97665799e1d2c6cb645b250bc668015",
+      "policy": {
+        "absolute_tolerance": 50.0,
+        "relative_tolerance": 0.1
+      }
+    },
+    "lab-home-mobile::usable_ms_p75": {
+      "baseline_value": 263.1,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "f300cfb918fb08500e2f8290a92af4d1b97665799e1d2c6cb645b250bc668015",
+      "policy": {
+        "absolute_tolerance": 50.0,
+        "relative_tolerance": 0.1
+      }
+    },
+    "lab-home-mobile::full_load_ms_p75": {
+      "baseline_value": 1584.3,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "f300cfb918fb08500e2f8290a92af4d1b97665799e1d2c6cb645b250bc668015",
+      "policy": {
+        "absolute_tolerance": 50.0,
+        "relative_tolerance": 0.1
+      }
+    },
+    "lab-home-mobile::requests_started_p75": {
+      "baseline_value": 12.0,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "f300cfb918fb08500e2f8290a92af4d1b97665799e1d2c6cb645b250bc668015",
+      "policy": {
+        "absolute_tolerance": 0.0,
+        "relative_tolerance": 0.0
+      }
+    },
+    "lab-home-mobile::encoded_bytes_p75": {
+      "baseline_value": 207128.0,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "f300cfb918fb08500e2f8290a92af4d1b97665799e1d2c6cb645b250bc668015",
+      "policy": {
+        "absolute_tolerance": 0.0,
+        "relative_tolerance": 0.05
+      }
+    },
+    "lab-blog-mobile::ttfb_ms_p75": {
+      "baseline_value": 50.3,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "d06147709c9c85ed3fcd0a2ec728ca6646de2e9ee3b4d8f90a9d525ebcac6f89",
+      "policy": {
+        "absolute_tolerance": 50.0,
+        "relative_tolerance": 0.1
+      }
+    },
+    "lab-blog-mobile::usable_ms_p75": {
+      "baseline_value": 254.9,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "d06147709c9c85ed3fcd0a2ec728ca6646de2e9ee3b4d8f90a9d525ebcac6f89",
+      "policy": {
+        "absolute_tolerance": 50.0,
+        "relative_tolerance": 0.1
+      }
+    },
+    "lab-blog-mobile::full_load_ms_p75": {
+      "baseline_value": 1588.0,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "d06147709c9c85ed3fcd0a2ec728ca6646de2e9ee3b4d8f90a9d525ebcac6f89",
+      "policy": {
+        "absolute_tolerance": 50.0,
+        "relative_tolerance": 0.1
+      }
+    },
+    "lab-blog-mobile::requests_started_p75": {
+      "baseline_value": 11.0,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "d06147709c9c85ed3fcd0a2ec728ca6646de2e9ee3b4d8f90a9d525ebcac6f89",
+      "policy": {
+        "absolute_tolerance": 0.0,
+        "relative_tolerance": 0.0
+      }
+    },
+    "lab-blog-mobile::encoded_bytes_p75": {
+      "baseline_value": 203168.0,
+      "baseline_app_sha": "39ef2610b775dac45ee0659853a1e1f9aa213caa",
+      "tool_sha": "ffa2b2b7375d4dc9b38e00500f6bf76559e979bf4af9df387c46af0a1eb24cff",
+      "fixture_hash": "eda65058396ec4ba17cea043cb9554b081a01b0f3c2933e864b78efe67c8c19d",
+      "environment_id": "d06147709c9c85ed3fcd0a2ec728ca6646de2e9ee3b4d8f90a9d525ebcac6f89",
+      "policy": {
+        "absolute_tolerance": 0.0,
+        "relative_tolerance": 0.05
+      }
+    }
+  }
+}
