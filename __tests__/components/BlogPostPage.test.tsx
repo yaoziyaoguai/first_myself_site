@@ -169,6 +169,33 @@ describe("blog article page delivery", () => {
     expect(screen.queryByTestId("comments")).not.toBeInTheDocument();
   });
 
+  it("lets an editor read a private article without exposing the admin-only edit link", async () => {
+    const editor = { id: 2, role: "editor" };
+    mocks.currentUser.mockResolvedValue(editor);
+    mocks.findPost.mockResolvedValue({ ...basePost, visibility: "private" });
+
+    render(await BlogPostPage(props));
+
+    expect(mocks.findPost).toHaveBeenCalledWith(editor, basePost.slug);
+    expect(screen.queryByRole("link", { name: "编辑" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("blog-agent")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("likes")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("comments")).not.toBeInTheDocument();
+  });
+
+  it("keeps public interactions for an ordinary logged-in viewer", async () => {
+    const viewer = { id: 3, role: "viewer" };
+    mocks.currentUser.mockResolvedValue(viewer);
+
+    render(await BlogPostPage(props));
+
+    expect(mocks.findPost).toHaveBeenCalledWith(viewer, basePost.slug);
+    expect(screen.queryByRole("link", { name: "编辑" })).not.toBeInTheDocument();
+    expect(screen.getByTestId("blog-agent")).toBeInTheDocument();
+    expect(screen.getByTestId("likes")).toBeInTheDocument();
+    expect(screen.getByTestId("comments")).toBeInTheDocument();
+  });
+
   it("uses the constrained series query and disables prefetch on every rendered series link", async () => {
     const series = {
       id: 7,
