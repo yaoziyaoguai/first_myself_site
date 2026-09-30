@@ -11,7 +11,12 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './vitest.setup.ts',
-    exclude: [...configDefaults.exclude, '**/.worktrees/**', '**/output/**'],
+    exclude: [
+      ...configDefaults.exclude,
+      '**/.worktrees/**',
+      '**/output/**',
+      'perf/bench/*.test.mjs',
+    ],
   },
   resolve: {
     alias: {
