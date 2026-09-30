@@ -146,37 +146,25 @@ jobs:
             echo "deploy=false" >> "$GITHUB_OUTPUT"
             echo "Skipping superseded commit $GITHUB_SHA; latest main is $latest_sha"
           fi
-      - name: Set up Docker Buildx exporter
-        if: steps.latest-main.outputs.deploy == 'true'
-        uses: docker/setup-buildx-action@v3
       - name: Create verified deployment payload
         if: steps.latest-main.outputs.deploy == 'true'
         run: |
           set -euo pipefail
           git bundle create deploy-source.bundle HEAD
           git bundle verify deploy-source.bundle
-          docker buildx build \
-            --platform=linux/amd64 \
-            --tag first_myself_site:candidate \
-            --build-arg NEXT_PUBLIC_SERVER_URL=https://wangjinkun333.me \
-            --output type=docker,dest=first_myself_site-candidate.tar \
-            --file docker/Dockerfile \
-            .
-          gzip -1 first_myself_site-candidate.tar
-          sha256sum first_myself_site-candidate.tar.gz > first_myself_site-candidate.tar.gz.sha256
-          gzip -t first_myself_site-candidate.tar.gz
-          sha256sum --check first_myself_site-candidate.tar.gz.sha256
-      - name: Upload deployment payload
+          sha256sum deploy-source.bundle > deploy-source.bundle.sha256
+          sha256sum --check deploy-source.bundle.sha256
+      - name: Upload verified deploy source
         if: steps.latest-main.outputs.deploy == 'true'
         uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: deploy-source.bundle,first_myself_site-candidate.tar.gz,first_myself_site-candidate.tar.gz.sha256
+          source: deploy-source.bundle,deploy-source.bundle.sha256
           target: /tmp/first_myself_site_deploy_${{ github.run_id }}
           overwrite: true
-          command_timeout: 30m
+          command_timeout: 5m
       - name: Deploy via SSH
         if: steps.latest-main.outputs.deploy == 'true'
         uses: appleboy/ssh-action@v1.0.3
@@ -205,14 +193,13 @@ jobs:
 
             bundle_directory="/tmp/first_myself_site_deploy_${{ github.run_id }}"
             bundle_path="$bundle_directory/deploy-source.bundle"
-            candidate_image_archive="$bundle_directory/first_myself_site-candidate.tar.gz"
-            candidate_image_checksum="$bundle_directory/first_myself_site-candidate.tar.gz.sha256"
+            bundle_checksum="$bundle_directory/deploy-source.bundle.sha256"
             cleanup_deploy_bundle() {
-              rm -f "$bundle_path" "$candidate_image_archive" "$candidate_image_checksum"
+              rm -f "$bundle_path" "$bundle_checksum"
               rmdir "$bundle_directory" 2>/dev/null || true
             }
             trap cleanup_deploy_bundle EXIT
-            for artifact in "$bundle_path" "$candidate_image_archive" "$candidate_image_checksum"; do
+            for artifact in "$bundle_path" "$bundle_checksum"; do
               if [ ! -f "$artifact" ]; then
                 echo "Uploaded deploy artifact is missing: $artifact" >&2
                 exit 1
@@ -220,11 +207,9 @@ jobs:
             done
             (
               cd "$bundle_directory"
-              sha256sum --check "$(basename "$candidate_image_checksum")"
+              sha256sum --check "$(basename "$bundle_checksum")"
             )
-            gzip -t "$candidate_image_archive"
-            gzip -dc "$candidate_image_archive" | docker load
-            docker image inspect first_myself_site:candidate >/dev/null
+            git bundle verify "$bundle_path"
 
             export BLOG_AGENT_ENABLED="${BLOG_AGENT_ENABLED:-false}"
             export BLOG_AGENT_GENERATION_ENABLED="${BLOG_AGENT_GENERATION_ENABLED:-false}"
@@ -265,10 +250,6 @@ jobs:
             export BLOG_AGENT_GENERATION_ENABLED=false
 
             compose=(docker compose --env-file .env.docker.prod -f docker/docker-compose.prod.yml)
-            previous_image="$(docker inspect --format='{{.Image}}' first_myself_site_prod 2>/dev/null || true)"
-            if [ -n "$previous_image" ]; then
-              docker tag "$previous_image" first_myself_site:rollback
-            fi
 
             wait_for_local_health() {
               for attempt in $(seq 1 24); do
@@ -339,12 +320,45 @@ jobs:
               return 1
             }
 
-            # 阿里云无法稳定访问 GitHub、镜像站和 npm；Actions 将已校验的源码与候选应用镜像推送到服务器。
+            # GitHub 只推送校验过的源码；应用在阿里云复用 Docker 缓存并通过国内镜像源构建。
             git fetch "$bundle_path" HEAD
             git checkout main
             git merge --ff-only FETCH_HEAD
-            # 候选镜像已在 GitHub Runner 构建并校验；服务器不再执行任何依赖公网的构建步骤。
+            deployed_revision="$(docker inspect \
+              --format='{{ index .Config.Labels "org.opencontainers.image.revision" }}' \
+              first_myself_site_prod 2>/dev/null || true)"
+            if [[ "$deployed_revision" =~ ^[0-9a-f]{40}$ ]] && \
+               git cat-file -e "$deployed_revision^{commit}" 2>/dev/null && \
+               git merge-base --is-ancestor "$deployed_revision" "${{ github.sha }}"; then
+              mapfile -t changed_paths < <(
+                git diff --name-only "$deployed_revision" "${{ github.sha }}"
+              )
+              should_deploy="$(bash scripts/deployment/should-deploy.sh "${changed_paths[@]}")"
+              if [ "$should_deploy" = "false" ]; then
+                echo "Skipping production deploy: all changes since $deployed_revision are repository-only documentation or performance evidence."
+                exit 0
+              fi
+            fi
+            previous_image="$(docker inspect --format='{{.Image}}' first_myself_site_prod 2>/dev/null || true)"
+            if [ -n "$previous_image" ]; then
+              docker tag "$previous_image" first_myself_site:rollback
+            fi
+            DOCKER_BUILDKIT=1 docker build \
+              --pull=false \
+              --tag first_myself_site:candidate \
+              --build-arg APP_REVISION="${{ github.sha }}" \
+              --build-arg NEXT_PUBLIC_SERVER_URL=https://wangjinkun333.me \
+              --build-arg ALPINE_MIRROR=https://mirrors.aliyun.com/alpine \
+              --build-arg NPM_REGISTRY=https://registry.npmmirror.com \
+              --file docker/Dockerfile \
+              .
             docker image inspect first_myself_site:candidate >/dev/null
+            candidate_revision="$(docker image inspect first_myself_site:candidate \
+              --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')"
+            if [ "$candidate_revision" != "${{ github.sha }}" ]; then
+              echo "Candidate image revision mismatch: $candidate_revision" >&2
+              exit 1
+            fi
             # 发布工具会把大图优化到 400 KiB 以下；切换前确认线上实际媒体路径可接收该请求。
             bash scripts/verify-nginx-media-upload.sh
             # 切换前备份当前数据库与媒体；备份失败时 set -e 会终止部署。

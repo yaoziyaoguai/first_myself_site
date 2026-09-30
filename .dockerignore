@@ -1,6 +1,6 @@
 # ============================================
-# Docker 构建忽略文件（精简版）
-# 只忽略最必要的文件，确保构建上下文干净且安全
+# Docker 构建上下文
+# 生产镜像只接收运行与构建所需文件，文档和测量证据不得使应用层缓存失效。
 # ============================================
 
 # 依赖（安装成本最低）
@@ -9,16 +9,37 @@ node_modules
 # 构建输出（重新生成）
 .next
 out
+coverage
 
 # 版本控制
 .git
+.github
+.DS_Store
 
-# 敏感环境变量（安全关键）
-.env
-.env.local
-.env.production
-.env.test
-.env.staging
+# 仓库协作、测试与性能证据（不进入生产镜像）
+.claude
+.codex
+.gstack
+.payload
+.ruff_cache
+__tests__
+docs
+perf
+output
+graphify-out
+README.md
+CLAUDE.md
+AGENTS.md
+DESIGN.md
+SECURITY.md
+TESTING_GUIDE.md
+*.tsbuildinfo
+cookies.txt
+resume
+
+# 敏感环境变量（安全关键；服务端构建目录含 .env.docker.prod）
+.env*
+.npmrc
 
 # 日志
 *.log
