@@ -1,11 +1,48 @@
 import type { CollectionConfig } from "payload";
 import { randomUUID } from "node:crypto";
 import { readSeriesArticles, saveSeriesArticles } from "../hooks/seriesArticles";
+import { revalidateVisitorContent } from "@/lib/visitorContentCache";
 
 const canEdit = (role: unknown) => role === "admin";
 
+function isPublishedSeries(doc: unknown): boolean {
+  if (!doc || typeof doc !== "object" || Array.isArray(doc)) return false;
+  return (doc as { status?: unknown }).status === "published";
+}
+
+async function revalidateSeriesChange({
+  doc,
+  previousDoc,
+}: {
+  doc?: unknown;
+  previousDoc?: unknown;
+}) {
+  const visibilityWasReduced =
+    isPublishedSeries(previousDoc) && !isPublishedSeries(doc);
+  try {
+    await revalidateVisitorContent();
+  } catch (error) {
+    if (visibilityWasReduced) throw error;
+    console.warn("[cache] revalidate after blog series change failed:", error);
+  }
+  return doc;
+}
+
+async function revalidateSeriesDelete({ doc }: { doc?: unknown }) {
+  try {
+    await revalidateVisitorContent();
+  } catch (error) {
+    if (isPublishedSeries(doc)) throw error;
+    console.warn("[cache] revalidate after blog series delete failed:", error);
+  }
+  return doc;
+}
+
 const BlogSeries: CollectionConfig = {
   slug: "blog-series",
+  // 与 Blog 一致，只允许能在失效失败时回滚的 by-ID 写入路径。
+  disableBulkEdit: true,
+  disableBulkDelete: true,
   labels: {
     singular: "文章合集",
     plural: "文章合集",
@@ -28,7 +65,8 @@ const BlogSeries: CollectionConfig = {
         return data;
       },
     ],
-    afterChange: [saveSeriesArticles],
+    afterChange: [saveSeriesArticles, revalidateSeriesChange],
+    afterDelete: [revalidateSeriesDelete],
   },
   fields: [
     { name: "title", type: "text", label: "合集名称", required: true },

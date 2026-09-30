@@ -17,6 +17,40 @@ function canManageAgentContext(user: unknown): boolean {
   return role === "admin" || role === "editor";
 }
 
+function isPublicBlogDocument(doc: unknown): boolean {
+  if (!doc || typeof doc !== "object" || Array.isArray(doc)) return false;
+  const value = doc as { status?: unknown; visibility?: unknown };
+  return value.status === "published" && value.visibility === "public";
+}
+
+async function revalidateBlogChange({
+  doc,
+  previousDoc,
+}: {
+  doc?: unknown;
+  previousDoc?: unknown;
+}) {
+  const visibilityWasReduced =
+    isPublicBlogDocument(previousDoc) && !isPublicBlogDocument(doc);
+  try {
+    await revalidateVisitorContent();
+  } catch (error) {
+    if (visibilityWasReduced) throw error;
+    console.warn("[cache] revalidate after blog change failed:", error);
+  }
+  return doc;
+}
+
+async function revalidateBlogDelete({ doc }: { doc?: unknown }) {
+  try {
+    await revalidateVisitorContent();
+  } catch (error) {
+    if (isPublicBlogDocument(doc)) throw error;
+    console.warn("[cache] revalidate after blog delete failed:", error);
+  }
+  return doc;
+}
+
 export function prepareBlogAgentIndexState({
   data,
   originalDoc,
@@ -88,6 +122,10 @@ const privateAgentFieldAccess = {
 
 const Blog: CollectionConfig = {
   slug: "blog",
+  // Payload 的批量写路径会逐条吞并 afterChange/afterDelete 错误后提交事务。
+  // 禁用批量入口，确保可见性收紧与公开删除只能走可回滚的 by-ID 路径。
+  disableBulkEdit: true,
+  disableBulkDelete: true,
   labels: { singular: "文章", plural: "文章" },
   admin: {
     group: "内容管理",
@@ -147,21 +185,9 @@ const Blog: CollectionConfig = {
         originalDoc: originalDoc as BlogAgentState | undefined,
       }),
     ],
-    // 文章增删改后让前台访客数据缓存失效（失败只影响时效，60s 兜底仍在）
-    afterChange: [
-      async () => {
-        await revalidateVisitorContent().catch((error) => {
-          console.warn("[cache] revalidate after blog change failed:", error);
-        });
-      },
-    ],
-    afterDelete: [
-      async () => {
-        await revalidateVisitorContent().catch((error) => {
-          console.warn("[cache] revalidate after blog delete failed:", error);
-        });
-      },
-    ],
+    // 普通内容更新允许 TTL 兜底；公开内容被收紧或删除时，失效失败必须让写入报错。
+    afterChange: [revalidateBlogChange],
+    afterDelete: [revalidateBlogDelete],
   },
   fields: [
     {

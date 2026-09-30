@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { Pool } from "pg";
 
 export type IsolatedPostgresDatabase = {
+  connectionString: string;
   pool: Pool;
   destroy: () => Promise<void>;
 };
@@ -33,6 +34,7 @@ export async function createIsolatedPostgresDatabase(): Promise<IsolatedPostgres
   const pool = new Pool({ connectionString: isolatedUrl.toString(), max: 5 });
   let destroyed = false;
   return {
+    connectionString: isolatedUrl.toString(),
     pool,
     destroy: async () => {
       if (destroyed) return;
