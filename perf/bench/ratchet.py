@@ -11,6 +11,7 @@ import argparse
 import json
 import math
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -74,8 +75,8 @@ def validate_result(
     if not isinstance(candidate, dict):
         raise ValidationError(f"results.{version} 必须是 object")
     app_sha = candidate.get("app_sha")
-    if not isinstance(app_sha, str) or not app_sha or app_sha == "unknown":
-        raise ValidationError(f"results.{version}.app_sha 无效")
+    if not isinstance(app_sha, str) or not re.fullmatch(r"[0-9a-fA-F]{40}", app_sha):
+        raise ValidationError(f"results.{version}.app_sha 必须是完整的 40 位 Git SHA")
     if expected_app_sha is not None and app_sha != expected_app_sha:
         raise ValidationError(
             f"候选 SHA 不匹配：期望 {expected_app_sha}，实际 {app_sha}",

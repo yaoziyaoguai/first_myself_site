@@ -128,6 +128,16 @@ test("requires explicit fixture, sentinel, output, and paired SHAs", () => {
     "--fixture", "seed-v1",
     "--fixture-hash", "abc",
   ]), /--app-sha-a/);
+  assert.throws(() => parseArgs([
+    "--url", "http://localhost:3000",
+    "--url-b", "http://localhost:3001",
+    "--ready", "document.body",
+    "--out", "result.json",
+    "--fixture", "seed-v1",
+    "--fixture-hash", "abc",
+    "--app-sha-a", "deadbeef",
+    "--app-sha-b", "b".repeat(40),
+  ]), /完整的 40 位 Git SHA/);
 });
 
 test("functional navigation must leave the current URL before matching a target", () => {

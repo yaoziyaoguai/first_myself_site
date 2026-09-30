@@ -112,6 +112,10 @@ export function functionalNavigationMatches(href, before, target) {
   return href !== before && (!target || href.includes(target));
 }
 
+function isFullGitSha(value) {
+  return typeof value === "string" && /^[0-9a-f]{40}$/i.test(value);
+}
+
 export function createNetworkLedger(now = () => nodePerformance.now()) {
   const records = [];
   const active = new Map();
@@ -485,6 +489,11 @@ export function parseArgs(input = argv.slice(2)) {
   }
   if (parsed["url-b"] && (!parsed["app-sha-a"] || !parsed["app-sha-b"])) {
     throw new Error("配对测量必须提供 --app-sha-a 与 --app-sha-b");
+  }
+  for (const key of ["app-sha-a", "app-sha-b"]) {
+    if (parsed[key] && !isFullGitSha(parsed[key])) {
+      throw new Error(`--${key} 必须是完整的 40 位 Git SHA`);
+    }
   }
   return parsed;
 }

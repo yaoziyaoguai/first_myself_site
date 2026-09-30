@@ -16,6 +16,8 @@ METRICS = {
     "requests_started": 8.0,
     "encoded_bytes": 12000.0,
 }
+BASELINE_SHA = "a" * 40
+CANDIDATE_SHA = "b" * 40
 
 
 def result_payload():
@@ -45,8 +47,8 @@ def result_payload():
         "fixture": {"id": "fixture-v1", "hash": "fixture-hash"},
         "environment": {"environment_id": "environment-v1"},
         "results": {
-            "A": version("baseline-sha"),
-            "B": version("candidate-sha", 0.95),
+            "A": version(BASELINE_SHA),
+            "B": version(CANDIDATE_SHA, 0.95),
         },
     }
 
@@ -95,7 +97,7 @@ class RatchetTest(unittest.TestCase):
             "check",
             "B",
             "--expected-app-sha",
-            "candidate-sha",
+            CANDIDATE_SHA,
         )
         after = hashlib.sha256(self.ceilings.read_bytes()).hexdigest()
         self.assertEqual(completed.returncode, 0, completed.stderr)
@@ -113,7 +115,7 @@ class RatchetTest(unittest.TestCase):
             "check",
             "C",
             "--expected-app-sha",
-            "candidate-sha",
+            CANDIDATE_SHA,
         )
         self.assertEqual(missing.returncode, 2)
         payload = result_payload()
@@ -123,7 +125,7 @@ class RatchetTest(unittest.TestCase):
             "check",
             "B",
             "--expected-app-sha",
-            "candidate-sha",
+            CANDIDATE_SHA,
         )
         self.assertEqual(old.returncode, 2)
 
@@ -144,7 +146,7 @@ class RatchetTest(unittest.TestCase):
                 "check",
                 "B",
                 "--expected-app-sha",
-                "candidate-sha",
+                CANDIDATE_SHA,
             )
             self.assertEqual(completed.returncode, 2, completed.stdout)
 
@@ -162,7 +164,7 @@ class RatchetTest(unittest.TestCase):
                 "check",
                 "B",
                 "--expected-app-sha",
-                "candidate-sha",
+                CANDIDATE_SHA,
             )
             self.assertEqual(completed.returncode, 2)
 
@@ -176,7 +178,7 @@ class RatchetTest(unittest.TestCase):
                 "check",
                 "B",
                 "--expected-app-sha",
-                "candidate-sha",
+                CANDIDATE_SHA,
             )
             self.assertEqual(completed.returncode, 2)
 
@@ -189,9 +191,17 @@ class RatchetTest(unittest.TestCase):
             "check",
             "B",
             "--expected-app-sha",
-            "candidate-sha",
+            CANDIDATE_SHA,
         )
         self.assertEqual(completed.returncode, 1)
+
+    def test_rejects_short_application_sha(self):
+        payload = result_payload()
+        payload["results"]["A"]["app_sha"] = "deadbeef"
+        self.write_result(payload)
+        completed = self.run_ratchet("init", "A")
+        self.assertEqual(completed.returncode, 2)
+        self.assertIn("40", completed.stderr)
 
     def test_only_explicit_update_baseline_can_replace_existing_values(self):
         self.initialize()
