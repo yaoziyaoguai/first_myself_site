@@ -108,46 +108,53 @@ describe("production Nginx media upload probe", () => {
       'bundle_path="$bundle_directory/deploy-source.bundle"',
     );
     const checksumIndex = commands.indexOf(
-      'sha256sum --check "$(basename "$candidate_image_checksum")"',
-    );
-    const imageLoadIndex = commands.indexOf(
-      'gzip -dc "$candidate_image_archive" | docker load',
+      'sha256sum --check "$(basename "$bundle_checksum")"',
     );
     const fetchIndex = commands.indexOf(
       'git fetch "$bundle_path" HEAD',
     );
     const checkoutIndex = commands.indexOf("git checkout main");
     const mergeIndex = commands.indexOf("git merge --ff-only FETCH_HEAD");
-    const serverBuildIndex = commands.indexOf('"${compose[@]}" build app');
+    const serverBuildIndex = commands.indexOf("DOCKER_BUILDKIT=1 docker build \\");
+    const revisionIndex = commands.indexOf(
+      'candidate_revision="$(docker image inspect first_myself_site:candidate \\',
+    );
     const probeIndex = commands.indexOf(
       "bash scripts/verify-nginx-media-upload.sh",
     );
     const switchIndex = commands.indexOf('if ! "${compose[@]}" up -d; then');
 
     expect(workflow).toContain("git bundle create deploy-source.bundle HEAD");
-    expect(workflow).toContain("uses: docker/setup-buildx-action@v3");
-    expect(workflow).toContain("--platform=linux/amd64");
+    expect(workflow).toContain(
+      "sha256sum deploy-source.bundle > deploy-source.bundle.sha256",
+    );
+    expect(workflow).toContain('git bundle verify "$bundle_path"');
     expect(workflow).toContain("--tag first_myself_site:candidate");
     expect(workflow).toContain(
       "--build-arg NEXT_PUBLIC_SERVER_URL=https://wangjinkun333.me",
     );
     expect(workflow).toContain(
-      "--output type=docker,dest=first_myself_site-candidate.tar",
+      "--build-arg ALPINE_MIRROR=https://mirrors.aliyun.com/alpine",
     );
     expect(workflow).toContain(
-      "source: deploy-source.bundle,first_myself_site-candidate.tar.gz,first_myself_site-candidate.tar.gz.sha256",
+      "--build-arg NPM_REGISTRY=https://registry.npmmirror.com",
+    );
+    expect(workflow).toContain(
+      "source: deploy-source.bundle,deploy-source.bundle.sha256",
     );
     expect(workflow).toContain("appleboy/scp-action@v1.0.0");
     expect(workflow).toContain("fetch-depth: 0");
+    expect(workflow).not.toContain("first_myself_site-candidate.tar");
+    expect(workflow).not.toContain("docker/setup-buildx-action");
     expect(bundleIndex).toBeGreaterThan(-1);
     expect(checksumIndex).toBeGreaterThan(bundleIndex);
-    expect(imageLoadIndex).toBeGreaterThan(checksumIndex);
     expect(fetchIndex).toBeGreaterThan(bundleIndex);
-    expect(fetchIndex).toBeGreaterThan(imageLoadIndex);
+    expect(fetchIndex).toBeGreaterThan(checksumIndex);
     expect(checkoutIndex).toBeGreaterThan(fetchIndex);
     expect(mergeIndex).toBeGreaterThan(checkoutIndex);
-    expect(serverBuildIndex).toBe(-1);
-    expect(probeIndex).toBeGreaterThan(mergeIndex);
+    expect(serverBuildIndex).toBeGreaterThan(mergeIndex);
+    expect(revisionIndex).toBeGreaterThan(serverBuildIndex);
+    expect(probeIndex).toBeGreaterThan(revisionIndex);
     expect(switchIndex).toBeGreaterThan(probeIndex);
   });
 

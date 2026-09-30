@@ -15,6 +15,12 @@ const payloadConfig = readFileSync(
   resolve(process.cwd(), "payload.config.ts"),
   "utf8",
 );
+const packageJson = JSON.parse(
+  readFileSync(resolve(process.cwd(), "package.json"), "utf8"),
+) as {
+  dependencies: Record<string, string>;
+  devDependencies: Record<string, string>;
+};
 
 describe("production migration deployment", () => {
   it("loads the real Payload config through the production CLI", () => {
@@ -51,16 +57,20 @@ describe("production migration deployment", () => {
   });
 
   it("loads the verified candidate, backs up, migrates, then replaces the app", () => {
-    const candidateLoadIndex = workflow.indexOf(
-      'gzip -dc "$candidate_image_archive" | docker load',
+    const candidateBuildIndex = workflow.indexOf(
+      "DOCKER_BUILDKIT=1 docker build",
     );
     const candidateVerificationIndex = workflow.indexOf(
       "docker image inspect first_myself_site:candidate >/dev/null",
-      candidateLoadIndex,
+      candidateBuildIndex,
+    );
+    const revisionVerificationIndex = workflow.indexOf(
+      'candidate_revision="$(docker image inspect first_myself_site:candidate',
+      candidateVerificationIndex,
     );
     const backupIndex = workflow.indexOf(
       "./scripts/backup.sh",
-      candidateVerificationIndex,
+      revisionVerificationIndex,
     );
     const cleanupIndex = workflow.indexOf(
       "to_regclass('payload_migrations')",
@@ -72,13 +82,15 @@ describe("production migration deployment", () => {
     );
     const cutoverIndex = workflow.indexOf('"${compose[@]}" up -d', migrationIndex);
 
-    expect(candidateLoadIndex).toBeGreaterThan(-1);
-    expect(candidateVerificationIndex).toBeGreaterThan(candidateLoadIndex);
-    expect(backupIndex).toBeGreaterThan(candidateVerificationIndex);
+    expect(candidateBuildIndex).toBeGreaterThan(-1);
+    expect(candidateVerificationIndex).toBeGreaterThan(candidateBuildIndex);
+    expect(revisionVerificationIndex).toBeGreaterThan(candidateVerificationIndex);
+    expect(backupIndex).toBeGreaterThan(revisionVerificationIndex);
     expect(cleanupIndex).toBeGreaterThan(backupIndex);
     expect(migrationIndex).toBeGreaterThan(cleanupIndex);
     expect(cutoverIndex).toBeGreaterThan(migrationIndex);
     expect(workflow).not.toContain('"${compose[@]}" build app');
+    expect(workflow).not.toContain("first_myself_site-candidate.tar");
     expect(workflow).toContain("set -euo pipefail");
     expect(workflow).toContain(
       `DELETE FROM "payload_migrations"\n                  WHERE "batch" = -1 AND "name" = 'dev'`,
@@ -91,10 +103,24 @@ describe("production migration deployment", () => {
       resolve(process.cwd(), "docker/Dockerfile"),
       "utf8",
     );
+    const dockerignore = readFileSync(
+      resolve(process.cwd(), ".dockerignore"),
+      "utf8",
+    );
     expect(dockerfile).toContain(
       "COPY --from=builder /app/payload.config.ts ./payload.config.ts",
     );
     expect(dockerfile).toContain("COPY --from=builder /app/src ./src");
+    expect(dockerfile).toContain("npm prune \\");
+    expect(dockerfile).toContain("--omit=dev");
+    expect(dockerfile).toContain(
+      "COPY --from=production-deps /app/node_modules ./node_modules",
+    );
+    expect(dockerfile).toContain("rm -rf .next/cache");
+    expect(dockerignore).toContain(".env*");
+    expect(dockerignore).toContain("perf");
+    expect(packageJson.dependencies).not.toHaveProperty("shadcn");
+    expect(packageJson.devDependencies).toHaveProperty("shadcn");
   });
 
   it("points the production CLI at a directory containing only executable migrations", () => {

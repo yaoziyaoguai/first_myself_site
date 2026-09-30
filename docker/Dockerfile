@@ -2,10 +2,10 @@
 # Payload CMS + Next.js 应用镜像
 #
 # 用途: 生产部署和容器化测试
-# 说明: 采用简单的多阶段构建
-#       - 未使用 Next.js standalone 输出
-#       - 未做最小化 node_modules 优化
-#       - 优先考虑构建简单性和兼容性
+# 说明: 采用多阶段构建
+#       - 构建阶段保留完整依赖
+#       - 运行阶段仅保留 production dependencies
+#       - 丢弃 Next.js 构建缓存并裁掉仅用于开发的依赖
 #
 # 使用方式: 配合 docker-compose.test.yml 使用
 # ============================================
@@ -17,11 +17,33 @@ FROM node:22-alpine AS deps
 
 WORKDIR /app
 
-# 镜像由 GitHub Runner 构建，保留 Alpine 官方源，避免跨境访问镜像站拖慢安装。
-RUN apk add --no-cache libc6-compat python3 make g++
+# GitHub Runner 默认使用官方源；阿里云构建显式传入国内镜像，避免跨境超时。
+ARG ALPINE_MIRROR=https://dl-cdn.alpinelinux.org/alpine
+ARG NPM_REGISTRY=https://registry.npmjs.org
+RUN if [ "$ALPINE_MIRROR" != "https://dl-cdn.alpinelinux.org/alpine" ]; then \
+      sed -i "s#https://dl-cdn.alpinelinux.org/alpine#$ALPINE_MIRROR#g" /etc/apk/repositories; \
+    fi && \
+    apk add --no-cache libc6-compat
 # 仓库使用 npm 锁文件，构建必须与 CI 安装同一依赖图。
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci \
+      --registry="$NPM_REGISTRY" \
+      --replace-registry-host=always \
+      --prefer-offline \
+      --no-audit \
+      --no-fund
+
+# npm prune 会移除项目仅用于 CI/本地开发的依赖；Payload 所需的 peer 依赖仍由 npm 保留。
+FROM deps AS production-deps
+RUN npm prune \
+      --omit=dev \
+      --registry="$NPM_REGISTRY" \
+      --replace-registry-host=always \
+      --prefer-offline \
+      --no-audit \
+      --no-fund && \
+    npm cache clean --force
 
 # -------------------------------------------------
 # 阶段 2: 构建应用
@@ -45,7 +67,8 @@ ENV NEXT_PUBLIC_SERVER_URL=${NEXT_PUBLIC_SERVER_URL}
 RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build \
     PAYLOAD_SECRET=build-only-placeholder-not-used-at-runtime \
     NODE_ENV=production \
-    npm run build
+    npm run build && \
+    rm -rf .next/cache
 
 # -------------------------------------------------
 # 阶段 3: 运行环境
@@ -58,12 +81,15 @@ ENV NODE_ENV=production
 ENV PORT=3001
 ENV HOSTNAME=0.0.0.0
 
+ARG APP_REVISION=unknown
+LABEL org.opencontainers.image.revision=$APP_REVISION
+
 # 创建非 root 用户
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# 复制完整 node_modules（测试环境简化，非最小化方案）
-COPY --from=deps /app/node_modules ./node_modules
+# 仅复制生产依赖；migration 与 Agent canary 所需工具均属于 dependencies。
+COPY --from=production-deps /app/node_modules ./node_modules
 
 # 复制构建输出
 COPY --from=builder /app/.next ./.next
