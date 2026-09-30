@@ -144,6 +144,8 @@ describe("production Nginx media upload probe", () => {
     );
     expect(workflow).toContain("appleboy/scp-action@v1.0.0");
     expect(workflow).toContain("fetch-depth: 0");
+    expect(workflow).toContain("timeout-minutes: 70");
+    expect(workflow).toContain("command_timeout: 60m");
     expect(workflow).not.toContain("first_myself_site-candidate.tar");
     expect(workflow).not.toContain("docker/setup-buildx-action");
     expect(bundleIndex).toBeGreaterThan(-1);
