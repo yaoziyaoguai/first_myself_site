@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { ArticleLinkFeedback } from "@/components/ArticleLinkFeedback";
 import { siteDefaults } from "@/content/siteDefaults";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -148,7 +149,11 @@ export default async function BlogPage() {
                     ))}
                   </span>
                 </span>
-                <ArrowUpRight aria-hidden="true" className="hidden md:block" size={19} />
+                <ArticleLinkFeedback
+                  className="md:justify-self-end"
+                  compact
+                  iconSize={19}
+                />
               </Link>
                 );
               })}

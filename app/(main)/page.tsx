@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { ArticleLinkFeedback } from "@/components/ArticleLinkFeedback";
 import { siteDefaults, type ContentCard, type Direction } from "@/content/siteDefaults";
 import { isAdmin, getCurrentUser } from "@/lib/auth";
 import { resolveArray, resolveText } from "@/lib/contentFallback";
@@ -86,9 +87,11 @@ export default async function Home() {
             <span className="mt-4 block text-sm leading-7 text-muted-foreground">
               {summarizeExcerpt(featuredPost.excerpt, 150)}
             </span>
-            <span className="mt-7 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-primary">
-              阅读这篇文章 <ArrowUpRight aria-hidden="true" className="transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" size={17} />
-            </span>
+            <ArticleLinkFeedback
+              className="mt-7 min-h-11 text-sm font-medium text-primary"
+              iconSize={17}
+              idleLabel="阅读这篇文章"
+            />
           </Link>
         ) : (
           <div className="border-t-2 border-primary pt-5">
@@ -118,7 +121,10 @@ export default async function Home() {
                   {summarizeExcerpt(post.excerpt, 135)}
                 </span>
               </span>
-              <ArrowUpRight aria-hidden="true" className="hidden transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 md:block" size={18} />
+              <ArticleLinkFeedback
+                className="md:justify-self-end"
+                compact
+              />
             </Link>
           ))}
         </div>
