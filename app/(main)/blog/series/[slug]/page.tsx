@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowUpRight } from "lucide-react";
+import { ArticleLinkFeedback } from "@/components/ArticleLinkFeedback";
 import { getCurrentUser } from "@/lib/auth";
 import { sortSeriesArticles, type SeriesArticle } from "@/lib/blogSeries";
 import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
@@ -132,7 +132,11 @@ export default async function BlogSeriesPage({ params }: PageProps) {
                       ))}
                     </span>
                   </span>
-                  <ArrowUpRight aria-hidden="true" className="hidden transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 md:block" size={19} />
+                  <ArticleLinkFeedback
+                    className="md:justify-self-end"
+                    compact
+                    iconSize={19}
+                  />
                 </Link>
               </li>
             );
