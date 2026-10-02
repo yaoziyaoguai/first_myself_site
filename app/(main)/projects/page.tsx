@@ -25,9 +25,9 @@ export default async function ProjectsPage() {
     <div className="site-shell page-space">
       <header className="page-header relative">
         <p className="eyebrow">PROJECTS</p>
-        <h1>用项目验证正在学习的东西。</h1>
+        <h1>项目与实验</h1>
         <p>
-          这里不是成果陈列柜，而是实践记录。每个项目都对应一组仍在推敲的问题。
+          在代码中实践数据工程、AI 评测与 Agent 系统，记录做法、取舍和仍在尝试的方向。
         </p>
         {admin ? (
           <Link className="text-link mt-6" href="/admin/collections/projects">
@@ -48,8 +48,8 @@ export default async function ProjectsPage() {
               </span>
               <span>
                 <span className="flex items-start gap-3">
-                  <span className="font-serif text-2xl font-medium tracking-tight">{project.title}</span>
-                  {href ? <ArrowUpRight aria-hidden="true" className="transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" size={18} /> : null}
+                  <span className="min-w-0 break-words font-serif text-2xl font-medium tracking-tight">{project.title}</span>
+                  {href ? <ArrowUpRight aria-hidden="true" className="shrink-0 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" size={18} /> : null}
                 </span>
                 <span className="mt-3 block text-xs uppercase tracking-[0.14em] text-muted-foreground">
                   {project.role} · {project.period}

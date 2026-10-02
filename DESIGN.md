@@ -6,29 +6,26 @@
 
 关键词：克制、编辑感、个人气质、内容优先、技术可信度。
 
-## 2. Cue 参考与取舍
+## 2. 本轮参考与取舍（2026-10-03）
 
-本轮设计实际查看了 [Cue](https://www.cuedesign.space/) 的公开组件库和预览。
+本轮以 Awwwards、Webby Awards、FWA 优秀网站的完成度为目标，不把获奖当作可以自行认证的结果。方向仍是可持续阅读的个人技术博客。设计参数为 `DESIGN_VARIANCE: 6`、`MOTION_INTENSITY: 3`、`VISUAL_DENSITY: 4`：适度变化版式，低动效，中等信息密度。
 
-### 主参考：Cue Editorial 浏览页
+### Cue 的实际访问范围
 
-- 借鉴：大标题与小号元信息的强对比、横向分隔线、内容列表的编辑部索引感、少量强调色。
-- 应用：首页首屏、近期文章、文章归档和项目列表。
-- 不采用：深色全站、组件瀑布流、登录和订阅转化区域。
+真实浏览器打开了 [Cue 组件库](https://www.cuedesign.space/)，读取到分类、标签筛选和排序等外壳。但组件数据请求出现 `ERR_CONNECTION_CLOSED`，页面显示 `Empty library`；官方 `llms-full.txt` 只能提供目录性介绍。本轮没有取得可用的具体组件预览或配套 Prompt，不能把以下实现声称为来自 Cue。
 
-### 局部参考：Aethel Hero — Editorial Parallax
+旧版文档记录过 Aethel Hero 与 Scrollspy Line Navigation；本轮无法重新核验这些预览，因此不继续把它们当作本次设计的已验证来源。未读取付费内容、复制代码、购买资源或绕过访问限制。
 
-- 借鉴：衬线标题与无衬线正文的对比、清晰的内容框架、克制但明确的品牌签名。
-- 应用：首页标题、文章标题和章节标题。
-- 不采用：巨幅照片、视差背景、逐字入场和异形导航。它们会抢走技术内容的注意力。
+### 主视觉参考：Creative Boom 的编辑型首页
 
-### 局部参考：Scrollspy Line Navigation
+实际查看：[Awwwards 的 Creative Boom 页面参考](https://www.awwwards.com/inspiration/creative-boom)，截图保存在本次浏览器验收产物中。
 
-- 借鉴：用细线、序号和当前状态帮助定位，而不是堆叠装饰性按钮。
-- 应用：主导航选中态、首页分区序号、文章与合集索引。
-- 不采用：新增固定目录。当前文章结构不统一，先保持正文区域干净，避免在手机端遮挡阅读。
+- 借鉴：文章优先的首屏、主文章与次级内容的明确差异、元信息与标题的排版对比。
+- 应用：首页最新文章与合集双层入口、近期文章列表、归档标题与日期层级。
+- 不采用：新闻媒体的高密度栏目、大量摄影封面、订阅转化和广告区域。个人博客的真实内容不需要这些结构。
+- 边界：查看的是公开设计参考截图；Creative Boom 实站访问超时，未声称测试过它的交互。没有复制其代码、字体或图片。
 
-Cue 的付费 Prompt 和源代码没有读取或复制。本项目只把公开预览作为视觉参考，并按现有 Next.js、Payload CMS 和 Tailwind 结构重新实现。
+另查看了 [Diabla 编辑版式参考](https://www.awwwards.com/inspiration/editorial-layout-composition)，但其巨型装饰标题和图片拼贴会挤压本站文章入口，因此不采用。[Webby 官方评审维度](https://www.webbyawards.com/judging-criteria/) 用于检查内容、结构、视觉、功能和交互的一致性，不是视觉模板；本轮未取得可核验的 FWA 案例。
 
 ## 3. 视觉语言
 
@@ -41,7 +38,7 @@ Cue 的付费 Prompt 和源代码没有读取或复制。本项目只把公开�
 - `--muted-foreground: #656158`：正文辅助信息，仍需保持可读对比度。
 - `--border: #cec8bc`：组织结构的主要方式，优先于阴影。
 
-不使用紫色渐变、装饰光斑和大面积阴影。背景允许极轻的顶部明度变化，但不能影响文字对比。
+不使用紫色渐变、装饰光斑和大面积阴影。使用连续的纸色背景，页脚不突然反转为黑底。保留既有浅色模式，不为本轮另建主题系统。
 
 ### 字体
 
@@ -49,7 +46,7 @@ Cue 的付费 Prompt 和源代码没有读取或复制。本项目只把公开�
 - Body / UI：`Avenir Next`, `PingFang SC`, `Noto Sans CJK SC`, `Microsoft YaHei`, sans-serif。
 - Code / 元信息：`SFMono-Regular`, `Cascadia Code`, `Consolas`, monospace。
 
-衬线字体只用于页面标题、文章标题和内容章节，正文与操作保持无衬线。正文最小 16px，文章桌面正文约 17.3px，行高约 1.9。
+衬线字体用于品牌、页面标题与文章标题；正文、章节标题和操作使用无衬线，便于长技术文的层级扫描。文章桌面正文 17px、行高 1.95，手机正文 16px、行高 1.9。使用本地系统字体，不新增远程字体请求。
 
 ### 间距与边界
 
@@ -63,9 +60,10 @@ Cue 的付费 Prompt 和源代码没有读取或复制。本项目只把公开�
 
 ### 导航
 
-- 固定在顶部，使用半透明纸色背景。
+- 固定在顶部，高 68px，使用实色纸色背景，不让背后的正文干扰导航。
 - 当前页面用细蓝线和文字颜色表示，不使用实心黑色药丸。
 - 手机菜单按钮至少 44×44px；展开后每个入口至少 48px 高。
+- 手机菜单支持 Escape 关闭并恢复按钮焦点；点击外部或切换至桌面宽度时关闭。
 
 ### 首页
 
@@ -73,21 +71,27 @@ Cue 的付费 Prompt 和源代码没有读取或复制。本项目只把公开�
 - 最新文章是首屏的内容锚点，不用装饰图片挤压文章入口。
 - 页面顺序：身份与最新文章 → 近期文章 → 项目与实验 → 最近学习。
 - 同一文章不在同一区域重复出现。
+- 合集从最新文章的真实关联中读取，不增加第二套内容源。没有合集时，侧栏回退为文章列表入口。
 
 ### 文章与合集
 
 - 合集和全部文章使用同一套索引语言：序号、标题、摘要、日期、阅读时间、标签。
 - 标题必须允许自然换行，不能省略关键技术名词。
 - 整行可点击，但链接状态和焦点状态仍要清晰。
+- 合集面板显示真实文章数、进度和前三篇目录，可以从第一篇开始或进入完整目录。
+- 全部文章使用现有标签即时筛选；只向客户端传可见文章的摘要，不传正文、后台字段或 Agent source。筛选不发请求，不新增搜索服务。
 
 ### 文章正文
 
 - 页面标题与 Markdown 内同名一级标题只显示一次。
-- `h2`、`h3` 使用衬线字体并留出明显章节间距。
+- `h2`、`h3` 使用无衬线半粗体，字号分别约为正文的 1.55 与 1.22 倍；章节间距比段落间距更明显。
 - 长代码和宽表格在自身容器内横向滚动，不能撑破页面。
 - 图片保留原始比例并提供稳定边界，避免加载后布局跳动。
 - 行内代码、引用和访问过的链接必须能被区分。
 - 非合集文章在篇末提供真实的继续阅读入口，避免阅读死路。
+- 至少含三个二级章节时提供目录：桌面左侧 sticky 导航，手机是正常文档流中的折叠目录。目录从已渲染标题读取，复用原锚点，不再次解析 Markdown，也不使用逐帧滚动监听。
+- 点击目录收起手机面板并将焦点交给标题；章节保留顶部导航的滚动间距。合集目录与前后篇保持原有顺序。
+- 桌面展开或调整 Agent 时，正文为实际面板宽度让出空间，章节目录改为折叠式；关闭后恢复。既有黑蓝 Orb、历史记录、引用和缩放能力不变。
 
 ## 5. 交互与响应式
 
@@ -105,3 +109,46 @@ Cue 的付费 Prompt 和源代码没有读取或复制。本项目只把公开�
 - 不使用自定义光标、滚动劫持、逐字加载或内容出现前的等待动画。
 - 不为了视觉效果修改文章内容、URL、发布日期和 SEO 语义。
 - 不引入只为单个动效服务的大型依赖。
+
+## 7. 验收产物
+
+本轮使用真实公开文章的隔离本地副本，不复制生产用户、评论、凭据或私有材料。桌面 1440px、手机 390px、中间宽度 768px；重点覆盖长标题、59 分钟长文、表格、图片、代码、目录、合集、筛选、手机菜单和 Agent 面板。
+
+本地截图和 Lighthouse JSON 位于 `output/playwright/design-20261003/`，不作为构建素材或生产依赖提交。改动前为生产页面，改动后为本地 production build；部署后的证据另在当前项目记录中注明，不能用本地结果冒充生产结果。尚未完成的检查不算通过。
+
+### 本地验收记录
+
+- 1440 / 768 / 390px：主页、文章列表、代表性代码文章、59 分钟长文、项目、关于、联系页面均无整页横向溢出；合集额外检查 390px 和实际文章往返。
+- 长文：12/12 张真实图片可加载；20 张表格保持容器内滚动。手机表格实测容器 350px、内容 672px，方向键可滚动且焦点可见，整页仍为 390px。
+- 目录：点击后目标标题位于顶部约 100px，不被 68px 导航挡住；焦点交给标题，当前章节更新。手机目录选择后关闭，减少动态效果设置下关闭平滑滚动。
+- 导航与发现：手机菜单实际进入项目页后关闭；Escape 恢复焦点；文章主题筛选支持键盘，Agent Memory 筛出 7 篇，清除后恢复 22 篇；合集前后篇真实往返成功。
+- Agent：桌面默认 416px 面板和拖拽至 614px 均不覆盖正文；关闭恢复阅读栏。手机保留原 bottom sheet、历史记录与操作语义。本地使用无真实 Provider 的 UI 预览，不宣称本地模型问答通过。
+- SEO / 服务端输出：关闭 JavaScript 后首页、列表、正文和文章链接仍存在；canonical 保持原正式 URL；不存在文章和合集仍返回 HTTP 404，robots 与 sitemap 为 200。
+- Lighthouse 13.5.0 单次本地移动端：主页性能 98、可访问性 100、最佳实践 100、SEO 100；代表文章分别为 92/100/100/100。主页 LCP 2.2 秒、CLS 0；文章 LCP 3.2 秒、CLS 0.033、TBT 140ms。文章慢网 LCP 仍未达到 2.5 秒目标，不能把这些分数当作生产性能、完整 WCAG 认证或获奖证明。
+- 应用检查：844 项 Vitest 通过，2 项条件跳过，含真实 PostgreSQL；ESLint、TypeScript 和 production build 通过。浏览器覆盖的公开页面无运行时异常；没有执行实际手机设备和 Safari / Firefox 全套测试。
+
+生产另已验证 PR #63 的原子文章更新和 ID 15 的真实代码问答：公开文字与 ready hash 一致，源码引用可进入固定 GitHub commit 和行号。该证据只属于已部署的文章更新，不属于尚未部署的视觉改版。
+
+### 主要截图
+
+目录均为 `output/playwright/design-20261003/`：
+
+| 页面 | 改动前（生产） | 改动后（本地 production build） |
+| --- | --- | --- |
+| 主页桌面 | `before-home-desktop.png` | `after-home-1440.png` |
+| 主页手机 | `before-home-mobile.png` | `after-home-390.png` |
+| 文章桌面 | `before-article-desktop.png` | `after-article-desktop.png` |
+| 文章手机 | `before-article-mobile.png` | `after-article-mobile.png` |
+| 列表桌面 | `before-archive-desktop.png` | `after-archive-1440.png` |
+| 列表手机 | `before-archive-mobile.png` | `after-archive-390.png` |
+
+代码文章在本轮经过另行授权的文字改写，前后截图标题不同；不是视觉改版擅自改正文。其 URL、发布日期和代码来源保持不变。
+
+### 修改文件地图
+
+- 页面：`app/(main)/page.tsx`、`blog/page.tsx`、`blog/[slug]/page.tsx`、`blog/series/[slug]/page.tsx`、`projects/page.tsx`、`about/page.tsx`、`contact/page.tsx`。
+- 样式：`app/globals.css`，继续复用原语义色彩和字体变量。
+- 新组件：`src/components/ArticleIndex.tsx`、`ArticleReadingNav.tsx`、`SeriesFeature.tsx`。
+- 现有组件：`src/components/Navbar.tsx`、`Footer.tsx`、`MarkdownArticle.tsx`、`blog-agent/BlogAgent.tsx`。
+- 测试：`__tests__/components/ArticleIndex.test.tsx`、`ArticleReadingNav.test.tsx`、`MarkdownArticle.test.tsx`、`Navbar.test.tsx`、`blog-agent/BlogAgent.test.tsx`。
+- 文档：`DESIGN.md`、`README.md`、`.claude/user-harness/STATUS.md`、`RECENT_SESSIONS.md`；`CLAUDE.md` 仅保留 Next.js 自动生成的项目指引块。

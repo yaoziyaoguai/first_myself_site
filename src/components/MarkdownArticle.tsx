@@ -56,7 +56,7 @@ function headingComponent(
     }
     const RenderTag: HeadingTag = Tag === "h1" && state.title ? "h2" : Tag;
     return (
-      <RenderTag {...props} id={id}>
+      <RenderTag {...props} id={id} tabIndex={-1}>
         {children}
       </RenderTag>
     );
@@ -85,6 +85,9 @@ export function MarkdownArticle({
         h4: headingComponent("h4", headingState),
         h5: headingComponent("h5", headingState),
         h6: headingComponent("h6", headingState),
+        pre: ({ children }) => (
+          <pre tabIndex={0} role="region" aria-label="可横向滚动的代码">{children}</pre>
+        ),
         table: ({ children }) => (
           <div
             aria-label="可横向滚动的表格"

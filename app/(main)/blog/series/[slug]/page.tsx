@@ -74,13 +74,13 @@ export default async function BlogSeriesPage({ params }: PageProps) {
         ← 返回文章列表
       </Link>
 
-      <header className="grid gap-8 border-b border-border pb-12 md:grid-cols-[minmax(0,1fr)_12rem] md:items-end md:pb-16">
+      <header className="grid gap-7 border-b border-foreground/70 pb-9 md:grid-cols-[minmax(0,1fr)_9rem] md:items-end md:pb-12">
         <div className="max-w-4xl">
-          <p className="eyebrow">SERIES</p>
-          <h1 className="mt-6 text-balance font-serif text-4xl font-medium leading-[1.08] tracking-[-0.04em] sm:text-5xl md:text-6xl">
+          <p className="eyebrow">文章合集</p>
+          <h1 className="mt-5 break-words text-pretty font-serif text-[2.25rem] font-medium leading-[1.25] tracking-[-0.035em] md:text-5xl">
             {series.title}
           </h1>
-          <p className="mt-6 max-w-3xl text-base leading-8 text-muted-foreground md:text-lg">
+          <p className="mt-5 max-w-3xl text-sm leading-7 text-muted-foreground md:text-base md:leading-8">
             {series.description}
           </p>
           {articles[0] ? (
@@ -96,7 +96,7 @@ export default async function BlogSeriesPage({ params }: PageProps) {
       {articles.length === 0 ? (
         <div className="empty-state mt-12">这个合集已经建立，文章仍在整理中。</div>
       ) : (
-        <ol className="mt-12 border-y border-border md:mt-16">
+        <ol className="article-index-list mt-9 md:mt-12">
           {articles.map((article, index) => {
             const tags = Array.isArray(article.tags)
               ? (article.tags as { tag?: string | null }[])
@@ -119,7 +119,7 @@ export default async function BlogSeriesPage({ params }: PageProps) {
                     <span className="article-row-title">
                       {String(article.title ?? "未命名文章")}
                     </span>
-                    <span className="mt-3 block max-w-3xl text-sm leading-7 text-muted-foreground">
+                    <span className="article-row-excerpt">
                       {summarizeExcerpt(article.excerpt, 170)}
                     </span>
                     <span className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[0.68rem] text-muted-foreground">

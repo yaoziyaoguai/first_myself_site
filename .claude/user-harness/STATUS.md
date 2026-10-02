@@ -20,7 +20,7 @@
 
 ## 当前阶段
 
-**当前执行**（2026-10-03）：已获授权补齐公开文章正文与 Agent package 的原子更新，经 GitHub Actions 部署后完成 ID 15 的去模板化改写与代码问答验收。随后优化网站 UI/UX，以 Awwwards、Webby Awards、FWA 优秀作品为质量参照，沿用克制、个人化、内容优先的博客方向；需要真实桌面/手机浏览器验收。
+**当前执行**（2026-10-03）：5 月以来 8 篇旧文的标题、摘要和正文改写已全部发布。公开正文与 ready Agent package 的原子更新通过 PR #63、GitHub Actions Run 37039438407 部署，线上 ID 15 的实际代码问答和 GitHub 行号跳转已验证。UI/UX 改版在 `codex/editorial-reading-experience` 完成本地实现与验收，用户已确认提交、推送并按 PR → GitHub Actions → 阿里云发布；正在执行发布检查，生产结果以实际部署和浏览器验收为准。方向为克制、个人化、内容优先，不宣称已经达到评奖或获奖结论。
 
 **阶段**：核心内容、文章合集、互动、运营统计、单文章 Blog Agent、访客内容缓存和 GitHub → 阿里云部署链路均已上线，性能与部署链路优化已完成生产收口。
 
@@ -44,7 +44,7 @@
 | 访客内容缓存 | 仅缓存公开且已发布内容，登录态始终直查；公开内容撤回或删除时失效失败会阻止写入 |
 | 性能测量 | `perf/` 已提供 fail-closed 的真实导航基准与棘轮；生产 fast4g 绝对基线已留档 |
 | SEO / 发现 | sitemap、RSS、canonical metadata 和 ICP 备案页脚已上线 |
-| 测试 | PR #58 全量 Vitest 91 个文件、801 项测试通过（另有条件跳过），性能工具 Node 11/11、Python 9/9；PR #59 部署契约 22/22 通过，并通过 ESLint、TypeScript、Security Scan 与 production build |
+| 测试 | UI 本地全量 Vitest 100 个文件、844 项通过，另 1 文件 / 2 项条件跳过，含真实 PostgreSQL；原子发布 Skill 22 项通过；本轮 ESLint、TypeScript 与 production build 已通过。生产 PR #63 CI 和部署成功，UI 本地证据不等于生产验收 |
 | 部署 | PR → CI → main → 阿里云串行部署；GitHub 仅传约 1.35 MB 的校验 Git bundle，阿里云使用 BuildKit、国内镜像源和缓存构建带 revision 标签的候选镜像；保留备份、迁移、Agent canary、健康检查及应用镜像回滚，纯文档变更可跳过重建；数据库恢复仍需人工处理 |
 
 ## 当前 Blockers
@@ -53,7 +53,8 @@
 
 仍需持续关注：
 
-- 公开正文与 ready Agent package 的原子更新已在 `codex/article-package-content-update` 实现，本地通过回滚/并发 PostgreSQL 测试、835 项全量测试及 production build；待 GitHub 部署后完成 ID 15 文字修订与生产问答验收
+- UI 改版已获发布授权，待完成 PR 门禁、GitHub Actions 部署和生产浏览器验收；不直接修改服务器源代码，不主动中断部署
+- 本地移动端 Lighthouse：主页 98/100/100/100，代表文章 92/100/100/100（性能/可访问性/最佳实践/SEO）；文章模拟慢网 LCP 3.2 秒，不能把单次本地测量当作生产性能或全部 WCAG 人工验收
 - 证书续期和 Nginx 配置在服务器层，不由本仓库管理
 - 备份尚未自动复制到 ECS 之外，也没有定期恢复演练
 - 尚未接入独立的外部 uptime monitoring
@@ -80,6 +81,7 @@
 - Nginx 必须覆盖代理身份头，应用端口不能直接暴露公网
 - Agent 的问题、检索、引用和数据上下文必须限制在当前 Blog，不能跨文章
 - Markdown 永远是基础上下文；可选文章包仅离线发布，不实时连接本地 Codex
+- 已发布文字可与 ready Agent package 原子更新；保留已审核的 GitHub 固定提交和 source hash，标题/摘要/正文参与新版本 hash，失败保留旧正文和旧索引
 - Agent 的模型 Key 只在服务端，功能开关默认关闭，无足够证据时拒答
 - 访客缓存只允许公开、已发布内容进入；登录态绕过缓存，Payload 查询继续使用 `overrideAccess: false`
 - 从公开状态撤回或删除内容时，缓存失效必须 fail closed；普通内容更新允许告警并由短 TTL 兜底
@@ -97,4 +99,4 @@ npm run payload -- run payload.config.ts
 ```
 
 **最后更新**：2026-10-03
-**更新说明**：2026 年 5 月以来的 8 篇旧文中，7 篇已完成标题与正文改写并在生产验证；剩余 1 篇因绑定已就绪 Agent package，待增加原子内容/索引切换能力后再更新。
+**更新说明**：8 篇旧文全部发布；ID 15 保持原 slug、发布日期、标签、图片和合集，新的 82 块索引 ready 且 hash 一致。UI 仅在隔离本地副本验收，截图与报告位于 `output/playwright/design-20261003/`，不进入部署素材。
