@@ -7,6 +7,8 @@ import {
   hashPublicArticle,
 } from "@/lib/blog-agent/articlePackage";
 import { ArticlePackageIndexConflictError } from "@/lib/blog-agent/articleIndexRepository.postgres";
+import type { PublishedArticleEdit } from "@/lib/blog-agent/articleIndexRepository";
+import { revalidateVisitorContent } from "@/lib/visitorContentCache";
 
 export const dynamic = "force-dynamic";
 
@@ -106,12 +108,12 @@ function publicMarkdownArticle(value: Record<string, unknown>): PublicMarkdownAr
   };
 }
 
-async function readLimitedJson(request: Request): Promise<
+async function readLimitedJson(request: Request, maximum = MAX_BODY_BYTES): Promise<
   | { ok: true; value: unknown }
   | { ok: false; tooLarge: boolean }
 > {
   const contentLength = Number(request.headers.get("content-length"));
-  if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
+  if (Number.isFinite(contentLength) && contentLength > maximum) {
     return { ok: false, tooLarge: true };
   }
   if (!request.body) return { ok: false, tooLarge: false };
@@ -123,7 +125,7 @@ async function readLimitedJson(request: Request): Promise<
       const { value, done } = await reader.read();
       if (done) break;
       total += value.byteLength;
-      if (total > MAX_BODY_BYTES) {
+      if (total > maximum) {
         await reader.cancel().catch(() => undefined);
         return { ok: false, tooLarge: true };
       }
@@ -323,6 +325,24 @@ export async function GET(request: Request, { params }: RouteContext) {
   if (!article) return jsonError("Article not found", 404);
   const packageHash = article.agentPackageHash;
   const indexer = getBlogAgentRuntime().indexer;
+  if (new URL(request.url).searchParams.get("manifest") === "1") {
+    const publicArticle = publicMarkdownArticle(article);
+    if (!publicArticle || article.status !== "published" || article.visibility !== "public" ||
+      article.agentContextRequired !== true || article.agentIndexStatus !== "ready" ||
+      typeof packageHash !== "string" || article.agentIndexedPackageHash !== packageHash) {
+      return jsonError("Article package state conflict", 409);
+    }
+    if (!indexer) return jsonError("Embedding provider is not configured", 503);
+    try {
+      const manifest = await indexer.getSourceManifest(publicArticle, packageHash);
+      if (!manifest) return jsonError("Article package state conflict", 409);
+      return NextResponse.json({ packageHash, articleHash: hashPublicArticle(publicArticle), manifest }, {
+        headers: { "Cache-Control": "private, no-store" },
+      });
+    } catch {
+      return jsonError("Article package lookup unavailable", 503);
+    }
+  }
   const summary = indexer && typeof packageHash === "string"
     ? await indexer.getSummary({ blogId: String(article.id), packageHash })
     : null;
@@ -337,4 +357,74 @@ export async function GET(request: Request, { params }: RouteContext) {
     embeddingDimensions: summary?.embeddingDimensions ?? null,
     indexedAt: summary?.indexedAt.toISOString() ?? null,
   });
+}
+
+function publishedRevisionBody(value: unknown): {
+  previousPackageHash: string;
+  previousArticleHash: string;
+  article: PublishedArticleEdit;
+  packagePayload: Record<string, unknown>;
+} | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (Object.keys(record).some((key) => !["previousPackageHash", "previousArticleHash", "article", "package"].includes(key))) return null;
+  const refresh = publishedRefreshBody({ previousPackageHash: record.previousPackageHash, package: record.package });
+  if (!refresh || typeof record.previousArticleHash !== "string" || !/^[a-f0-9]{64}$/.test(record.previousArticleHash) ||
+    !record.article || typeof record.article !== "object" || Array.isArray(record.article)) return null;
+  const article = record.article as Record<string, unknown>;
+  if (Object.keys(article).some((key) => !["title", "excerpt", "contentMarkdown", "readingTime"].includes(key)) ||
+    typeof article.title !== "string" || !article.title.trim() || article.title.length > 500 ||
+    typeof article.excerpt !== "string" || article.excerpt.length > 4000 ||
+    typeof article.contentMarkdown !== "string" || !article.contentMarkdown.trim() ||
+    Buffer.byteLength(article.contentMarkdown, "utf8") > 200 * 1024 ||
+    typeof article.readingTime !== "string" || !article.readingTime.trim() || article.readingTime.length > 64) return null;
+  return { ...refresh, previousArticleHash: record.previousArticleHash, article: article as PublishedArticleEdit };
+}
+
+export async function PATCH(request: Request, { params }: RouteContext) {
+  const boundaryError = requestBoundaryError(request);
+  if (boundaryError) return boundaryError;
+  const { payload, denied } = await authenticate(request);
+  if (denied) return denied;
+  const id = validId((await params).identifier);
+  if (!id) return jsonError("Invalid article", 400);
+  // 主文最多 200 KiB，加上 120 KiB sources 与有界 manifest 元数据。
+  const body = await readLimitedJson(request, 360 * 1024);
+  if (!body.ok) return jsonError(body.tooLarge ? "Request body too large" : "Invalid JSON body", body.tooLarge ? 413 : 400);
+  const revision = publishedRevisionBody(body.value);
+  if (!revision) return jsonError("Invalid published article revision", 400);
+  const lookup = await findPublishedPackageArticle(payload, id);
+  if (!lookup.ok) return jsonError("Article lookup unavailable", 503);
+  const record = lookup.article;
+  const article = publicMarkdownArticle(record);
+  if (!article || record.status !== "published" || record.visibility !== "public" ||
+    record.agentContextRequired !== true || record.agentIndexStatus !== "ready" ||
+    record.agentPackageHash !== revision.previousPackageHash ||
+    record.agentIndexedPackageHash !== revision.previousPackageHash ||
+    hashPublicArticle(article) !== revision.previousArticleHash ||
+    revision.packagePayload.packageHash === revision.previousPackageHash) {
+    return jsonError("Article package state conflict", 409);
+  }
+  const indexer = getBlogAgentRuntime().indexer;
+  if (!indexer) return jsonError("Embedding provider is not configured", 503);
+  try {
+    const summary = await indexer.revisePublished({
+      article, replacement: revision.article,
+      previousPackageHash: revision.previousPackageHash, packagePayload: revision.packagePayload,
+    });
+    // 提交后按普通公开文章编辑的策略失效缓存；失效异常仍由 60 秒 TTL 兜底。
+    let cacheRevalidated = true;
+    try {
+      await revalidateVisitorContent();
+    } catch {
+      cacheRevalidated = false;
+      console.warn("[cache] revalidate after article revision failed");
+    }
+    return NextResponse.json({ ok: true, ...summary, indexedAt: summary.indexedAt.toISOString(), cacheRevalidated });
+  } catch (error) {
+    if (error instanceof ArticlePackageIndexConflictError) return jsonError("Article package state conflict", 409);
+    return error instanceof ArticlePackageValidationError
+      ? jsonError("Article package validation failed", 422)
+      : jsonError("Article package indexing unavailable", 503);
+  }
 }

@@ -4,6 +4,7 @@ import { PgDialect } from "drizzle-orm/pg-core";
 import {
   PostgresArticleIndexRepository,
 } from "@/lib/blog-agent/articleIndexRepository.postgres";
+import { hashPublicArticle } from "@/lib/blog-agent/articlePackage";
 import type {
   BlogAgentQueryClient,
   BlogAgentQueryPool,
@@ -342,6 +343,9 @@ describePostgres("PostgresArticleIndexRepository on PostgreSQL 15", () => {
       "title" text NOT NULL DEFAULT '',
       "excerpt" text NOT NULL DEFAULT '',
       "content_markdown" text NOT NULL DEFAULT '',
+      "reading_time" text NOT NULL DEFAULT '',
+      "published_date" timestamptz NOT NULL DEFAULT '2026-05-20T12:00:00Z',
+      "series" integer,
       "status" text NOT NULL DEFAULT 'draft',
       "visibility" text NOT NULL DEFAULT 'private',
       "updated_at" timestamptz NOT NULL DEFAULT now()
@@ -372,6 +376,74 @@ describePostgres("PostgresArticleIndexRepository on PostgreSQL 15", () => {
   });
 
   afterAll(async () => database?.destroy());
+
+  async function seedPublished(id: string) {
+    const article = { id, slug: `post-${id}`, title: "旧标题", excerpt: "旧摘要", contentMarkdown: "旧正文" };
+    const previousPackageHash = "f".repeat(64);
+    await database.pool.query(
+      `INSERT INTO "blog" ("id", "slug", "title", "excerpt", "content_markdown", "reading_time", "series",
+        "status", "visibility", "agent_context_required", "agent_package_hash", "agent_index_status", "agent_indexed_package_hash")
+       VALUES ($1, $2, $3, $4, $5, '约 3 分钟', 2, 'published', 'public', true, $6, 'ready', $6)`,
+      [id, article.slug, article.title, article.excerpt, article.contentMarkdown, previousPackageHash],
+    );
+    const repository = new PostgresArticleIndexRepository(database.pool);
+    await repository.replacePackage({ ...packageInput, blogId: id, packageHash: previousPackageHash, articleHash: hashPublicArticle(article) });
+    const replacement = { title: "新标题", excerpt: "新摘要", contentMarkdown: "新正文", readingTime: "约 4 分钟" };
+    const next = { ...packageInput, blogId: id, article, replacement, previousPackageHash, articleHash: hashPublicArticle({ ...article, ...replacement }) };
+    return { repository, article, next };
+  }
+
+  it("commits revised prose and its matching index together while retaining metadata and old readers", async () => {
+    const { repository, article, next } = await seedPublished("46");
+    await repository.replacePublishedPackage(next);
+    const { rows } = await database.pool.query('SELECT * FROM "blog" WHERE id = 46');
+    expect(rows[0]).toMatchObject({
+      slug: article.slug, title: "新标题", excerpt: "新摘要", content_markdown: "新正文", reading_time: "约 4 分钟",
+      series: 2, published_date: new Date("2026-05-20T12:00:00Z"), status: "published", visibility: "public",
+      agent_index_status: "ready", agent_package_hash: next.packageHash, agent_indexed_package_hash: next.packageHash,
+    });
+    const current = await repository.getReadyPackage({ blogId: "46", articleHash: next.articleHash, packageHash: next.packageHash });
+    const previous = await repository.getReadyPackage({ blogId: "46", articleHash: hashPublicArticle(article), packageHash: next.previousPackageHash });
+    expect(current?.chunks[0]).toMatchObject({ sourceCommit: "a".repeat(40), sourceLineStart: 12, sourceLineEnd: 27 });
+    expect(previous).not.toBeNull();
+  });
+
+  it("rolls back BOTH prose and all replacement chunks when the final ready switch fails", async () => {
+    const { repository, article, next } = await seedPublished("47");
+    await database.pool.query(`CREATE FUNCTION reject_revision() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN
+        IF NEW.id = 47 AND NEW.agent_package_hash <> OLD.agent_package_hash THEN
+          RAISE EXCEPTION 'simulated final switch failure';
+        END IF;
+        RETURN NEW;
+      END $$;
+      CREATE TRIGGER reject_revision BEFORE UPDATE ON blog FOR EACH ROW EXECUTE FUNCTION reject_revision()`);
+    try {
+      await expect(repository.replacePublishedPackage(next)).rejects.toThrow("simulated final switch failure");
+      const { rows } = await database.pool.query('SELECT * FROM "blog" WHERE id = 47');
+      expect(rows[0]).toMatchObject({ title: article.title, content_markdown: article.contentMarkdown, reading_time: "约 3 分钟",
+        agent_package_hash: next.previousPackageHash, agent_index_status: "ready" });
+      expect(await repository.getPackageSummary({ blogId: "47", packageHash: next.packageHash })).toBeNull();
+      expect(await repository.getReadyPackage({ blogId: "47", articleHash: hashPublicArticle(article), packageHash: next.previousPackageHash })).not.toBeNull();
+    } finally {
+      await database.pool.query('DROP TRIGGER reject_revision ON blog; DROP FUNCTION reject_revision()');
+    }
+  });
+
+  it("allows exactly one of two competing revisions and never overwrites the winner", async () => {
+    const { repository, next } = await seedPublished("48");
+    const otherReplacement = { ...next.replacement, title: "另一位编辑的新标题" };
+    const other = { ...next, packageHash: "c".repeat(64), replacement: otherReplacement,
+      articleHash: hashPublicArticle({ ...next.article, ...otherReplacement }) };
+    const results = await Promise.allSettled([
+      repository.replacePublishedPackage(next), repository.replacePublishedPackage(other),
+    ]);
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+    const winner = results[0].status === "fulfilled" ? next : other;
+    const { rows } = await database.pool.query('SELECT * FROM blog WHERE id = 48');
+    expect(rows[0]).toMatchObject({ title: winner.replacement.title, agent_package_hash: winner.packageHash });
+  });
 
   it("round-trips JSONB and real[] while isolating Blogs", async () => {
     const repository = new PostgresArticleIndexRepository(database.pool);

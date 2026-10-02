@@ -2,11 +2,13 @@ import type {
   ArticleIndexRepository,
   ArticlePackageSummary,
   ReadyArticlePackage,
+  PublishedArticleEdit,
 } from "./articleIndexRepository";
 import {
   buildArticlePackageChunks,
   hashPublicArticle,
   validateArticlePackagePayload,
+  ArticlePackageValidationError,
 } from "./articlePackage";
 import type { ArticleEmbeddingClient } from "./embeddingClient";
 import type { PublicMarkdownArticle } from "./types";
@@ -52,12 +54,55 @@ export class ArticleIndexer {
     return this.summary(readyPackage);
   }
 
+  async revisePublished(input: {
+    article: PublicMarkdownArticle;
+    replacement: PublishedArticleEdit;
+    previousPackageHash: string;
+    packagePayload: unknown;
+  }): Promise<ArticleIndexingSummary> {
+    const article = { ...input.article, ...input.replacement };
+    if ((input.packagePayload as { articleSha256?: unknown } | null)?.articleSha256 !== hashPublicArticle(article)) {
+      throw new ArticlePackageValidationError("正文更新必须绑定完整文章 hash");
+    }
+    const readyPackage = await this.preparePackage({ article, packagePayload: input.packagePayload });
+    await this.dependencies.repository.replacePublishedPackage({
+      ...readyPackage,
+      article: input.article,
+      replacement: input.replacement,
+      previousPackageHash: input.previousPackageHash,
+    });
+    return this.summary(readyPackage);
+  }
+
+  async getSourceManifest(article: PublicMarkdownArticle, packageHash: string) {
+    const stored = await this.dependencies.repository.getReadyPackage({
+      blogId: article.id, articleHash: hashPublicArticle(article), packageHash,
+    });
+    if (!stored) return null;
+    // 索引表只存 source 元数据；仍逐字段投影，避免旧数据意外携带正文或向量。
+    const manifest = stored.manifest as Record<string, unknown>;
+    if (!manifest || !Array.isArray(manifest.sources) || !Array.isArray(manifest.excluded)) return null;
+    return {
+      version: manifest.version,
+      sourceRepository: manifest.sourceRepository,
+      sourceCommit: manifest.sourceCommit,
+      mainSha256: manifest.mainSha256,
+      articleSha256: manifest.articleSha256,
+      manifestPath: manifest.manifestPath,
+      sources: manifest.sources.map(({ path, kind, label, sectionAnchor, sha256 }) =>
+        ({ path, kind, label, sectionAnchor, sha256 })),
+      excluded: manifest.excluded.map(({ path, reason }) => ({ path, reason })),
+      canaryQuestion: manifest.canaryQuestion,
+    };
+  }
+
   private async preparePackage(input: {
     article: PublicMarkdownArticle;
     packagePayload: unknown;
   }): Promise<ReadyArticlePackage> {
     const packageSnapshot = validateArticlePackagePayload(input.packagePayload, {
       markdown: input.article.contentMarkdown,
+      articleHash: hashPublicArticle(input.article),
     });
     const chunks = buildArticlePackageChunks({
       title: input.article.title,

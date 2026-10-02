@@ -34,6 +34,8 @@ describePostgres("content cache invalidation transaction on PostgreSQL 15", () =
     database = await createIsolatedPostgresDatabase();
     const config = await buildConfig({
       secret: "cache-invalidation-test-secret-32-chars",
+      // 隔离测试不能在仓库根目录生成类型，污染随后运行的 production build。
+      typescript: { autoGenerate: false },
       db: postgresAdapter({
         pool: { connectionString: database.connectionString },
         push: true,
