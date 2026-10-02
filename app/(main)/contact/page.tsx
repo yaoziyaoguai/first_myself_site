@@ -36,7 +36,7 @@ export default async function ContactPage() {
     <div className="site-shell page-space">
       <header className="page-header">
         <p className="eyebrow">CONTACT</p>
-        <h1>从公开的地方开始交流。</h1>
+        <h1>交流与联系</h1>
         <p>{introText}</p>
       </header>
 
@@ -50,11 +50,11 @@ export default async function ContactPage() {
               rel={method.href.startsWith("http") ? "noopener noreferrer" : undefined}
               target={method.href.startsWith("http") ? "_blank" : undefined}
             >
-              <span>
+              <span className="min-w-0">
                 <span className="block text-xs uppercase tracking-[0.18em] text-muted-foreground">
                   {method.title}
                 </span>
-                <span className="mt-5 block font-serif text-2xl font-medium">{method.value}</span>
+                <span className="mt-5 block break-words font-serif text-xl font-medium sm:text-2xl">{method.value}</span>
                 {method.description ? (
                   <span className="mt-2 block text-sm leading-6 text-muted-foreground">
                     {method.description}

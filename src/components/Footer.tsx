@@ -22,17 +22,24 @@ export async function Footer() {
   );
 
   return (
-    <footer className="mt-12 border-t border-border bg-foreground text-background">
+    <footer className="site-footer">
       <div className="site-shell grid gap-10 py-12 md:grid-cols-[1fr_auto] md:items-end">
         <div>
-          <p className="font-mono text-[0.65rem] uppercase tracking-[0.18em] text-background/55">JINKUN / FIELD NOTES</p>
-          <p className="mt-5 max-w-2xl text-pretty font-serif text-2xl font-medium leading-snug tracking-[-0.015em] md:text-3xl">{bioShort}</p>
-          <div className="mt-7 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-background/50">
+          <p className="font-serif text-xl font-semibold">
+            Jinkun Wang{" "}
+            <span className="ml-2 font-mono text-xs font-normal tracking-widest text-muted-foreground">
+              FIELD NOTES
+            </span>
+          </p>
+          <p className="mt-3 max-w-xl text-sm leading-7 text-muted-foreground">
+            {bioShort}
+          </p>
+          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
             <p className="uppercase tracking-[0.16em]">
               © {new Date().getFullYear()} {name}
             </p>
             <Link
-              className="underline decoration-background/25 underline-offset-4 transition-colors hover:text-background"
+              className="inline-flex min-h-11 items-center underline decoration-border underline-offset-4 transition-colors hover:text-primary"
               href="https://beian.miit.gov.cn/"
               rel="noopener noreferrer"
               target="_blank"
@@ -44,19 +51,18 @@ export async function Footer() {
         <div className="flex flex-wrap gap-2">
           {socialLinks.map((link) => (
             <Link
-              className="inline-flex min-h-11 items-center rounded-full border border-background/25 px-4 text-sm transition-colors hover:bg-background hover:text-foreground"
+              className="footer-link"
               href={link.href}
               key={link.href}
-              rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
+              rel={
+                link.href.startsWith("http") ? "noopener noreferrer" : undefined
+              }
               target={link.href.startsWith("http") ? "_blank" : undefined}
             >
               {link.label} ↗
             </Link>
           ))}
-          <Link
-            className="inline-flex min-h-11 items-center rounded-full border border-background/25 px-4 text-sm transition-colors hover:bg-background hover:text-foreground"
-            href="/rss.xml"
-          >
+          <Link className="footer-link" href="/rss.xml">
             RSS
           </Link>
         </div>

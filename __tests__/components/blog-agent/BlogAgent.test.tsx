@@ -52,7 +52,7 @@ function renderAgent(
 }
 
 async function openAgent(user = userEvent.setup()) {
-  await user.click(screen.getByRole("button", { name: "打开文章 Agent" }));
+  await user.click(screen.getByRole("button", { name: "问问这篇文章，打开文章 Agent" }));
   return user;
 }
 
@@ -137,7 +137,7 @@ describe("BlogAgent", () => {
 
   it("starts as an accessible floating article Agent and opens the current article panel", async () => {
     renderAgent();
-    expect(screen.getByRole("button", { name: "打开文章 Agent" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "问问这篇文章，打开文章 Agent" })).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
 
@@ -146,6 +146,21 @@ describe("BlogAgent", () => {
     expect(screen.getByText("正在阅读《Doris 写入实践》")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "这篇文章解决了什么问题？" })).toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("reserves article space for a desktop conversation and releases it on close and unmount", async () => {
+    setViewport({ desktop: true });
+    sessionStorage.setItem("blog-agent-panel-size:v1", JSON.stringify({ width: 520, height: 600 }));
+    const { container, unmount } = render(<div className="site-shell"><BlogAgent articleSlug="doris-write-path" articleTitle="Doris 写入实践" /></div>);
+    const shell = container.querySelector<HTMLElement>(".site-shell")!;
+    const user = await openAgent();
+    expect(shell.style.getPropertyValue("--article-agent-width")).toBe("520px");
+    await user.click(screen.getByRole("button", { name: "关闭文章 Agent" }));
+    expect(shell.style.getPropertyValue("--article-agent-width")).toBe("");
+    await openAgent(user);
+    expect(shell.style.getPropertyValue("--article-agent-width")).toBe("520px");
+    unmount();
+    expect(shell.style.getPropertyValue("--article-agent-width")).toBe("");
   });
 
   it("resizes the desktop panel from its top-left handle", async () => {
@@ -474,7 +489,7 @@ describe("BlogAgent", () => {
 
   it("renders the selected Orb as a decorative part of the trigger", () => {
     renderAgent();
-    const trigger = screen.getByRole("button", { name: "打开文章 Agent" });
+    const trigger = screen.getByRole("button", { name: "问问这篇文章，打开文章 Agent" });
     const mascot = trigger.querySelector('[data-blog-agent-mascot="orb"]');
 
     expect(trigger).toHaveTextContent("问问这篇文章");
@@ -726,7 +741,7 @@ describe("BlogAgent", () => {
 
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "打开文章 Agent" })).toHaveFocus();
+      expect(screen.getByRole("button", { name: "问问这篇文章，打开文章 Agent" })).toHaveFocus();
     });
   });
 

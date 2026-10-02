@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { ArticleLinkFeedback } from "@/components/ArticleLinkFeedback";
-import { siteDefaults, type ContentCard, type Direction } from "@/content/siteDefaults";
+import {
+  siteDefaults,
+  type ContentCard,
+  type Direction,
+} from "@/content/siteDefaults";
 import { isAdmin, getCurrentUser } from "@/lib/auth";
 import { resolveArray, resolveText } from "@/lib/contentFallback";
 import { summarizeExcerpt } from "@/lib/discovery";
+import { populatedSeries } from "@/lib/blogSeries";
 import {
   findBlogPostsForViewer,
   findHomeGlobalForViewer,
@@ -21,7 +26,7 @@ export default async function Home() {
     findBlogPostsForViewer(viewer, {
       sort: "-publishedDate",
       limit: 4,
-      depth: 0,
+      depth: 1,
     }),
     findProjectsForViewer(viewer),
   ]);
@@ -51,127 +56,216 @@ export default async function Home() {
       : siteDefaults.projects;
   const featuredPost = postsResult.docs[0] ?? null;
   const recentPosts = postsResult.docs.slice(1);
+  const featuredSeries = postsResult.docs
+    .map((post) => populatedSeries(post.series))
+    .find(Boolean);
 
   return (
-    <div className="site-shell pb-24 pt-8 md:pb-32 md:pt-14">
-      <section className="grid gap-12 border-b border-border pb-14 md:grid-cols-[minmax(0,1.12fr)_minmax(20rem,0.88fr)] md:items-end md:gap-16 md:pb-20">
+    <div className="site-shell home-page">
+      <header className="home-intro">
         <div>
-          <p className="eyebrow">DATA · EVALUATION · AGENTS</p>
-          <h1 className="mt-7 max-w-4xl text-balance font-serif text-[3.3rem] font-medium leading-[0.96] tracking-[-0.045em] sm:text-6xl md:text-[5.2rem]">
-            {title}
-          </h1>
-          <p className="mt-7 max-w-3xl text-pretty text-xl leading-relaxed text-foreground/90 md:text-2xl">
-            {role}
-          </p>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground md:text-lg md:leading-8">
-            {bio}
-          </p>
-          <div className="mt-8 flex flex-wrap gap-2" aria-label="当前学习方向">
+          <h1>{title}</h1>
+          <div className="home-directions" aria-label="当前学习方向">
             {directions.map((item) => (
-              <span className="topic-pill" key={item.label}>
-                {item.label}
-              </span>
+              <span key={item.label}>{item.label}</span>
             ))}
           </div>
         </div>
+        <div className="home-intro-copy">
+          <p>{role}</p>
+          <p>{bio}</p>
+        </div>
+      </header>
 
+      <section className="home-lead" aria-label="最新文章与专题">
         {featuredPost ? (
-          <Link prefetch={false} className="group border-t-2 border-primary pb-1 pt-5" href={`/blog/${featuredPost.slug}`}>
-            <span className="flex items-center justify-between gap-4 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground">
-              <span>Latest note</span>
-              <time>{featuredPost.publishedDate ? formatSiteDate(featuredPost.publishedDate) : ""}</time>
+          <Link
+            prefetch={false}
+            className="group home-feature"
+            href={`/blog/${featuredPost.slug}`}
+          >
+            <span className="home-feature-meta">
+              <span>最新文章</span>
+              <time dateTime={featuredPost.publishedDate}>
+                {featuredPost.publishedDate
+                  ? formatSiteDate(featuredPost.publishedDate)
+                  : ""}
+              </time>
             </span>
-            <span className="mt-7 block text-pretty font-serif text-[2rem] font-medium leading-[1.15] tracking-[-0.025em] transition-colors duration-200 group-hover:text-primary md:text-[2.45rem]">
-              {featuredPost.title}
-            </span>
-            <span className="mt-4 block text-sm leading-7 text-muted-foreground">
+            <h2>{featuredPost.title}</h2>
+            <span className="home-feature-excerpt">
               {summarizeExcerpt(featuredPost.excerpt, 150)}
             </span>
             <ArticleLinkFeedback
-              className="mt-7 min-h-11 text-sm font-medium text-primary"
+              className="mt-5 min-h-11 text-sm font-medium text-primary"
               iconSize={17}
               idleLabel="阅读这篇文章"
             />
           </Link>
         ) : (
           <div className="border-t-2 border-primary pt-5">
-            <p className="text-sm leading-7 text-muted-foreground">这是一个持续更新的学习现场。文章记录理解，项目用来验证理解。</p>
-            <Link prefetch={false} className="text-link mt-5" href="/blog">前往文章列表 →</Link>
+            <p className="text-sm leading-7 text-muted-foreground">
+              这是一个持续更新的学习现场。文章记录理解，项目用来验证理解。
+            </p>
+            <Link prefetch={false} className="text-link mt-5" href="/blog">
+              前往文章列表 →
+            </Link>
           </div>
         )}
+        <aside className="home-series">
+          <p className="home-series-label">按主题读</p>
+          {featuredSeries ? (
+            <>
+              <h2>
+                <Link
+                  prefetch={false}
+                  href={`/blog/series/${featuredSeries.slug}`}
+                >
+                  {featuredSeries.title}
+                </Link>
+              </h2>
+              <p className="home-series-description">
+                {featuredSeries.description}
+              </p>
+              <Link
+                prefetch={false}
+                className="text-link"
+                href={`/blog/series/${featuredSeries.slug}`}
+              >
+                打开合集目录{" "}
+                <ArrowUpRight className="ml-2" size={17} aria-hidden="true" />
+              </Link>
+            </>
+          ) : (
+            <>
+              <h2>从一篇笔记开始</h2>
+              <p className="home-series-description">
+                数据工程、AI 评测和 Agent 实践，都在文章里。
+              </p>
+              <Link prefetch={false} className="text-link" href="/blog">
+                浏览全部文章 →
+              </Link>
+            </>
+          )}
+        </aside>
       </section>
 
-      <section className="section-grid">
-        <div>
-          <p className="section-number">01</p>
+      <section className="home-recent">
+        <div className="section-heading">
           <h2 className="section-title">近期文章</h2>
-          <Link prefetch={false} className="text-link mt-4" href="/blog">浏览全部文章 →</Link>
+          <Link prefetch={false} className="text-link" href="/blog">
+            浏览全部文章 →
+          </Link>
         </div>
-        <div className="border-y border-border">
+        <div className="article-index-list">
           {recentPosts.length === 0 ? (
-            <div className="py-10 text-sm leading-7 text-muted-foreground">{siteDefaults.blog.emptyMessage}</div>
-          ) : recentPosts.map((post) => (
-            <Link prefetch={false} className="group article-row" href={`/blog/${post.slug}`} key={post.id}>
-              <time className="font-mono text-[0.7rem] tracking-[0.08em] text-muted-foreground">
-                {post.publishedDate ? formatSiteDate(post.publishedDate) : ""}
-              </time>
-              <span>
-                <span className="article-row-title">{post.title}</span>
-                <span className="mt-3 block max-w-3xl text-sm leading-7 text-muted-foreground">
-                  {summarizeExcerpt(post.excerpt, 135)}
+            <div className="py-10 text-sm leading-7 text-muted-foreground">
+              {siteDefaults.blog.emptyMessage}
+            </div>
+          ) : (
+            recentPosts.map((post) => (
+              <Link
+                prefetch={false}
+                className="group article-row"
+                href={`/blog/${post.slug}`}
+                key={post.id}
+              >
+                <span className="article-date">
+                  <time dateTime={post.publishedDate}>
+                    {post.publishedDate
+                      ? formatSiteDate(post.publishedDate)
+                      : ""}
+                  </time>
+                  <span>{post.readingTime}</span>
                 </span>
-              </span>
-              <ArticleLinkFeedback
-                className="md:justify-self-end"
-                compact
-              />
-            </Link>
-          ))}
+                <span>
+                  <span className="article-row-title">{post.title}</span>
+                  <span className="article-row-excerpt">
+                    {summarizeExcerpt(post.excerpt, 135)}
+                  </span>
+                </span>
+                <ArticleLinkFeedback className="md:justify-self-end" compact />
+              </Link>
+            ))
+          )}
         </div>
       </section>
 
-      <section className="section-grid">
-        <div>
-          <p className="section-number">02</p>
+      <section className="home-projects">
+        <div className="section-heading">
           <h2 className="section-title">项目与实验</h2>
-          <Link prefetch={false} className="text-link mt-4" href="/projects">查看全部项目 →</Link>
+          <Link prefetch={false} className="text-link" href="/projects">
+            查看全部项目 →
+          </Link>
         </div>
-        <div className="grid border-y border-border md:grid-cols-2">
-          {projects.slice(0, 2).map((project, index) => (
-            <Link prefetch={false}
-              className={`group flex min-h-72 flex-col py-8 transition-colors duration-200 hover:bg-card/70 md:p-8 ${index === 0 ? "border-b border-border md:border-b-0 md:border-r" : ""}`}
+        <div className="home-project-grid">
+          {projects.slice(0, 2).map((project) => (
+            <Link
+              prefetch={false}
+              className="group home-project"
               href={project.href}
               key={String(project.id)}
               target={project.href.startsWith("http") ? "_blank" : undefined}
               rel={project.href.startsWith("http") ? "noreferrer" : undefined}
             >
               <div className="flex items-start justify-between gap-4">
-                <p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground">{project.role}</p>
-                <ArrowUpRight aria-hidden="true" className="text-muted-foreground transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" size={18} />
+                <p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground">
+                  {project.role}
+                </p>
+                <ArrowUpRight
+                  aria-hidden="true"
+                  className="text-muted-foreground transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                  size={18}
+                />
               </div>
-              <h3 className="mt-10 font-serif text-3xl font-medium tracking-[-0.025em]">{project.title}</h3>
-              <p className="mt-4 text-sm leading-7 text-muted-foreground">{project.description}</p>
+              <h3 className="mt-7 font-serif text-3xl font-medium tracking-[-0.025em]">
+                {project.title}
+              </h3>
+              <p className="mt-4 text-sm leading-7 text-muted-foreground">
+                {project.description}
+              </p>
               <div className="mt-auto flex flex-wrap gap-x-3 gap-y-2 pt-8">
-                {project.tags?.slice(0, 3).map((tag: { tag?: string | null }) => (
-                  <span className="font-mono text-[0.68rem] text-muted-foreground" key={tag.tag ?? "tag"}>#{tag.tag}</span>
-                ))}
+                {project.tags
+                  ?.slice(0, 3)
+                  .map((tag: { tag?: string | null }) => (
+                    <span
+                      className="font-mono text-[0.68rem] text-muted-foreground"
+                      key={tag.tag ?? "tag"}
+                    >
+                      #{tag.tag}
+                    </span>
+                  ))}
               </div>
             </Link>
           ))}
         </div>
       </section>
 
-      <section className="section-grid">
+      <section className="section-grid home-learning">
         <div>
-          <p className="section-number">03</p>
           <h2 className="section-title">最近在学习</h2>
-          {admin ? <Link prefetch={false} className="text-link mt-4" href="/admin/globals/home">管理最近学习 →</Link> : null}
+          {admin ? (
+            <Link
+              prefetch={false}
+              className="text-link mt-4"
+              href="/admin/globals/home"
+            >
+              管理最近学习 →
+            </Link>
+          ) : null}
         </div>
         <div className="divide-y divide-border border-y border-border">
           {learningAreas.map((area) => (
-            <article className="grid gap-3 py-7 sm:grid-cols-[11rem_1fr]" key={area.title}>
-              <h3 className="font-serif text-lg font-medium tracking-tight">{area.title}</h3>
-              <p className="text-sm leading-7 text-muted-foreground">{area.description}</p>
+            <article
+              className="grid gap-3 py-7 sm:grid-cols-[11rem_1fr]"
+              key={area.title}
+            >
+              <h3 className="font-serif text-lg font-medium tracking-tight">
+                {area.title}
+              </h3>
+              <p className="text-sm leading-7 text-muted-foreground">
+                {area.description}
+              </p>
             </article>
           ))}
         </div>

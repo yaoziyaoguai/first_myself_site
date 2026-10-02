@@ -37,7 +37,7 @@ export default async function AboutPage() {
     <div className="site-shell page-space">
       <header className="page-header">
         <p className="eyebrow">ABOUT</p>
-        <h1>保持好奇，也保持诚实。</h1>
+        <h1>关于我</h1>
         <p>
           我是 {name}。{introText}
         </p>
@@ -45,7 +45,6 @@ export default async function AboutPage() {
 
       <section className="section-grid">
         <div>
-          <p className="section-number">01</p>
           <h2 className="section-title">当前方向</h2>
         </div>
         <div className="divide-y divide-border border-y border-border">
@@ -60,7 +59,6 @@ export default async function AboutPage() {
 
       <section className="section-grid">
         <div>
-          <p className="section-number">02</p>
           <h2 className="section-title">使用中的工具</h2>
         </div>
         <div className="grid border-y border-border sm:grid-cols-3">
@@ -77,7 +75,6 @@ export default async function AboutPage() {
 
       <section className="section-grid">
         <div>
-          <p className="section-number">03</p>
           <h2 className="section-title">反复追问的问题</h2>
         </div>
         <div className="grid border-y border-border sm:grid-cols-2">

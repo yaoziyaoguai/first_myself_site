@@ -385,6 +385,16 @@ export function BlogAgent({
   }, [panelSize]);
 
   useEffect(() => {
+    if (!state.isOpen || !desktopLayout) return;
+    const shell = panelRef.current?.closest<HTMLElement>(".site-shell");
+    if (!shell) return;
+    // 将浮层实际宽度交给文章容器，拖拽时正文也让出空间；关闭后恢复原版式。
+    const width = panelRef.current?.getBoundingClientRect().width || panelSize?.width || 416;
+    shell.style.setProperty("--article-agent-width", `${width}px`);
+    return () => { shell.style.removeProperty("--article-agent-width"); };
+  }, [state.isOpen, desktopLayout, panelSize?.width]);
+
+  useEffect(() => {
     const cancelResize = () => {
       resizeStartRef.current = null;
     };
@@ -784,7 +794,7 @@ export function BlogAgent({
         ref={triggerRef}
         type="button"
         className="blog-agent-trigger"
-        aria-label="打开文章 Agent"
+        aria-label="问问这篇文章，打开文章 Agent"
         aria-expanded={state.isOpen}
         onClick={state.isOpen ? undefined : () => dispatch({ type: "open" })}
       >

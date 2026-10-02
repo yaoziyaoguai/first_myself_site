@@ -103,4 +103,10 @@ describe("MarkdownArticle", () => {
     expect(region).toHaveAttribute("tabindex", "0");
     expect(region?.querySelector("table")).toBeInTheDocument();
   });
+
+  it("makes code scrollable by keyboard and headings focusable as link targets", () => {
+    render(<MarkdownArticle markdown={"## 实现\n```python\nprint('verified')\n```"} />);
+    expect(screen.getByRole("region", { name: "可横向滚动的代码" })).toHaveAttribute("tabindex", "0");
+    expect(screen.getByRole("heading", { name: "实现" })).toHaveAttribute("tabindex", "-1");
+  });
 });
