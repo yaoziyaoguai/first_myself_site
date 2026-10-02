@@ -80,6 +80,10 @@ server {
 
 现有公开文章需要补充或更新 GitHub 元数据时，先提交 Markdown、sidecar 与 selected sources，再运行 `plan`。随后执行带显式确认参数的 `refresh-agent-package`；新包完成校验和 embedding 后，服务端锁定 Blog 行并重新核对正文、公开状态和旧 hash，在同一事务内切换新包。任何冲突或失败都保留旧包为 `ready`，不会临时关闭文章 Agent；切换成功后也暂时保留旧版本，避免已经读取旧 hash 的并发请求失去上下文，后续只能通过独立的安全清理任务回收。
 
+只修改已公开文章的文字时，使用 `update-published --confirm-published-update`，不要直接 PATCH Blog collection 绕过索引门禁。Skill 从认证 `GET /api/blog/<id>/agent-index?manifest=1` 获取原包来源元数据，匿名重新校验相同 GitHub commit 下的文件和 SHA-256，然后通过同一路由的 PATCH 同时提交新标题、摘要、Markdown、阅读时长和索引。新增 `articleSha256` 绑定完整文章，标题单独改变也会生成不同 package hash。服务器先生成 embedding，再在单个 PostgreSQL 事务中锁定并重查旧正文、状态和 hash；正文与 ready hash 一起切换，任一步失败一起回滚。slug、发布日期、标签、图片关系与合集不变，旧包暂时保留。
+
+正文修订请求必须来自 admin/editor，通过 JSON/同源边界，最大 360 KiB；来源清单响应 `private, no-store`，不返回源码或向量。遇到 `409` 先重新读取文章，不覆盖并发改动；超时则检查新 hash 是否已 ready，不能盲重试。响应 `cacheRevalidated=false` 表示事务已成功但缓存失效异常，应等现有 60 秒 TTL 后核对前台，不重复提交。没有公开 GitHub 固定来源或删除了 source 对应 heading 时，Skill 会停止，需先重新审查材料与引用映射。
+
 source snapshot 和 embeddings 只存 PostgreSQL 私有 `blog_agent` 表，不会被匿名 raw-data API、plan、inspect 或日志完整返回。文章 Agent 可以在回答中展示最多两个有界代码块；服务端按 CommonMark AST 统计 backtick、tilde、缩进和未闭合 fence 等实际可渲染 code node，单块最多 1,200 字符、合计最多 1,600 字符。明确要求代码、当前证据包含 `sourceKind=code`、但模型只返回解释时，服务端会从本次排名中的代码证据追加一个最多 360 字符、6 行且不超过该 source 非空行数一半的短摘录，并补上该证据引用；不足 3 个非空行或无法形成 24 字符实质摘录的 source 不会自动展示。完整补充 source 不允许返回；回答在一个或多个补充 source 中累计复刻达到 600 字符时也会降级为证据不足。访客问题只会对当前 Blog 的最多 128 个 chunks 做有界内存排名；SQL 不形成全站向量/FTS 查询。
 
 多轮追问仍以当前 Blog 为唯一边界。浏览器按文章 slug 在当前标签页保存最近 8 轮已完成对话；每次请求最多携带最近 3 轮，单个旧回答最多 1,200 字符，总请求体仍不得超过 8 KiB。客户端历史可能被访客篡改，因此服务端只使用旧问题辅助当前文章内检索，并明确要求模型将历史视为不可信输入、只用于解析指代；事实和引用必须重新来自本次选中的当前文章证据。历史不会以原文写入访问日志或独立会话表，回答缓存只保留包含历史的不可逆哈希，也不会跨文章加载。

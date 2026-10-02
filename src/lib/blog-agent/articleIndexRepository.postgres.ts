@@ -8,6 +8,7 @@ import type {
   ReadyArticlePackage,
 } from "./articleIndexRepository";
 import type { BlogAgentQueryClient, BlogAgentQueryPool } from "./repository.postgres";
+import { hashPublicArticle } from "./articlePackage";
 
 const SOURCE_KINDS = new Set<ArticleChunkSourceKind>([
   "article",
@@ -315,6 +316,10 @@ export class PostgresArticleIndexRepository implements ArticleIndexRepository {
 
   async replacePublishedPackage(input: PublishedArticlePackageReplacement): Promise<void> {
     validatePackage(input);
+    if (input.packageHash === input.previousPackageHash || (input.replacement &&
+      input.articleHash !== hashPublicArticle({ ...input.article, ...input.replacement }))) {
+      throw new ArticlePackageIndexConflictError();
+    }
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
@@ -331,6 +336,17 @@ export class PostgresArticleIndexRepository implements ArticleIndexRepository {
         throw new ArticlePackageIndexConflictError();
       }
       await writePackage(client, input);
+      if (input.replacement) {
+        // 与新索引在同一事务提交；失败时公开文章及旧 ready hash 一起回滚。
+        await client.query(
+          `UPDATE "blog"
+              SET "title" = $2, "excerpt" = $3, "content_markdown" = $4,
+                  "reading_time" = $5
+            WHERE "id" = $1`,
+          [input.blogId, input.replacement.title, input.replacement.excerpt,
+            input.replacement.contentMarkdown, input.replacement.readingTime],
+        );
+      }
       await client.query(
         `UPDATE "blog"
             SET "agent_package_hash" = $2,

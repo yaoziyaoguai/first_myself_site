@@ -38,6 +38,11 @@ export type ArticlePackageSummary = Omit<ReadyArticlePackage, "chunks" | "manife
 export type PublishedArticlePackageReplacement = ReadyArticlePackage & {
   article: PublicMarkdownArticle;
   previousPackageHash: string;
+  replacement?: PublishedArticleEdit;
+};
+
+export type PublishedArticleEdit = Pick<PublicMarkdownArticle, "title" | "excerpt" | "contentMarkdown"> & {
+  readingTime: string;
 };
 
 export interface ArticleIndexRepository {

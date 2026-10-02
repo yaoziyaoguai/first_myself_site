@@ -102,6 +102,7 @@ npm run build
 - 图片会生成稳定文件名，重复运行可以复用已有媒体
 - 已存在的 slug 默认停止，避免误覆盖线上文章
 - 凭据只从本机环境变量或系统 Keychain 读取，不进入仓库
+- 已公开且绑定 ready Agent package 的文章，可明确执行 `update-published --confirm-published-update`：保留原 GitHub 固定提交，校验来源后在同一事务更新文字与索引；不改 slug、发布日期、标签和合集，失败保留旧版
 
 推荐流程：先生成文章 → 本地预检 → 上传草稿 → 后台校对 → 明确公开发布。
 

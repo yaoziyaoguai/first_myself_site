@@ -54,6 +54,7 @@ export type ValidatedArticlePackage = {
   sourceRepository?: string;
   sourceCommit: string;
   mainSha256: string;
+  articleSha256?: string;
   manifestPath: string;
   sources: ArticlePackageSource[];
   excluded: ArticlePackageExclusion[];
@@ -63,6 +64,7 @@ export type ValidatedArticlePackage = {
     sourceRepository?: string;
     sourceCommit: string;
     mainSha256: string;
+    articleSha256?: string;
     manifestPath: string;
     sources: Array<Omit<ArticlePackageSource, "content">>;
     excluded: ArticlePackageExclusion[];
@@ -138,6 +140,7 @@ function canonicalPackage(value: {
   sourceRepository?: string;
   sourceCommit: string;
   mainSha256: string;
+  articleSha256?: string;
   manifestPath: string;
   sources: ArticlePackageSource[];
   excluded: ArticlePackageExclusion[];
@@ -150,6 +153,7 @@ function canonicalPackage(value: {
       : {}),
     sourceCommit: value.sourceCommit,
     mainSha256: value.mainSha256,
+    ...(value.articleSha256 ? { articleSha256: value.articleSha256 } : {}),
     manifestPath: value.manifestPath,
     sources: value.sources.map((source) => ({
       path: source.path,
@@ -169,7 +173,7 @@ function canonicalPackage(value: {
 
 export function validateArticlePackagePayload(
   input: unknown,
-  article: { markdown: string },
+  article: { markdown: string; articleHash?: string },
 ): ValidatedArticlePackage {
   const value = record(input, "文章包");
   exactKeys(value, [
@@ -178,6 +182,7 @@ export function validateArticlePackagePayload(
     "sourceRepository",
     "sourceCommit",
     "mainSha256",
+    "articleSha256",
     "manifestPath",
     "sources",
     "excluded",
@@ -196,6 +201,13 @@ export function validateArticlePackagePayload(
   }
   if (sha256(article.markdown) !== value.mainSha256) {
     throw new ArticlePackageValidationError("主 Markdown hash 与文章内容不一致");
+  }
+  if (value.articleSha256 !== undefined && (
+    typeof value.articleSha256 !== "string" ||
+    !SHA256_RE.test(value.articleSha256) ||
+    value.articleSha256 !== article.articleHash
+  )) {
+    throw new ArticlePackageValidationError("文章标题、摘要或正文 hash 不一致");
   }
   const manifestPath = safeRelativePath(value.manifestPath, "manifest");
   const canaryQuestion = boundedText(value.canaryQuestion, "canaryQuestion", 300);
@@ -259,6 +271,7 @@ export function validateArticlePackagePayload(
     sourceRepository,
     sourceCommit: value.sourceCommit,
     mainSha256: value.mainSha256,
+    ...(typeof value.articleSha256 === "string" ? { articleSha256: value.articleSha256 } : {}),
     manifestPath,
     sources,
     excluded,
