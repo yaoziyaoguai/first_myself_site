@@ -127,7 +127,21 @@
 - Lighthouse 13.5.0 单次本地移动端：主页性能 98、可访问性 100、最佳实践 100、SEO 100；代表文章分别为 92/100/100/100。主页 LCP 2.2 秒、CLS 0；文章 LCP 3.2 秒、CLS 0.033、TBT 140ms。文章慢网 LCP 仍未达到 2.5 秒目标，不能把这些分数当作生产性能、完整 WCAG 认证或获奖证明。
 - 应用检查：844 项 Vitest 通过，2 项条件跳过，含真实 PostgreSQL；ESLint、TypeScript 和 production build 通过。浏览器覆盖的公开页面无运行时异常；没有执行实际手机设备和 Safari / Firefox 全套测试。
 
-生产另已验证 PR #63 的原子文章更新和 ID 15 的真实代码问答：公开文字与 ready hash 一致，源码引用可进入固定 GitHub commit 和行号。该证据只属于已部署的文章更新，不属于尚未部署的视觉改版。
+生产另已验证 PR #63 的原子文章更新和 ID 15 的真实代码问答：公开文字与 ready hash 一致，源码引用可进入固定 GitHub commit 和行号。
+
+### 生产发布验收（2026-10-03）
+
+- UI 经 [PR #64](https://github.com/yaoziyaoguai/first_myself_site/pull/64) 合入 `main`；[Actions Run 37076629022](https://github.com/yaoziyaoguai/first_myself_site/actions/runs/37076629022) 成功。生产容器 `healthy`，应用 revision 为 `8da380e93f342fad577e32886659260cf9c95396`。
+- 新的 Chromium 上下文检查首页与代表文章的 1440 / 768 / 390px，以及项目、关于、联系的 390px：9 个页面/尺寸组合均为 200，零控制台错误、页面异常、HTTP 失败和整页横向溢出。
+- 实际点击验证 22 篇文章筛选到 7 篇、展开更多主题、清除筛选；首页进入文章、进入合集、合集前后篇往返均通过。
+- 目录跳转后目标标题距顶部约 100px，获得焦点；手机目录自动折叠，菜单跳转后关闭，Escape 将焦点交回菜单按钮。
+- 59 分钟长文的 12 张图片均成功解码，20 张表格保持容器内滚动；手机首张表格容器 350px、内容 672px，实际方向键滚动成功。
+- Agent 默认 416px 与实际拖拽后的 614px 均不覆盖正文；手机面板宽 390px，关闭/打开和返回后的历史保留正常。线上代码提问返回 200、代码块和 2 个固定 GitHub 引用（此次命中服务端缓存），点击打开 `runner.py#L217-L254`；不把缓存命中称为新的模型生成测试。
+- `/api/health`、robots、sitemap 为 200，不存在文章与合集继续返回真实 404。部署内 Agent canary 通过。
+- 预先打开、跨越容器切换的旧浏览器出现过 1 次 analytics 请求 502；切换完成后上述新上下文为零失败。不把这套现有单容器切换流程描述为零停机。
+- 部署 Job 共 35 分 19 秒；只读日志确认服务器编译约 15.4 分钟、TypeScript 约 4.2 分钟，镜像层导出约 5 分钟、载入约 2.5 分钟。未中断部署，未在服务器直接修改源代码。
+
+生产截图同样保存在本地证据目录：`production-home-{1440,768,390}.png`、`production-article-{1440,768,390}.png`、`production-archive-desktop.png`、`production-archive-mobile.png`、`production-series-mobile.png`、`production-long-article-mobile.png`、`production-table-mobile.png`、`production-agent-desktop.png`、`production-agent-mobile.png`、`production-agent-answer.png`、`production-github-ui-release.png`。Lighthouse 仍只有前述本地结果，不新增生产分数声明。
 
 ### 主要截图
 
