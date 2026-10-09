@@ -154,6 +154,19 @@
 
 生产构建上的 Chromium 复测通过：长回答不抢滚动和焦点、输入伸缩、Tab / Escape、原文标题约 100px 的定位、草稿 / 历史保留、鼠标拖拽 428→506px 且正文仍留出空间。正常路径无控制台错误；故障夹具刻意返回 429 和 503，页面分别显示限流与重试，保留问题并可恢复。对应两条网络错误属于注入场景，不视为正常路径通过记录。
 
+### 文章 Agent 生产验收（2026-10-09）
+
+- [PR #66](https://github.com/yaoziyaoguai/first_myself_site/pull/66) 已合入 `main`；[Actions Run 37911247296](https://github.com/yaoziyaoguai/first_myself_site/actions/runs/37911247296) 成功，阿里云容器 `healthy` 且 revision 为 `2ad23a9148513b93ef775cb515287ac12e0af6f9`。公网健康接口、主页、robots 和 sitemap 均为 200。
+- 合并后 CI：常规 835 项测试通过、17 项条件跳过，独立真实 PostgreSQL 专项检查 25 项通过；lint、类型、构建和部署内真实模型 canary 通过。canary 包含 `contextMode=article-package` 与 `codeExcerpt=true`。
+- 正式文章路由的 Chromium 检查 1440×900、390×844、390×470 和 768×1024：输入框约 59→155px 后限制高度，Enter 换行；实际鼠标 / 键盘缩放、跨断点草稿、背景滚动锁、Tab / Shift+Tab、Escape 焦点恢复通过，无整页横向溢出。
+- 初次 Tab 断言在 Base UI 隐藏 focus guard 上过早取样。逐帧记录证明它在下一帧回到弹层而不是背景控件；验收脚本等待焦点移交后的正反 Tab 均通过，没有为测试改动业务实现。
+- 两轮真实公网代码问答均返回 200、`cached=false`，不是本地夹具。回答期间会话 scrollTop 保持 60→60px，键盘焦点未被抢走，“查看最新回答”可到达底部；关闭重开保留草稿 / 历史，刷新后保留已完成历史。
+- 实际点击固定提交源码链接进入 GitHub `runner.py#L80-L119` 并显示高亮代码，浏览器后退返回后对话保留。手机点击文章依据后关闭弹层，H2 顶部约 100px、获得焦点且背景滚动恢复，reduced-motion 下同样有效。
+- 本站验证没有控制台错误；GitHub 的独立导航请求返回 404，但源码正常展示。模型正文写出的“约 90–95 行”与真实片段 96–100 行有偏差，引用卡片 L80-L119 正确；本轮未修改模型行号表达策略。
+- 实体手机键盘、Safari / Firefox 和完整屏幕阅读器仍未运行。本次没有重新跑 Lighthouse 或性能基准，也不以发布验证代替这些结论。
+
+生产截图与脚本位于 `output/playwright/agent-ux-20261009/`：`production-before-deploy.png`、`production-desktop-composer.png`、`production-mobile-composer.png`、`production-mobile-short.png`、`production-tablet.png`、`production-real-answer.png`、`production-reading-preserved.png`、`production-mobile-answer.png`、`production-mobile-citation.png` 和 `production-github-source.png`。
+
 ### 生产发布验收（2026-10-03）
 
 - UI 经 [PR #64](https://github.com/yaoziyaoguai/first_myself_site/pull/64) 合入 `main`；[Actions Run 37076629022](https://github.com/yaoziyaoguai/first_myself_site/actions/runs/37076629022) 成功。生产容器 `healthy`，应用 revision 为 `8da380e93f342fad577e32886659260cf9c95396`。
