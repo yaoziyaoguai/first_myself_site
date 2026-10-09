@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useReducer,
   useRef,
   useState,
@@ -12,7 +13,8 @@ import type {
   KeyboardEvent as ReactKeyboardEvent,
   PointerEvent as ReactPointerEvent,
 } from "react";
-import { MoveDiagonal2, Send, Sparkles, X } from "lucide-react";
+import { ArrowDown, MoveDiagonal2, Send, Sparkles, X } from "lucide-react";
+import { Dialog } from "@base-ui/react/dialog";
 import type {
   BlogAgentCitation,
   BlogAgentConversationTurn,
@@ -349,19 +351,63 @@ export function BlogAgent({
     }),
   );
   const [draft, setDraft] = useState("");
+  const [showLatest, setShowLatest] = useState(false);
   const [desktopLayout, setDesktopLayout] = useState(false);
   const [panelSize, setPanelSize] = useState<PanelSize | null>(() => (
     typeof window === "undefined" ? null : readStoredPanelSize()
   ));
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const composerObserverRef = useRef<ResizeObserver | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<AbortController | null>(null);
   const resizeStartRef = useRef<PanelResizeStart | null>(null);
   const requestSequence = useRef(0);
   const loadingRef = useRef(false);
+  const followOutputRef = useRef(true);
   const storageKey = historyStorageKey(articleSlug);
+
+  const resizeComposer = useCallback(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    const style = window.getComputedStyle(input);
+    const lineHeight = Number.parseFloat(style.lineHeight) || 24;
+    const padding = (Number.parseFloat(style.paddingTop) || 0)
+      + (Number.parseFloat(style.paddingBottom) || 0);
+    input.style.height = "0px";
+    input.style.height = `${Math.max(lineHeight * 2 + padding,
+      Math.min(input.scrollHeight, lineHeight * 6 + padding))}px`;
+    if (bodyRef.current && followOutputRef.current) {
+      bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+    }
+  }, []);
+
+  useLayoutEffect(resizeComposer, [draft, state.isOpen, resizeComposer]);
+
+  const attachComposer = useCallback((input: HTMLTextAreaElement | null) => {
+    composerObserverRef.current?.disconnect();
+    inputRef.current = input;
+    if (!input) return;
+    resizeComposer();
+    if (typeof ResizeObserver === "undefined") return;
+    let width = input.getBoundingClientRect().width;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry && entry.contentRect.width !== width) {
+        width = entry.contentRect.width;
+        resizeComposer();
+      }
+    });
+    observer.observe(input);
+    composerObserverRef.current = observer;
+  }, [resizeComposer]);
+
+  const attachConversation = useCallback((body: HTMLDivElement | null) => {
+    bodyRef.current = body;
+    if (body && followOutputRef.current) body.scrollTop = body.scrollHeight;
+  }, []);
 
   useEffect(() => {
     const media = window.matchMedia?.(DESKTOP_MEDIA_QUERY);
@@ -386,7 +432,7 @@ export function BlogAgent({
 
   useEffect(() => {
     if (!state.isOpen || !desktopLayout) return;
-    const shell = panelRef.current?.closest<HTMLElement>(".site-shell");
+    const shell = rootRef.current?.closest<HTMLElement>(".site-shell");
     if (!shell) return;
     // 将浮层实际宽度交给文章容器，拖拽时正文也让出空间；关闭后恢复原版式。
     const width = panelRef.current?.getBoundingClientRect().width || panelSize?.width || 416;
@@ -409,7 +455,6 @@ export function BlogAgent({
     loadingRef.current = false;
     resizeStartRef.current = null;
     dispatch({ type: "close" });
-    queueMicrotask(() => triggerRef.current?.focus());
   }, []);
 
   useEffect(() => {
@@ -428,22 +473,26 @@ export function BlogAgent({
   }, [state.turns, storageKey]);
 
   useEffect(() => {
-    if (state.isOpen && state.phase !== "loading") inputRef.current?.focus();
-  }, [state.isOpen, state.phase]);
-
-  useEffect(() => {
-    if (!state.isOpen || !bodyRef.current) return;
+    if (!state.isOpen || !bodyRef.current || !followOutputRef.current) return;
     bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
   }, [state.isOpen, state.phase, state.turns.length]);
 
-  useEffect(() => {
-    if (!state.isOpen) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [close, state.isOpen]);
+  const followLatest = () => {
+    followOutputRef.current = true;
+    setShowLatest(false);
+    if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+  };
+
+  const trackReadingPosition = () => {
+    const body = bodyRef.current;
+    if (!body) return;
+    const following = body.scrollHeight - body.clientHeight - body.scrollTop <= 48;
+    // 只在进入/离开底部时更新界面，不把每次滚动都变成整段会话的重渲染。
+    if (following !== followOutputRef.current) {
+      followOutputRef.current = following;
+      setShowLatest(!following);
+    }
+  };
 
   useEffect(() => () => {
     controllerRef.current?.abort();
@@ -460,6 +509,8 @@ export function BlogAgent({
     const sequence = requestSequence.current + 1;
     requestSequence.current = sequence;
     loadingRef.current = true;
+    followOutputRef.current = true;
+    setShowLatest(false);
     setDraft(question);
     dispatch({ type: "loading", question });
     try {
@@ -507,6 +558,7 @@ export function BlogAgent({
 
   const clearHistory = () => {
     if (loadingRef.current) return;
+    followLatest();
     setDraft("");
     dispatch({ type: "clear" });
   };
@@ -527,11 +579,14 @@ export function BlogAgent({
     }
     if (!target) return;
     const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    target.scrollIntoView({
+    if (!target.hasAttribute("tabindex")) target.tabIndex = -1;
+    returnFocusRef.current = target;
+    close();
+    // 等手机弹层释放背景滚动锁，再将读者带到引用的原文位置。
+    requestAnimationFrame(() => target.scrollIntoView({
       behavior: reducedMotion ? "auto" : "smooth",
       block: "start",
-    });
-    close();
+    }));
   };
 
   const beginResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -589,220 +644,273 @@ export function BlogAgent({
     : undefined;
 
   return (
-    <div className="blog-agent-root">
-      {state.isOpen && (
-        <section
-          ref={panelRef}
-          className="blog-agent-panel"
-          role="dialog"
-          aria-label="文章问答"
-          aria-modal="false"
-          style={panelStyle}
-        >
-          {desktopLayout && (
-            <button
-              type="button"
-              className="blog-agent-resize-handle"
-              aria-label="调整文章 Agent 对话框大小"
-              title="拖动或使用方向键调整大小"
-              onPointerDown={beginResize}
-              onPointerMove={resizeFromPointer}
-              onPointerUp={finishResize}
-              onPointerCancel={finishResize}
-              onLostPointerCapture={finishResize}
-              onKeyDown={resizeWithKeyboard}
+    <div className="blog-agent-root" ref={rootRef}>
+      <Dialog.Root
+        open={state.isOpen}
+        modal={!desktopLayout}
+        disablePointerDismissal
+        onOpenChange={(open) => { if (!open) close(); }}
+      >
+        {state.isOpen && (
+          <Dialog.Portal container={rootRef}>
+            {!desktopLayout && <Dialog.Backdrop className="blog-agent-backdrop" />}
+            <Dialog.Popup
+              ref={panelRef}
+              className="blog-agent-panel"
+              aria-label="文章问答"
+              aria-modal={!desktopLayout}
+              initialFocus={() => desktopLayout ? inputRef.current : panelRef.current}
+              finalFocus={() => returnFocusRef.current ?? triggerRef.current}
+              style={panelStyle}
             >
-              <MoveDiagonal2 aria-hidden="true" size={15} />
-            </button>
-          )}
-          <header className="blog-agent-panel-header">
-            <div>
-              <p className="blog-agent-kicker">
-                <Sparkles aria-hidden="true" size={14} /> ARTICLE AGENT
-              </p>
-              <h2>正在阅读《{articleTitle}》</h2>
-            </div>
-            <div className="blog-agent-header-actions">
-              {state.turns.length > 0 && (
+              {desktopLayout && (
                 <button
                   type="button"
-                  className="blog-agent-clear-button"
-                  disabled={loading}
-                  onClick={clearHistory}
+                  className="blog-agent-resize-handle"
+                  aria-label="调整文章 Agent 对话框大小"
+                  title="拖动或使用方向键调整大小"
+                  onPointerDown={beginResize}
+                  onPointerMove={resizeFromPointer}
+                  onPointerUp={finishResize}
+                  onPointerCancel={finishResize}
+                  onLostPointerCapture={finishResize}
+                  onKeyDown={resizeWithKeyboard}
                 >
-                  清空对话
+                  <MoveDiagonal2 aria-hidden="true" size={15} />
                 </button>
               )}
-              <button
-                type="button"
-                className="blog-agent-icon-button"
-                aria-label="关闭文章 Agent"
-                onClick={close}
-              >
-                <X aria-hidden="true" size={18} />
-              </button>
-            </div>
-          </header>
+              <header className="blog-agent-panel-header">
+                <div>
+                  <p className="blog-agent-kicker">
+                    <Sparkles aria-hidden="true" size={14} /> ARTICLE AGENT
+                  </p>
+                  <h2>正在阅读《{articleTitle}》</h2>
+                </div>
+                <div className="blog-agent-header-actions">
+                  {state.turns.length > 0 && (
+                    <button
+                      type="button"
+                      className="blog-agent-clear-button"
+                      disabled={loading}
+                      onClick={clearHistory}
+                    >
+                      清空对话
+                    </button>
+                  )}
+                  <Dialog.Close
+                    className="blog-agent-icon-button"
+                    aria-label="关闭文章 Agent"
+                  >
+                    <X aria-hidden="true" size={18} />
+                  </Dialog.Close>
+                </div>
+              </header>
 
-          <div ref={bodyRef} className="blog-agent-panel-body" aria-live="polite">
-            <p className="blog-agent-scope-note">
-              我只依据当前文章回答，并附上可跳转的原文位置。
-            </p>
+              <div className="blog-agent-conversation">
+                <div
+                  ref={attachConversation}
+                  className="blog-agent-panel-body"
+                  role="log"
+                  aria-label="文章问答记录"
+                  aria-live="polite"
+                  onScroll={trackReadingPosition}
+                >
+                  <p className="blog-agent-scope-note">
+                    我只依据当前文章回答，并附上可跳转的原文位置。
+                  </p>
 
-            {state.turns.length === 0 && !loading && (
-              <div className="blog-agent-suggestions" aria-label="建议问题">
-                {SUGGESTED_QUESTIONS.map((question) => (
+                  {state.turns.length === 0 && !loading && (
+                    <div className="blog-agent-suggestions" aria-label="建议问题">
+                      {SUGGESTED_QUESTIONS.map((question) => (
+                        <button
+                          type="button"
+                          key={question}
+                          onClick={() => void ask(question)}
+                        >
+                          {question}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {state.turns.length > 0 && (
+                    <div className="blog-agent-transcript" aria-label="对话记录">
+                      {state.turns.map((turn, index) => (
+                        <article
+                          className="blog-agent-turn"
+                          key={`${turn.response.queryId}:${index}`}
+                        >
+                          <div className="blog-agent-user-message">
+                            <span aria-hidden="true">你</span>
+                            <p>{turn.question}</p>
+                          </div>
+                          {turn.response.insufficientEvidence ? (
+                            <div className="blog-agent-status blog-agent-status-muted">
+                              这篇文章暂时没有足够信息回答这个问题。
+                            </div>
+                          ) : turn.response.answer ? (
+                            <div className="blog-agent-result">
+                              <SafeAgentMarkdown content={turn.response.answer} />
+                              {turn.response.citations.length > 0 && (
+                                <div className="blog-agent-citations">
+                                  <p>
+                                    {turn.response.citations.some((citation) => citation.github)
+                                      ? "依据与源码"
+                                      : "原文依据"}
+                                  </p>
+                                  {turn.response.citations.map((citation) => (
+                                    <div className="blog-agent-citation" key={citation.id}>
+                                      {citation.github && (
+                                        <a
+                                          href={citation.github.url}
+                                          aria-label={`查看 GitHub 源码 ${citation.github.path} 第 ${citation.github.lineStart} 到 ${citation.github.lineEnd} 行`}
+                                        >
+                                          <span>查看源码 · {citation.github.path}</span>
+                                          <span>
+                                            L{citation.github.lineStart}–L{citation.github.lineEnd} ↗
+                                          </span>
+                                        </a>
+                                      )}
+                                      <button
+                                        type="button"
+                                        className={citation.github
+                                          ? "blog-agent-citation-article"
+                                          : undefined}
+                                        aria-label={`${citation.github
+                                          ? "查看文章依据"
+                                          : "查看引用"}：${citation.heading}`}
+                                        onClick={() => selectCitation(citation.url)}
+                                      >
+                                        <span>
+                                          {citation.github ? "文章依据 · " : ""}
+                                          {citation.heading}
+                                        </span>
+                                        <span aria-hidden="true">{citation.github ? "↓" : "↗"}</span>
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ) : null}
+                        </article>
+                      ))}
+                    </div>
+                  )}
+
+                  {loading && (
+                    <div className="blog-agent-pending-turn">
+                      <div className="blog-agent-user-message">
+                        <span aria-hidden="true">你</span>
+                        <p>{state.pendingQuestion}</p>
+                      </div>
+                      <ThinkingOrb />
+                    </div>
+                  )}
+
+                  {state.phase === "limited" && (
+                    <div className="blog-agent-status blog-agent-status-muted">
+                      请求有点多，请稍后再试。
+                    </div>
+                  )}
+                  {state.phase === "failed" && (
+                    <div className="blog-agent-status blog-agent-status-error">
+                      <span>暂时无法回答，请稍后重试。</span>
+                      <button type="button" onClick={() => void ask(state.lastQuestion)}>
+                        重试
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {showLatest && (
                   <button
                     type="button"
-                    key={question}
-                    onClick={() => void ask(question)}
+                    className="blog-agent-latest-button"
+                    onClick={followLatest}
                   >
-                    {question}
+                    <ArrowDown aria-hidden="true" size={15} />
+                    查看最新回答
                   </button>
-                ))}
-              </div>
-            )}
-
-            {state.turns.length > 0 && (
-              <div className="blog-agent-transcript" aria-label="对话记录">
-                {state.turns.map((turn, index) => (
-                  <article
-                    className="blog-agent-turn"
-                    key={`${turn.response.queryId}:${index}`}
-                  >
-                    <div className="blog-agent-user-message">
-                      <span aria-hidden="true">你</span>
-                      <p>{turn.question}</p>
-                    </div>
-                    {turn.response.insufficientEvidence ? (
-                      <div className="blog-agent-status blog-agent-status-muted">
-                        这篇文章暂时没有足够信息回答这个问题。
-                      </div>
-                    ) : turn.response.answer ? (
-                      <div className="blog-agent-result">
-                        <SafeAgentMarkdown content={turn.response.answer} />
-                        {turn.response.citations.length > 0 && (
-                          <div className="blog-agent-citations">
-                            <p>
-                              {turn.response.citations.some((citation) => citation.github)
-                                ? "依据与源码"
-                                : "原文依据"}
-                            </p>
-                            {turn.response.citations.map((citation) => (
-                              <div className="blog-agent-citation" key={citation.id}>
-                                {citation.github && (
-                                  <a
-                                    href={citation.github.url}
-                                    aria-label={`查看 GitHub 源码 ${citation.github.path} 第 ${citation.github.lineStart} 到 ${citation.github.lineEnd} 行`}
-                                  >
-                                    <span>查看源码 · {citation.github.path}</span>
-                                    <span>
-                                      L{citation.github.lineStart}–L{citation.github.lineEnd} ↗
-                                    </span>
-                                  </a>
-                                )}
-                                <button
-                                  type="button"
-                                  className={citation.github
-                                    ? "blog-agent-citation-article"
-                                    : undefined}
-                                  aria-label={`${citation.github
-                                    ? "查看文章依据"
-                                    : "查看引用"}：${citation.heading}`}
-                                  onClick={() => selectCitation(citation.url)}
-                                >
-                                  <span>
-                                    {citation.github ? "文章依据 · " : ""}
-                                    {citation.heading}
-                                  </span>
-                                  <span aria-hidden="true">{citation.github ? "↓" : "↗"}</span>
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ) : null}
-                  </article>
-                ))}
-              </div>
-            )}
-
-            {loading && (
-              <div className="blog-agent-pending-turn">
-                <div className="blog-agent-user-message">
-                  <span aria-hidden="true">你</span>
-                  <p>{state.pendingQuestion}</p>
-                </div>
-                <ThinkingOrb />
-              </div>
-            )}
-
-            {state.phase === "limited" && (
-              <div className="blog-agent-status blog-agent-status-muted">
-                请求有点多，请稍后再试。
-              </div>
-            )}
-            {state.phase === "failed" && (
-              <div className="blog-agent-status blog-agent-status-error">
-                <span>暂时无法回答，请稍后重试。</span>
-                <button type="button" onClick={() => void ask(state.lastQuestion)}>
-                  重试
-                </button>
-              </div>
-            )}
-          </div>
-
-          <form
-            className="blog-agent-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void ask(draft);
-            }}
-          >
-            <label htmlFor="blog-agent-question">向文章提问</label>
-            <div>
-              <textarea
-                ref={inputRef}
-                id="blog-agent-question"
-                value={draft}
-                maxLength={500}
-                rows={2}
-                disabled={loading}
-                placeholder="例如：为什么这样设计？"
-                onChange={(event) => setDraft(event.target.value)}
-              />
-              <button
-                type="submit"
-                aria-label="发送问题"
-                disabled={loading || !draft.trim()}
-              >
-                {loading ? (
-                  <span className="blog-agent-send-thinking" aria-hidden="true">
-                    <span />
-                  </span>
-                ) : (
-                  <Send aria-hidden="true" size={18} />
                 )}
-              </button>
-            </div>
-          </form>
-        </section>
-      )}
+              </div>
 
-      <button
-        ref={triggerRef}
-        type="button"
-        className="blog-agent-trigger"
-        aria-label="问问这篇文章，打开文章 Agent"
-        aria-expanded={state.isOpen}
-        onClick={state.isOpen ? undefined : () => dispatch({ type: "open" })}
-      >
-        <span className="blog-agent-trigger-icon">
-          <ArticleAgentOrbIcon />
-        </span>
-        <span>问问这篇文章</span>
-      </button>
+              <form
+                className="blog-agent-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void ask(draft);
+                }}
+              >
+                <label htmlFor="blog-agent-question">向文章提问</label>
+                <div className="blog-agent-input-row">
+                  <textarea
+                    ref={attachComposer}
+                    id="blog-agent-question"
+                    value={draft}
+                    maxLength={500}
+                    aria-describedby="blog-agent-composer-help"
+                    rows={2}
+                    readOnly={loading}
+                    aria-busy={loading}
+                    placeholder="例如：为什么这样设计？"
+                    onChange={(event) => setDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === "Enter" &&
+                        (event.ctrlKey || event.metaKey) &&
+                        !event.nativeEvent.isComposing &&
+                        event.nativeEvent.keyCode !== 229
+                      ) {
+                        event.preventDefault();
+                        void ask(draft);
+                      }
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    aria-label="发送问题"
+                    disabled={loading || !draft.trim()}
+                  >
+                    {loading ? (
+                      <span className="blog-agent-send-thinking" aria-hidden="true">
+                        <span />
+                      </span>
+                    ) : (
+                      <Send aria-hidden="true" size={18} />
+                    )}
+                  </button>
+                </div>
+                <div className="blog-agent-composer-meta">
+                  <p id="blog-agent-composer-help">
+                    Enter 换行<span> · Ctrl / ⌘ + Enter 发送</span>
+                  </p>
+                  <span aria-label={`已输入 ${draft.length} 字，最多 500 字`}>
+                    {draft.length} / 500
+                  </span>
+                </div>
+              </form>
+            </Dialog.Popup>
+          </Dialog.Portal>
+        )}
+
+        <button
+          ref={triggerRef}
+          type="button"
+          className="blog-agent-trigger"
+          aria-label="问问这篇文章，打开文章 Agent"
+          aria-expanded={state.isOpen}
+          onClick={state.isOpen ? undefined : () => {
+            followLatest();
+            returnFocusRef.current = triggerRef.current;
+            dispatch({ type: "open" });
+          }}
+        >
+          <span className="blog-agent-trigger-icon">
+            <ArticleAgentOrbIcon />
+          </span>
+          <span>问问这篇文章</span>
+        </button>
+      </Dialog.Root>
     </div>
   );
 }

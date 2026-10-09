@@ -360,6 +360,23 @@ describe("BlogAgent", () => {
     expect(panel.style.getPropertyValue("--blog-agent-panel-height")).toBe("672px");
   });
 
+  it("keeps mobile keyboard focus inside the dialog and restores it on close", async () => {
+    setViewport({ desktop: false, width: 390, height: 844 });
+    renderAgent();
+    const user = await openAgent();
+    const dialog = screen.getByRole("dialog", { name: "文章问答" });
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    // 打开底部抽屉不自动唤起软键盘；读者可以先看建议问题。
+    expect(screen.getByLabelText("向文章提问")).not.toHaveFocus();
+    for (let index = 0; index < 8; index += 1) {
+      await user.tab();
+      await waitFor(() => expect(dialog).toContainElement(document.activeElement as HTMLElement));
+    }
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "问问这篇文章，打开文章 Agent" })).toHaveFocus();
+  });
+
   it("does not expose the resize control on mobile", async () => {
     setViewport({ desktop: false, width: 390, height: 844 });
     sessionStorage.setItem(
@@ -515,6 +532,24 @@ describe("BlogAgent", () => {
     );
   });
 
+  it("keeps Enter for newlines and submits with Ctrl or Cmd Enter only outside composition", async () => {
+    renderAgent();
+    const user = await openAgent();
+    const input = screen.getByRole("textbox", { name: "向文章提问" });
+    await user.type(input, "第一行{Enter}第二行");
+    expect(input).toHaveValue("第一行\n第二行");
+    expect(fetch).not.toHaveBeenCalled();
+    fireEvent.keyDown(input, { key: "Enter", ctrlKey: true, isComposing: true });
+    fireEvent.keyDown(input, { key: "Enter", metaKey: true, keyCode: 229 });
+    expect(fetch).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(input, { key: "Enter", ctrlKey: true });
+    await screen.findByText(answerBody.answer);
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body)).question)
+      .toBe("第一行\n第二行");
+  });
+
   it("prevents duplicate submission while loading", async () => {
     let resolveRequest: ((response: Response) => void) | undefined;
     vi.mocked(fetch).mockImplementation(() => new Promise((resolve) => {
@@ -536,6 +571,24 @@ describe("BlogAgent", () => {
     await screen.findByText("批量写入可以减少小批次开销。");
   });
 
+  it("grows the composer up to six lines, shrinks it back, and shows the existing character limit", async () => {
+    renderAgent();
+    await openAgent();
+    const input = screen.getByRole("textbox", { name: "向文章提问" });
+    input.style.lineHeight = "24px";
+    input.style.padding = "4px";
+    Object.defineProperty(input, "scrollHeight", { configurable: true, value: 300 });
+    fireEvent.change(input, { target: { value: "一\n二\n三\n四\n五\n六\n七" } });
+    expect(input.style.height).toBe("152px");
+    expect(input).toHaveAttribute("maxlength", "500");
+    expect(screen.getByText("13 / 500")).toBeInTheDocument();
+
+    Object.defineProperty(input, "scrollHeight", { configurable: true, value: 56 });
+    fireEvent.change(input, { target: { value: "短问题" } });
+    expect(input.style.height).toBe("56px");
+    expect(screen.getByText("3 / 500")).toBeInTheDocument();
+  });
+
   it("keeps completed conversation history when the panel is closed and reopened", async () => {
     renderAgent();
     const user = await openAgent();
@@ -548,6 +601,65 @@ describe("BlogAgent", () => {
     expect(screen.getByText("核心实现是什么？")).toBeInTheDocument();
     expect(screen.getByText("批量写入可以减少小批次开销。")).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it("preserves the reader's scroll position when an answer arrives away from the bottom", async () => {
+    let resolveRequest!: (response: Response) => void;
+    vi.mocked(fetch).mockImplementation(() => new Promise((resolve) => {
+      resolveRequest = resolve;
+    }));
+    setViewport({ desktop: true });
+    renderAgent();
+    const user = await openAgent();
+    await user.click(screen.getByRole("button", { name: "核心实现是什么？" }));
+    const viewport = screen.getByRole("dialog").querySelector<HTMLElement>(".blog-agent-panel-body")!;
+    Object.defineProperties(viewport, {
+      scrollHeight: { configurable: true, value: 2_000 },
+      clientHeight: { configurable: true, value: 300 },
+    });
+    viewport.scrollTop = 240;
+    fireEvent.scroll(viewport);
+
+    await act(async () => resolveRequest(jsonResponse(answerBody)));
+
+    expect(viewport.scrollTop).toBe(240);
+    await user.click(screen.getByRole("button", { name: "查看最新回答" }));
+    expect(viewport.scrollTop).toBe(viewport.scrollHeight);
+    expect(screen.queryByRole("button", { name: "查看最新回答" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the composer focus for keyboard follow-ups without accepting edits while loading", async () => {
+    setViewport({ desktop: true });
+    let resolveResponse!: (value: Response) => void;
+    vi.mocked(fetch).mockImplementation(() => new Promise((resolve) => { resolveResponse = resolve; }));
+    renderAgent();
+    const user = await openAgent();
+    const input = screen.getByLabelText("向文章提问");
+    await user.type(input, "具体怎么做？");
+    await user.keyboard("{Meta>}{Enter}{/Meta}");
+    await screen.findByRole("status", { name: "文章 Agent 正在思考" });
+    expect(input).toHaveAttribute("readonly");
+    expect(input).toHaveFocus();
+    await user.keyboard("不要加入请求");
+    expect(input).toHaveValue("具体怎么做？");
+    await act(async () => resolveResponse(jsonResponse(answerBody)));
+    expect(input).not.toHaveAttribute("readonly");
+    expect(input).toHaveFocus();
+  });
+
+  it("does not steal focus back from the reader when an answer completes", async () => {
+    let resolveRequest!: (response: Response) => void;
+    vi.mocked(fetch).mockImplementation(() => new Promise((resolve) => {
+      resolveRequest = resolve;
+    }));
+    setViewport({ desktop: true });
+    renderAgent();
+    const user = await openAgent();
+    await user.click(screen.getByRole("button", { name: "核心实现是什么？" }));
+    const close = screen.getByRole("button", { name: "关闭文章 Agent" });
+    close.focus();
+    await act(async () => resolveRequest(jsonResponse(answerBody)));
+    expect(close).toHaveFocus();
   });
 
   it("restores the current article conversation after a remount in the same tab", async () => {
@@ -755,7 +867,8 @@ describe("BlogAgent", () => {
     await user.click(screen.getByRole("button", { name: "核心实现是什么？" }));
     await user.click(await screen.findByRole("button", { name: "查看引用：写入路径" }));
 
-    expect(heading.scrollIntoView).toHaveBeenCalled();
+    await waitFor(() => expect(heading.scrollIntoView).toHaveBeenCalled());
+    expect(heading).toHaveFocus();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     heading.remove();
   });
@@ -824,7 +937,8 @@ describe("BlogAgent", () => {
     await user.click(screen.getByRole("button", { name: "核心实现是什么？" }));
     await user.click(await screen.findByRole("button", { name: "查看引用：文章开头" }));
 
-    expect(articleTop.scrollIntoView).toHaveBeenCalled();
+    await waitFor(() => expect(articleTop.scrollIntoView).toHaveBeenCalled());
+    expect(articleTop).toHaveFocus();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     articleTop.remove();
   });
