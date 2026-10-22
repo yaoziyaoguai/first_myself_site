@@ -14,6 +14,7 @@
 - “最近在学习”、项目/实验、外部链接、公开邮箱均可在后台配置，不需要改代码
 - 首页与项目页展示近期维护的公开 GitHub 项目，并保留后台配置内容优先、仓库默认值兜底的规则
 - 文章支持 Markdown、GFM 表格、任务列表和本地图片
+- 文章可选内嵌文章绑定的交互 HTML：读者点击后才加载沙箱 iframe，原位放大/收回保持运行状态；功能由默认关闭的服务端开关控制
 - 文章列表支持按现有标签即时筛选；首页与归档直接展示真实合集入口和阅读顺序
 - 长文章提供桌面章节目录和手机折叠目录，代码与表格独立滚动；展开桌面 Agent 后正文自动让出空间
 - Markdown 后台提供等宽双栏预览，并按内容锚点双向同步滚动
@@ -27,17 +28,17 @@
 
 ## 后台内容地图
 
-| 需要修改的内容 | 后台位置 |
-| --- | --- |
-| 姓名、定位、简介、方向标签、最近在学习 | 页面内容 → 首页与最近学习 |
-| 关于页内容、技术栈和关注方向 | 页面内容 → 关于页面 |
-| 邮箱、社交链接和站点信息 | 页面内容 → 网站设置 |
-| 项目、实验、GitHub 链接和排序 | 内容管理 → 项目与实验 |
-| Markdown 文章 | 内容管理 → 文章 |
-| 文章合集、合集内文章和阅读顺序 | 内容管理 → 文章合集 |
-| 图片 | Media |
-| 评论与点赞 | Comments / Likes |
-| 匿名访问和停留统计 | 运营 → 访问统计 |
+| 需要修改的内容                         | 后台位置                                                |
+| -------------------------------------- | ------------------------------------------------------- |
+| 姓名、定位、简介、方向标签、最近在学习 | 页面内容 → 首页与最近学习                               |
+| 关于页内容、技术栈和关注方向           | 页面内容 → 关于页面                                     |
+| 邮箱、社交链接和站点信息               | 页面内容 → 网站设置                                     |
+| 项目、实验、GitHub 链接和排序          | 内容管理 → 项目与实验                                   |
+| Markdown 文章与文章内互动内容          | 内容管理 → 文章（先保存私有草稿，再使用“插入互动内容”） |
+| 文章合集、合集内文章和阅读顺序         | 内容管理 → 文章合集                                     |
+| 图片                                   | Media                                                   |
+| 评论与点赞                             | Comments / Likes                                        |
+| 匿名访问和停留统计                     | 运营 → 访问统计                                         |
 
 仓库中的 `src/content/siteDefaults.ts` 只在 CMS 对应字段为空时提供兜底内容。部署不会覆盖后台已经编辑的数据。
 
@@ -78,7 +79,12 @@ npm run dev
 DATABASE_URL=postgresql://user:password@localhost:5432/first_myself_site
 PAYLOAD_SECRET=使用 openssl rand -base64 32 生成
 NEXT_PUBLIC_SERVER_URL=http://localhost:3000
+BLOG_INTERACTIVE_HTML_ENABLED=false
 ```
+
+交互 HTML 默认关闭。只有迁移、真实浏览器与代理响应头都完成验收并获得对应环境授权后，才把 `BLOG_INTERACTIVE_HTML_ENABLED` 设为 `true`；它是服务端运行开关，不替代文章权限。
+
+生产开关来自 GitHub 仓库变量 `BLOG_INTERACTIVE_HTML_ENABLED`，缺省为 `false`。发布流程先关闭候选版本的互动能力，健康检查与既有 Agent canary 通过后才恢复目标开关；失败回滚同样关闭。调整该变量后，手动触发 `CI/CD` 的 `workflow_dispatch`，仍经过 CI 与阿里云发布，不在服务器改应用源码。手动发布不会被纯文档差异跳过；普通文档 push 保留跳过重建的行为。
 
 `ADMIN_SECRET_TOKEN`、`PAYLOAD_INITIAL_ADMIN_EMAIL` 和 `PAYLOAD_INITIAL_ADMIN_PASSWORD` 只用于显式调用开发环境初始化接口。仓库不提供默认管理员凭证，生产环境会拒绝这些接口。
 
@@ -102,11 +108,15 @@ npm run build
 - “上传”或“同步”默认只创建 `draft + private`
 - 只有明确要求公开发布时才会改变公开状态
 - 图片会生成稳定文件名，重复运行可以复用已有媒体
+- Markdown 可用顶层 `interactive-html` fence 引用包内、已审查的 `.html`；Skill 离线预检公开副本、上传并逐字回读，再把本机路径改写为 canonical `sha256` marker
+- 交互资源未齐时只允许保持 `draft + private`，不能公开或写入 ready Agent 索引；同计划中断只用 `draft --resume-draft-id <id>` 补齐资源，不改正文
 - 已存在的 slug 默认停止，避免误覆盖线上文章
 - 凭据只从本机环境变量或系统 Keychain 读取，不进入仓库
 - 已公开且绑定 ready Agent package 的文章，可明确执行 `update-published --confirm-published-update`：保留原 GitHub 固定提交，校验来源后在同一事务更新文字与索引；不改 slug、发布日期、标签和合集，失败保留旧版
 
 推荐流程：先生成文章 → 本地预检 → 上传草稿 → 后台校对 → 明确公开发布。
+
+交互 HTML 不放入 Media、`public/`、文章列表或 RSC 大字段，也不会进入文章 Agent 的 RAG。Agent 只获得 marker 中读者可见的标题与说明；关键结论仍应写在正文。完整协议、安全 profile 和验收要求见 [执行包](docs/plans/2026-10-21-interactive-html-execution-package.md)。
 
 ## 权限与隐私
 

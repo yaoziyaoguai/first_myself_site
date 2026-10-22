@@ -4,13 +4,14 @@
 
 ## 当前基线
 
-截至 2026-09-04 的 `main` 基线：
+截至 2026-10-22 的交互 HTML 本地实现分支（尚未提交、部署或生产验收）：
 
-- 88 个测试文件，其中 82 个通过、6 个按真库条件跳过
-- 740 个自动化测试通过，11 个按真库条件跳过
-- ESLint、TypeScript、Vitest 和 production build 均通过
-- GitHub Actions 在 Pull Request 上执行完整检查
-- Blog Agent 另有 PostgreSQL 15 真库门禁和生产 Docker/Payload CLI 验证
+- 101 个测试文件通过，9 个按真库条件跳过；968 个自动化测试通过，28 个按真库条件跳过（本地使用 `--maxWorkers=4`）
+- 另运行 CI 的 PostgreSQL 15 专项入口，10 个文件、39 项通过；隔离备份/恢复验证了 HTML 字节、文章归属与不可变触发器，临时库已清理
+- 全局 `publish-site-article` Skill 的 42 项 Python 测试通过，并与网站共享交互协议 fixtures；真实本地 CLI 的 plan/draft/resume/publish/回读/撤回及匿名桌面、手机交互通过
+- ESLint 零警告、CI TypeScript 和 production build 通过
+- Chromium、Firefox、WebKit 在 1440 / 768 / 390px 各 51 项通过；390×470 短视口/Shift+Tab/reduced-motion 共 12 项通过；后台/权限/错误与响应头 24 项通过；后台编辑稳定性与新资源未保存预览 12 项通过
+- 这些是本地隔离环境证据，不代表生产 Nginx、生产迁移、部署或实体手机已验证
 
 不要用“测试文件存在”代替“测试已运行”。超时、截断输出或没有成功退出码都不能算通过。
 
@@ -71,6 +72,18 @@ __tests__/
 - 内容锚点插值的边界与双向映射
 - 宽内容不会挤压任一 pane
 - 图片加载后的锚点重新测量
+- 互动块前插入普通段落、代码或另一 marker 时，运行中的 iframe DOM、`contentWindow` 和内部状态不重置
+- 后台上传失败不改正文；成功只插入 canonical `sha256` marker，并继续由保存门禁复核
+
+### 文章交互 HTML
+
+- marker 严格 JSON、顶层 AST、canonical 字段顺序、本地路径边界、Unicode、数量/字节限制，以及 TS/Python 共享 golden fixtures
+- HTML/CSS profile 拒绝远程资源、嵌套文档、`srcset`、`@import`、危险 data MIME 和未清理隐藏源文；生成器公开副本 hash 跨语言一致
+- PUT 的认证、来源、Content-Type/Encoding、流式大小、hash、限速和错误响应；GET source 只向 admin/editor 返回 JSON
+- `/view` 的当前引用/可见性检查、仅作者可用的未保存资源 `/preview`、跨文章拒绝、撤回和开关语义，以及 CSP / iframe 双重 sandbox
+- 真实 PostgreSQL 验证外键、不可变、幂等、版本/总量并发上限、文章级引用与 ready-package 原子回滚；没有测试 URL 时 skip 不算通过
+- 点击前无 iframe/HTML 请求，启动后真实控件可操作；放大/收回保持同一 iframe，停止后销毁并明示重置；失败/重试有界
+- Chromium、Firefox、WebKit 覆盖 1440 / 768 / 390px 和 390×470 短视口，检查 Tab/Shift+Tab、宿主焦点 Escape、reduced-motion、横向溢出和控制台错误
 
 ### 部署
 
@@ -88,7 +101,7 @@ __tests__/
 - 持久化窗口/每日配额、并发限制、缓存隔离和供应商失败路径
 - 桌面浮层、移动端 bottom sheet、键盘焦点、引用跳转和 reduced motion
 
-没有 `BLOG_AGENT_TEST_DATABASE_URL` 时，Blog Agent 真库测试会显示为 `skipped`，不能把普通 `npm test` 当作真库通过。CI 会使用 PostgreSQL 15 运行这些 migration、repository 与 canary 测试。真实 provider 验收按 [Blog Agent 运维手册](docs/blog-agent-operations.md) 执行；不要把个人主 Key 放进浏览器测试或 GitHub 日志。
+没有 `BLOG_AGENT_TEST_DATABASE_URL` 时，Blog Agent 与交互 HTML 真库测试会显示为 `skipped`，不能把普通 `npm test` 当作真库通过。CI 会使用 PostgreSQL 15 运行这些 migration、repository 与 canary 测试。真实 provider 验收按 [Blog Agent 运维手册](docs/blog-agent-operations.md) 执行；不要把个人主 Key 放进浏览器测试或 GitHub 日志。
 
 ## 按范围运行
 
@@ -126,6 +139,15 @@ npm run test:watch
 4. 用 admin/editor 登录后访问公开页面，再退出后台继续访问；确认同一浏览器的站长流量不会进入概览。
 5. 开启 DNT 或 GPC 后重新访问，确认浏览器不发送统计事件。
 6. 生产自动化验收从带 `?analytics=off` 的 URL 开始，并确认同一标签页后续导航也不再发送统计事件。
+
+### 文章交互 HTML
+
+1. 使用无敏感信息的真实生成器公开副本和带滑块/计数器的状态样例；确认点击前没有 iframe 或 HTML 请求。
+2. 在前后台启动后操作控件，放大、收回并核对状态与同一 iframe 身份；停止后确认状态重置提示。
+3. 在后台向运行中的块之前插入普通段落、代码和另一个 marker；确认 iframe 不发生额外 GET/导航，内部状态保持。
+4. 验证上传失败不改正文，成功后 marker 插入当前光标；不要保存验收专用表单到生产内容。
+5. 用匿名、viewer、editor、admin 覆盖草稿、公开/私有、跨文章、移除引用和撤回；读取结论必须来自真实 HTTP 状态，不只看按钮。
+6. 核对最终应用与反向代理返回的 CSP、`Content-Type`、`Cache-Control`、`nosniff`、`Referrer-Policy`、`X-Robots-Tag`，并验证 512 KiB 请求能力。生产验证需要单独授权。
 
 ### 生产冒烟
 

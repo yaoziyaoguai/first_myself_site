@@ -51,6 +51,44 @@
 
 ## 最近 Sessions（从新到旧）
 
+### 2026-10-22 Session-013
+
+**目标**：按唯一执行包实施 Markdown 文章内嵌可交互 HTML，扩展现有全局发布 Skill，并在不触碰生产的前提下完成真实浏览器、PostgreSQL 和回归验收。
+
+**完成**：
+- 实现严格顶层 marker、HTML/CSS profile、文章绑定不可变 PostgreSQL 存储、管理/view/preview API、默认关闭开关，以及 CMS/Agent 索引/公开发布引用门禁
+- 前后台共享点击启动、sandbox iframe、原位放大/收回、停止重置、错误/重试；后台可上传已审查公开副本并在光标处插入 canonical marker，失败不改正文
+- Agent 只接收可见 caption/summary；HTML、JS、隐藏源文和内嵌数据不进 RAG；全局 `publish-site-article` 支持离线 plan、一次 private draft、严格 resume、资源回读、publish/update-published 门禁
+- 修复后台编辑时 React 移动 iframe wrapper 导致文档重新导航的问题；在有互动块时为根级 Markdown block 加稳定 key 并移除无 key 根分隔 text node，真实浏览器确认 DOM、`contentWindow` 和内部状态均保持
+- ESLint 零警告、CI TypeScript、production build；完整 Vitest 101 文件/948 项通过（真库条件项另跑），PostgreSQL 15 隔离真库 25 项、Skill 39 项通过
+- Chromium/Firefox/WebKit 在 1440/768/390px 各 51 项，390×470/键盘/reduced-motion 12 项，权限/错误/响应头 24 项，后台编辑/上传 10 项全部通过
+
+**改动**：仓库新增 `src/lib/interactive-html/`、三类 API 路由、受控组件、Payload 迁移/后台入口、共享 fixtures 与测试，并更新现有 renderer、Blog/Agent 门禁、配置、README/SECURITY/TESTING_GUIDE 和执行包；全局 Skill 只修改 `/Users/jinkun.wang/.codex/skills/publish-site-article/` 真源，Claude 路径仍为 symlink。未提交、推送、生产上传、迁移或部署。
+
+**遗留**：生产 Nginx/新路径 512 KiB、生产迁移/响应头/权限/内容 canary、实体设备和完整屏幕阅读器未验收。隔离数据库备份恢复因权限门禁要求单独授权创建恢复库而未运行；没有创建 dump 或恢复库。用户随后授权提交、推送、合入 `main`、Actions 部署和生产网页验收，但 `gh auth status` 确认默认账号 token 无效；两次登录未完成，最后一次按用户交接要求停止，因此没有 commit、push、PR、merge 或生产操作。
+
+**下一步**：先由用户完成 `gh auth login -h github.com` 并确认认证有效。下一位 Agent 从当前 `codex/interactive-html-implementation` 工作树提交全部实现，推送并创建 PR；CI 全绿后合入 `main`，跟踪 Actions 部署和迁移，按执行包先关开关验证生产代理/权限/canary，再启用并完成网页验收。最后同步本地 `main`、删除已合并 feature 分支并确认仓库干净。
+
+**对当前状态的影响**：交互 HTML 从“执行包待实施”变为“本地实现与隔离验收完成、生产尚未改变”；远端发布授权已给出，但被 GitHub CLI 认证阻塞。最旧 Session-008 的仍有效事实（8 篇 Agent 记忆评测专题与生产发布结果）已在 STATUS 的 Blog/生产基线中保留，本文件继续维持 5 条。
+
+### 2026-10-21 Session-012
+
+**目标**：审计 Markdown 文章内嵌可交互 HTML 的实现方式，用 Oracle Web 最高档给出第二意见，并整理供另一个 Coding Agent 执行的详细包；本轮不实现和上线。
+
+**完成**：
+- 基于公开仓库 `ef3aa93b41b999e77356f0941c23422ca3d4e584` 核对渲染、后台滚动锚点、权限、CSP、缓存、原子正文/索引事务、全局发布 Skill 和 HTML 生成器输出结构
+- 用户重新登录且确认保持窗口非最小化后，会话 `blog-html-audit-visible-20261021` 验证 `Power, item 5 of 5 (slider ARIA)`，正常完成并保存全文；精确临时 Chrome PID 已退出、临时 profile 已移除，持久登录源未动
+- 采纳专用 HTML 响应 + HTTP sandbox、文章绑定不可变数据、点击启动、原位放大；补足存储限额、真实权限与数据事务验收，明确嵌套 HTML/API/密钥不属 v1
+- 复核后将 Oracle 两次覆盖的占位稿方案收敛为一次最终正文创建 + 私有待上传例外，公开/ready 必须验证所有资源；明确定义严格同计划恢复，不假设原发布脚本已经有恢复日志
+
+**改动**：新增 `docs/plans/2026-10-21-interactive-html-execution-package.md`，更新现有 STATUS/RECENT 记录；原始回答/提示词仅留 `.local/interactive-html-audit-20261021/`。本地文档分支 `codex/interactive-html-audit`，未提交/推送。业务代码、全局 Skill、依赖和生产均未改动。
+
+**遗留**：未实施新功能，因此构建、单测、真库事务、实际生成器 HTML 浏览器验收均未运行；生产 Nginx 响应头/新路径 512 KiB 能力仍需单独授权后的检查。不能用历史 835 项测试代表新功能通过。
+
+**下一步**：用户可把执行包第 6 节 Prompt 交给 Coding Agent，授权本地实施后按 P0–P6 逐步执行；生产发布另行授权。
+
+**对当前状态的影响**：仅明确待建功能的边界与执行合同，不改变网站现状。Session-007 有效加载反馈和部署竞争约束已并入 STATUS，最近记录仍保留 5 条。
+
 ### 2026-10-09 Session-011
 
 **目标**：落实 compose-ui-kit 只读审查中批准的文章 Agent 最小改进，完成验证后提交、推送；用户随后明确授权合并，并通过 GitHub Actions 部署阿里云。
@@ -124,48 +162,7 @@
 
 **对当前状态的影响**：5 月以来 8 篇旧文中 7 篇已完成文字更新；一项文章包发布能力缺口已被明确记录。
 
-### 2026-10-02 Session-008
-
-**目标**：将 7 份 Agent 记忆评测调研去除模板化表达和内部痕迹，分别发布为 Blog，并与既有综述组成可连续阅读的系列。
-
-**完成**：
-- 使用 `humanizer-zh` 调整 7 篇文章的标题、摘要、章节命名和重复表达，保留数字、引用、代码、实验边界与不确定性
-- 扫描全部 Markdown，并对 53 张图片执行 OCR 敏感信息检查；未发现公司名、内部项目、邮箱、凭据或真实密钥，移除了本机绝对路径等写作过程痕迹
-- 为图片补充基于图注的可读 alt 文本；两张超过发布上限的图片等比例缩放为网页 JPEG，未放宽 400 KB 单图安全限制
-- 通过全局 `publish-site-article` 的 `plan → draft → publish` 链路公开 7 篇文章，生产文章 ID 为 20–26
-- 创建公开合集“Agent 记忆评测：基准、数据与方法”（slug `agent-memory-benchmarks`），将既有综述与 7 篇新文按学习路径排成 8 篇
-- 将 7 篇单项调研的发布日期错开到 2026-08-18 至 2026-09-30，并把建立在这些调研之上的既有综述调整为 2026-10-02；合集阅读顺序保持不变
-- 真实浏览器验证合集入口、第一篇、合集目录、上一篇/下一篇、图片和移动端；修复 MemoryAgentBench 长英文标题在 390px 下造成的横向溢出，复测页面宽度 390/390、图片无损坏、控制台 0 错误
-
-**改动**：生产 CMS 新增 7 篇公开文章和 1 个公开合集；仓库业务代码未修改，未提交、未推送、未触发 GitHub Actions。
-
-**遗留**：文章内容无阻塞；这些调研未附加文章级 Agent 代码/数据包，因此问答仍以各文章 Markdown 为基础上下文。
-
-**下一步**：后续继续发布记忆评测调研时，可沿用该合集并按“基准能力 → 场景应用 → 评测工程”调整阅读顺序。
-
-**对当前状态的影响**：网站新增一套包含 8 篇内容的 Agent 记忆评测专题，现有综合文章不被覆盖，长文发布和系列阅读链路已在生产验证。
-
-### 2026-10-02 Session-007
-
-**目标**：在不改变文章实际加载策略的前提下，为首页、文章列表和合集内的文章跳转增加即时反馈，并完成提交、部署和生产验收。
-
-**完成**：
-- 新增基于 Next.js `useLinkStatus` 的文章跳转反馈：桌面以克制的转圈替代箭头，手机显示“正在打开文章…”
-- 保留原有 `prefetch={false}`、查询和缓存策略；拒绝采用会把不存在文章从 HTTP 404 改成流式 200 的路由级 `loading.tsx`
-- PR #61 全部门禁通过并合入 `main`，commit `430b11f6f9eeee9a6e84ae9147758d23ee538897` 由 GitHub Actions Run 36892110688 成功部署到阿里云
-- 生产验收确认 `/api/health`、首页和文章列表为 200，不存在文章保持真实 404，容器 revision 与 `main` 一致且健康
-- 真实浏览器验证桌面与 390px 手机：公网自然跳转约 2.5 秒，100ms 时已出现加载反馈，完成后自动消失；无横向溢出或控制台错误
-- 部署耗时审计确认源码上传仅约 85 秒且依赖缓存命中；主要耗时来自同机另一项目部署重叠约 44 分钟期间的 Next 编译 22.5 分钟、TypeScript 7.9 分钟及镜像导出/解包约 13 分钟
-
-**改动**：新增 `src/components/ArticleLinkFeedback.tsx`，并接入 `app/(main)/page.tsx`、`app/(main)/blog/page.tsx` 与 `app/(main)/blog/series/[slug]/page.tsx`。
-
-**遗留**：本功能无遗留；多项目共用 ECS 时仍可能出现部署资源竞争。
-
-**下一步**：如需进一步稳定部署时长，优先为同一台 ECS 上的跨仓库镜像构建增加共享锁或错峰机制，而不是继续压缩已经约 298 MB 的应用镜像。
-
-**对当前状态的影响**：文章跳转延迟现在有明确反馈且不损害 SEO 404 语义；生产已运行对应版本，部署慢因已从“包体积”收敛为可复现的同机资源竞争。
-
 ---
 
 **总条数**：5/5
-**最后更新**：2026-10-09
+**最后更新**：2026-10-22

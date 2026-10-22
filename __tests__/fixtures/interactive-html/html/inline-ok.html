@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>内联交互样例</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; }
+  .track { width: 100%; }
+  svg .dot { fill: currentColor; }
+</style>
+</head>
+<body>
+<h1>内联交互样例</h1>
+<label>数值 <input id="value" type="range" min="0" max="100" value="40"></label>
+<output id="out" for="value">40</output>
+<button id="inc" type="button">加一</button>
+<svg viewBox="0 0 100 20" width="100" height="20" aria-hidden="true">
+  <rect width="100" height="20" fill="none" stroke="currentColor"></rect>
+  <circle class="dot" cx="40" cy="10" r="6"></circle>
+</svg>
+<img alt="内联像素" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==">
+<script>
+  const value = document.getElementById("value");
+  const out = document.getElementById("out");
+  const dot = document.querySelector("svg .dot");
+  const sync = () => { out.textContent = value.value; dot.setAttribute("cx", value.value); };
+  value.addEventListener("input", sync);
+  document.getElementById("inc").addEventListener("click", () => {
+    value.value = String(Math.min(100, Number(value.value) + 1));
+    sync();
+  });
+  sync();
+</script>
+</body>
+</html>

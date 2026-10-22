@@ -57,6 +57,7 @@ describe("production deployment relevance", () => {
   });
 
   it("classifies the complete delta from the running production revision", () => {
+    expect(workflow).toContain('if [ "$should_deploy" = "false" ] && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then');
     const mergeIndex = workflow.indexOf("git merge --ff-only FETCH_HEAD");
     const revisionIndex = workflow.indexOf('deployed_revision="$(docker inspect');
     const diffIndex = workflow.indexOf(

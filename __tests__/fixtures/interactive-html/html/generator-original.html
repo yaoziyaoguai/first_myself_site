@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="generator" content="Answer me with HTML 0.4.8">
+<title>生成器样例</title>
+</head>
+<body>
+<main><h1>生成器样例</h1><p>可见内容保持不变。</p></main>
+<textarea id="am-source" hidden># 隐藏的原始 Markdown</textarea>
+<button type="button" data-am="copy">复制源文</button>
+<script>document.querySelector('[data-am="copy"]')?.addEventListener("click", () => navigator.clipboard?.writeText(document.getElementById("am-source").value));</script>
+</body>
+</html>

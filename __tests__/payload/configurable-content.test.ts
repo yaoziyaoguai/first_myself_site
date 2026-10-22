@@ -22,6 +22,7 @@ import * as ownerAnalyticsFieldsMigration from "@/payload/migrations/20260826_01
 import * as agentQuestionLogMigration from "@/payload/migrations/20260827_000000_add_agent_question_log";
 import * as ownerAnalyticsIdentityMigration from "@/payload/migrations/20260828_000000_propagate_owner_analytics";
 import * as blogSeriesSchemaMigration from "@/payload/migrations/20260919_000000_add_blog_series";
+import * as blogInteractiveHtmlMigration from "@/payload/migrations/20261021_000000_add_blog_interactive_html";
 import {
   CONFIGURABLE_CONTENT_VERSION,
   backfillConfigurableContent,
@@ -89,6 +90,11 @@ describe("configurable portfolio content", () => {
         up: blogSeriesSchemaMigration.up,
         down: blogSeriesSchemaMigration.down,
       },
+      {
+        name: "20261021_000000_add_blog_interactive_html",
+        up: blogInteractiveHtmlMigration.up,
+        down: blogInteractiveHtmlMigration.down,
+      },
     ]);
   });
 
@@ -102,12 +108,12 @@ describe("configurable portfolio content", () => {
       }),
     };
 
-    await configurableContentSchemaMigration.up(
-      { db } as unknown as MigrateUpArgs,
-    );
-    await configurableContentSchemaMigration.down(
-      { db } as unknown as MigrateDownArgs,
-    );
+    await configurableContentSchemaMigration.up({
+      db,
+    } as unknown as MigrateUpArgs);
+    await configurableContentSchemaMigration.down({
+      db,
+    } as unknown as MigrateDownArgs);
 
     const upStatement = statements[0].replace(/\s+/g, " ");
     const downStatement = statements[1].replace(/\s+/g, " ");
@@ -330,9 +336,7 @@ describe("configurable portfolio content", () => {
             contentVersion: 0,
             name: "自定义姓名",
             email: "custom@example.com",
-            socialLinks: [
-              { href: "https://example.com", label: "自定义链接" },
-            ],
+            socialLinks: [{ href: "https://example.com", label: "自定义链接" }],
           },
           home: {
             title: "自定义首页",
@@ -383,9 +387,7 @@ describe("configurable portfolio content", () => {
         data: expect.objectContaining({
           name: "自定义姓名",
           email: "custom@example.com",
-          socialLinks: [
-            { href: "https://example.com", label: "自定义链接" },
-          ],
+          socialLinks: [{ href: "https://example.com", label: "自定义链接" }],
         }),
       }),
     );
@@ -422,28 +424,22 @@ describe("configurable portfolio content", () => {
         },
       ),
       find: vi.fn(
-        async ({
-          where,
-        }: {
-          where: { slug: { equals: string } };
-        }) => ({
+        async ({ where }: { where: { slug: { equals: string } } }) => ({
           docs: projects.has(where.slug.equals)
             ? [projects.get(where.slug.equals)]
             : [],
         }),
       ),
-      create: vi.fn(
-        async ({ data }: { data: Record<string, unknown> }) => {
-          const slug = String(data.slug);
-          if (slug === "gpt-oracle-web" && failSecondProjectOnce) {
-            failSecondProjectOnce = false;
-            throw new Error("injected project write failure");
-          }
-          projects.set(slug, data);
-          writes.push(`project:${slug}`);
-          return data;
-        },
-      ),
+      create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+        const slug = String(data.slug);
+        if (slug === "gpt-oracle-web" && failSecondProjectOnce) {
+          failSecondProjectOnce = false;
+          throw new Error("injected project write failure");
+        }
+        projects.set(slug, data);
+        writes.push(`project:${slug}`);
+        return data;
+      }),
     };
 
     await expect(
@@ -461,9 +457,7 @@ describe("configurable portfolio content", () => {
       siteDefaults.projects.map(({ slug }) => slug),
     );
     expect(
-      mockPayload.create.mock.calls
-        .slice(2)
-        .map(([{ data }]) => data.slug),
+      mockPayload.create.mock.calls.slice(2).map(([{ data }]) => data.slug),
     ).toEqual(siteDefaults.projects.slice(1).map(({ slug }) => slug));
     expect(globals["site-settings"].contentVersion).toBe(
       CONFIGURABLE_CONTENT_VERSION,

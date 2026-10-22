@@ -1,0 +1,164 @@
+{
+  "markers": [
+{"name":"prototype-fields-are-not-marker-fields","json":"{\"__proto__\":{\"version\":1,\"id\":\"demo\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"caption\":\"hidden\"}}","ok":false,"errorContains":"未知字段"},
+{"name":"unpaired-surrogate-is-invalid","json":"{\"version\":1,\"id\":\"demo\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"caption\":\"\\ud800\"}","ok":false,"errorContains":"代理"},
+    {
+      "name": "valid-full",
+      "json": "{\"version\":1,\"id\":\"demo\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"caption\":\"排队延迟\",\"summary\":\"拖动滑块观察等待时间\"}",
+      "ok": true,
+      "canonical": "{\"version\":1,\"id\":\"demo\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"caption\":\"排队延迟\",\"summary\":\"拖动滑块观察等待时间\"}"
+    },
+    {
+      "name": "valid-without-summary",
+      "json": "{\"version\":1,\"id\":\"a1\",\"sha256\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"caption\":\"  标题  \"}",
+      "ok": true,
+      "canonical": "{\"version\":1,\"id\":\"a1\",\"sha256\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"caption\":\"标题\"}"
+    },
+    {
+      "name": "unicode-caption",
+      "json": "{\"version\":1,\"id\":\"uni\",\"sha256\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"caption\":\"温度 🌡️ 与压力\",\"summary\":\"含实际 Unicode 字符\"}",
+      "ok": true,
+      "canonical": "{\"version\":1,\"id\":\"uni\",\"sha256\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"caption\":\"温度 🌡️ 与压力\",\"summary\":\"含实际 Unicode 字符\"}"
+    },
+    {
+      "name": "duplicate-key",
+      "json": "{\"version\":1,\"id\":\"demo\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"caption\":\"a\",\"caption\":\"b\"}",
+      "ok": false,
+      "errorContains": "重复"
+    },
+    {
+      "name": "trailing-content",
+      "json": "{\"version\":1,\"id\":\"demo\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"caption\":\"a\"} x",
+      "ok": false,
+      "errorContains": "JSON"
+    },
+    {
+      "name": "unknown-field",
+      "json": "{\"version\":1,\"id\":\"demo\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"caption\":\"a\",\"extra\":1}",
+      "ok": false,
+      "errorContains": "未知字段"
+    },
+    {
+      "name": "wrong-version",
+      "json": "{\"version\":2,\"id\":\"demo\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"caption\":\"a\"}",
+      "ok": false,
+      "errorContains": "version"
+    },
+    {
+      "name": "bad-id",
+      "json": "{\"version\":1,\"id\":\"Bad_ID\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"caption\":\"a\"}",
+      "ok": false,
+      "errorContains": "id"
+    },
+    {
+      "name": "both-path-and-sha",
+      "json": "{\"version\":1,\"id\":\"demo\",\"path\":\"./a.html\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"caption\":\"a\"}",
+      "ok": false,
+      "errorContains": "恰有一个"
+    },
+    {
+      "name": "missing-caption",
+      "json": "{\"version\":1,\"id\":\"demo\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+      "ok": false,
+      "errorContains": "caption"
+    },
+    {
+      "name": "empty-caption",
+      "json": "{\"version\":1,\"id\":\"demo\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"caption\":\"   \"}",
+      "ok": false,
+      "errorContains": "caption"
+    },
+    {
+      "name": "summary-too-long",
+      "json": "{\"version\":1,\"id\":\"demo\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"caption\":\"a\",\"summary\":\"S\"}",
+      "ok": false,
+      "errorContains": "1000",
+      "transform": "repeat-summary-1001"
+    }
+  ],
+  "localPaths": [
+    { "path": "./interactive/demo.html", "ok": true },
+    { "path": "interactive/demo.html", "ok": true },
+    { "path": "../demo.html", "ok": false },
+    { "path": "assets/../../demo.html", "ok": false },
+    { "path": "/etc/passwd.html", "ok": false },
+    { "path": "https://example.com/demo.html", "ok": false },
+    { "path": "assets/demo.htm", "ok": false },
+    { "path": "assets//demo.html", "ok": false }
+  ],
+  "html": [
+    { "name": "hidden-source-variant", "file": "html/hidden-source-variant.html", "ok": false, "adapt": false, "errorCode": "INTERACTIVE_HIDDEN_SOURCE" },
+    { "name": "remote-inline-style", "file": "html/remote-inline-style.html", "ok": false, "adapt": false, "errorCode": "INTERACTIVE_CSS_URL" },
+    { "name": "remote-css-variable", "file": "html/remote-css-variable.html", "ok": false, "adapt": false, "errorCode": "INTERACTIVE_CSS_URL" },
+    { "name": "remote-svg-resource", "file": "html/remote-svg-resource.html", "ok": false, "adapt": false, "errorCode": "INTERACTIVE_REMOTE_RESOURCE" },
+    {
+      "name": "inline-ok",
+      "file": "html/inline-ok.html",
+      "ok": true,
+      "adapt": false
+    },
+    {
+      "name": "css-escaped-remote-url",
+      "file": "html/css-escaped-remote-url.html",
+      "ok": false,
+      "adapt": false,
+      "errorCode": "INTERACTIVE_CSS_URL"
+    },
+    {
+      "name": "remote-script",
+      "file": "html/remote-script.html",
+      "ok": false,
+      "adapt": false,
+      "errorCode": "INTERACTIVE_REMOTE_SCRIPT"
+    },
+    {
+      "name": "nested-iframe",
+      "file": "html/nested-iframe.html",
+      "ok": false,
+      "adapt": false,
+      "errorCode": "INTERACTIVE_FORBIDDEN_ELEMENT"
+    },
+    {
+      "name": "template-nested-iframe",
+      "file": "html/template-nested-iframe.html",
+      "ok": false,
+      "adapt": false,
+      "errorCode": "INTERACTIVE_FORBIDDEN_ELEMENT"
+    },
+    {
+      "name": "css-import",
+      "file": "html/css-import.html",
+      "ok": false,
+      "adapt": false,
+      "errorCode": "INTERACTIVE_CSS_IMPORT"
+    },
+    {
+      "name": "srcset",
+      "file": "html/srcset.html",
+      "ok": false,
+      "adapt": false,
+      "errorCode": "INTERACTIVE_SRCSET"
+    },
+    {
+      "name": "data-script-mime",
+      "file": "html/data-script-mime.html",
+      "ok": false,
+      "adapt": false,
+      "errorCode": "INTERACTIVE_REMOTE_RESOURCE"
+    },
+    {
+      "name": "hidden-source",
+      "file": "html/hidden-source.html",
+      "ok": false,
+      "adapt": false,
+      "errorCode": "INTERACTIVE_HIDDEN_SOURCE"
+    },
+    {
+      "name": "generator-adapted",
+      "file": "html/generator-adapted.html",
+      "ok": true,
+      "adapt": true,
+      "adaptedFrom": "html/generator-original.html"
+    }
+  ]
+}

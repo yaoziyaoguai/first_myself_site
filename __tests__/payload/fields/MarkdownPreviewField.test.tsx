@@ -32,6 +32,7 @@ const { mockUseField } = vi.hoisted(() => ({
 
 vi.mock("@payloadcms/ui", () => ({
   useField: mockUseField,
+  useDocumentInfo: () => ({ id: undefined }),
   FieldLabel: ({ label }: { label?: unknown }) => (
     <label data-testid="field-label">{String(label ?? "")}</label>
   ),

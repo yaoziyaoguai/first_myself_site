@@ -1,5 +1,7 @@
 import type { CollectionConfig } from "payload";
 import { revalidateVisitorContent } from "@/lib/visitorContentCache";
+import { getBlogAgentDatabasePool } from "@/lib/blog-agent/database";
+import { checkInteractiveGate, interactiveQueryable } from "@/lib/interactive-html/gate";
 
 type BlogAgentState = Record<string, unknown>;
 
@@ -184,6 +186,32 @@ const Blog: CollectionConfig = {
         data: data as BlogAgentState | undefined,
         originalDoc: originalDoc as BlogAgentState | undefined,
       }),
+      // 互动 HTML 门禁：语法始终校验；公开或 ready 状态要求资源已绑定当前文章。
+      // 私有草稿允许“资源待上传”，完成度由当前正文实时推导。
+      async ({ data, originalDoc }) => {
+        const markdown =
+          data?.contentMarkdown !== undefined
+            ? data.contentMarkdown
+            : originalDoc?.contentMarkdown;
+        if (typeof markdown !== "string" || markdown.length === 0) return data;
+        const status =
+          data?.status !== undefined ? data.status : originalDoc?.status;
+        const visibility =
+          data?.visibility !== undefined ? data.visibility : originalDoc?.visibility;
+        const result = await checkInteractiveGate(
+          interactiveQueryable(getBlogAgentDatabasePool()),
+          {
+            markdown,
+            status,
+            visibility,
+            blogId: originalDoc?.id,
+            // 切到 ready 索引同样要求资源齐全，即使文章仍是私有草稿。
+            willWriteReadyIndex: data?.agentIndexStatus === "ready",
+          },
+        );
+        if (!result.ok) throw new Error(result.message);
+        return data;
+      },
     ],
     // 普通内容更新允许 TTL 兜底；公开内容被收紧或删除时，失效失败必须让写入报错。
     afterChange: [revalidateBlogChange],

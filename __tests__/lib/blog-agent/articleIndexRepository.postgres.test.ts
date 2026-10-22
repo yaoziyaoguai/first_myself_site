@@ -25,9 +25,18 @@ function createDatabase(
     text: string,
     _values?: readonly unknown[],
   ) => {
-    void _values;
     if (text.includes('FROM "blog"')) {
-      return { rows: [articleRow ?? { agent_package_hash: expectedPackageHash }] };
+      const blogId = String(_values?.[0] ?? baseArticle.id);
+      return {
+        rows: [articleRow ?? {
+          id: Number(blogId),
+          slug: baseArticle.slug,
+          title: baseArticle.title,
+          excerpt: baseArticle.excerpt,
+          agent_package_hash: expectedPackageHash,
+          content_markdown: baseArticle.contentMarkdown,
+        }],
+      };
     }
     return { rows };
   });
@@ -40,9 +49,18 @@ function createDatabase(
   return { pool, query, release };
 }
 
+const baseArticle = {
+  id: "42",
+  slug: "post-42",
+  title: "标题",
+  excerpt: "摘要",
+  contentMarkdown: "正文",
+};
+
 const packageInput = {
   blogId: "42",
-  articleHash: "a".repeat(64),
+  article: baseArticle,
+  articleHash: hashPublicArticle(baseArticle),
   packageHash: "b".repeat(64),
   manifest: { version: 1 },
   embeddingModel: "qwen3.7-text-embedding",
@@ -194,6 +212,17 @@ describe("PostgresArticleIndexRepository", () => {
     expect(statements).toContain("ROLLBACK");
   });
 
+  it.each(["slug", "title", "excerpt"])("rejects draft index when current %s changed", async (field) => {
+    const database = createDatabase([], packageInput.packageHash, {
+      id: 42, slug: baseArticle.slug, title: baseArticle.title, excerpt: baseArticle.excerpt,
+      content_markdown: baseArticle.contentMarkdown,
+      agent_package_hash: packageInput.packageHash,
+      [field]: "concurrently changed",
+    });
+    await expect(new PostgresArticleIndexRepository(database.pool).replacePackage(packageInput)).rejects.toThrow("article package state conflict");
+    expect(database.query.mock.calls.map(([sql]) => sql).join("\n")).not.toContain('DELETE FROM "blog_agent"."article_packages"');
+  });
+
   it("atomically swaps a ready public package only from the exact article snapshot", async () => {
     const previousPackageHash = "c".repeat(64);
     const article = {
@@ -203,6 +232,7 @@ describe("PostgresArticleIndexRepository", () => {
       excerpt: "一个受控循环",
       contentMarkdown: "主要内容",
     };
+    const articleHash = hashPublicArticle(article);
     const database = createDatabase([], packageInput.packageHash, {
       id: 42,
       slug: article.slug,
@@ -221,6 +251,7 @@ describe("PostgresArticleIndexRepository", () => {
     await repository.replacePublishedPackage({
       ...packageInput,
       article,
+      articleHash,
       previousPackageHash,
     });
 
@@ -244,6 +275,7 @@ describe("PostgresArticleIndexRepository", () => {
       excerpt: "一个受控循环",
       contentMarkdown: "主要内容",
     };
+    const articleHash = hashPublicArticle(article);
     const database = createDatabase([], packageInput.packageHash, {
       id: 42,
       slug: article.slug,
@@ -283,6 +315,7 @@ describe("PostgresArticleIndexRepository", () => {
     await expect(repository.replacePublishedPackage({
       ...packageInput,
       article,
+      articleHash,
       previousPackageHash,
     })).rejects.toThrow("simulated chunk write failure");
 
@@ -317,6 +350,7 @@ describe("PostgresArticleIndexRepository", () => {
     await expect(repository.replacePublishedPackage({
       ...packageInput,
       article,
+      articleHash: hashPublicArticle(article),
       previousPackageHash,
     })).rejects.toThrow("article package state conflict");
 
@@ -367,7 +401,9 @@ describePostgres("PostgresArticleIndexRepository on PostgreSQL 15", () => {
       },
     } as unknown as MigrateUpArgs);
     await database.pool.query(
-      'INSERT INTO "blog" ("id") VALUES (42), (43), (45)',
+      `INSERT INTO "blog" ("id", "slug", "title", "excerpt", "content_markdown")
+       VALUES (42, $1, $2, $3, $4), (43, $1, $2, $3, $4), (45, $1, $2, $3, $4)`,
+      [baseArticle.slug, baseArticle.title, baseArticle.excerpt, baseArticle.contentMarkdown],
     );
     await database.pool.query(
       'UPDATE "blog" SET "agent_package_hash" = $1 WHERE "id" IN (42, 43, 45)',
@@ -387,7 +423,13 @@ describePostgres("PostgresArticleIndexRepository on PostgreSQL 15", () => {
       [id, article.slug, article.title, article.excerpt, article.contentMarkdown, previousPackageHash],
     );
     const repository = new PostgresArticleIndexRepository(database.pool);
-    await repository.replacePackage({ ...packageInput, blogId: id, packageHash: previousPackageHash, articleHash: hashPublicArticle(article) });
+    await repository.replacePackage({
+      ...packageInput,
+      blogId: id,
+      packageHash: previousPackageHash,
+      article,
+      articleHash: hashPublicArticle(article),
+    });
     const replacement = { title: "新标题", excerpt: "新摘要", contentMarkdown: "新正文", readingTime: "约 4 分钟" };
     const next = { ...packageInput, blogId: id, article, replacement, previousPackageHash, articleHash: hashPublicArticle({ ...article, ...replacement }) };
     return { repository, article, next };
@@ -451,7 +493,8 @@ describePostgres("PostgresArticleIndexRepository on PostgreSQL 15", () => {
     await repository.replacePackage({
       ...packageInput,
       blogId: "43",
-      articleHash: "c".repeat(64),
+      article: { ...baseArticle, id: "43" },
+      articleHash: hashPublicArticle({ ...baseArticle, id: "43" }),
       chunks: [{
         ...packageInput.chunks[0],
         id: "material:other:0",
@@ -514,11 +557,12 @@ describePostgres("PostgresArticleIndexRepository on PostgreSQL 15", () => {
     );
     const repository = new PostgresArticleIndexRepository(database.pool);
 
-    const previousArticleHash = "e".repeat(64);
+    const previousArticleHash = hashPublicArticle(article);
     await repository.replacePackage({
       ...packageInput,
       blogId: article.id,
       packageHash: previousPackageHash,
+      article,
       articleHash: previousArticleHash,
     });
 
@@ -561,9 +605,20 @@ describePostgres("PostgresArticleIndexRepository on PostgreSQL 15", () => {
 
   it("accepts legacy NULL line metadata but rejects either one-sided line bound", async () => {
     const repository = new PostgresArticleIndexRepository(database.pool);
+    await database.pool.query(
+      `INSERT INTO "blog" ("id", "slug", "title", "excerpt", "content_markdown")
+       VALUES (45, $1, $2, $3, $4) ON CONFLICT ("id") DO NOTHING`,
+      [baseArticle.slug, baseArticle.title, baseArticle.excerpt, baseArticle.contentMarkdown],
+    );
+    await database.pool.query(
+      'UPDATE "blog" SET "agent_package_hash" = $1 WHERE "id" = 45',
+      [packageInput.packageHash],
+    );
     await repository.replacePackage({
       ...packageInput,
       blogId: "45",
+      article: { ...baseArticle, id: "45" },
+      articleHash: hashPublicArticle({ ...baseArticle, id: "45" }),
       chunks: [{
         ...packageInput.chunks[0],
         id: "material:base:0",
