@@ -87,6 +87,7 @@
     { "path": "assets//demo.html", "ok": false }
   ],
   "html": [
+    { "name": "real-generated-public-copy", "file": "html/am-generated.html", "ok": true, "adapt": true },
     { "name": "hidden-source-variant", "file": "html/hidden-source-variant.html", "ok": false, "adapt": false, "errorCode": "INTERACTIVE_HIDDEN_SOURCE" },
     { "name": "remote-inline-style", "file": "html/remote-inline-style.html", "ok": false, "adapt": false, "errorCode": "INTERACTIVE_CSS_URL" },
     { "name": "remote-css-variable", "file": "html/remote-css-variable.html", "ok": false, "adapt": false, "errorCode": "INTERACTIVE_CSS_URL" },

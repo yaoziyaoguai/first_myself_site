@@ -58,7 +58,7 @@
 
 ## 当前 Blockers
 
-2026-10-22 本会话已验证 GitHub CLI/keyring 和远端读取正常，认证阻塞已解除，不需再登录。用户在本会话明确确认“按 GitHub 流程完成上线”，授权提交、推送、PR 检查后合入 main、Actions 部署与生产验收后启用。当前分支 `codex/interactive-html-implementation`；尚未 commit/push/PR/merge，正在完成补修后的浏览器复验。生产仍为 revision `2ad23a9`、healthy，仓库目录 `/root/work_space/first_myself_site`；服务器 origin 跟踪引用陈旧，不能把 ahead 计数当作分支冲突，不得重置服务器代码。
+2026-10-22 本会话已验证 GitHub CLI/keyring 和远端读取正常，认证阻塞已解除，不需再登录。用户明确确认“按 GitHub 流程完成上线”，并允许临时公开 `interactive-html-release-check-20261022` 做无敏感信息验证、完成后改回私有草稿，不修改已有文章。分支 `codex/interactive-html-implementation` 已提交 `5e33527` 并推送，PR 为 https://github.com/yaoziyaoguai/first_myself_site/pull/68 。首轮 CI 的 ESLint/TypeScript/依赖审查通过，Tests 因一个测试误读 `.local` 样例而失败；已改用带上游 MIT 声明的版本控制内真实生成器 fixture，保持实际适配和校验断言，正在重新验证/推送。生产尚未变更，GitHub 互动开关为 false。生产仍为 revision `2ad23a9`、healthy，目录 `/root/work_space/first_myself_site`；服务器 origin 跟踪引用陈旧，不得把 ahead 计数当作冲突或重置源码。
 
 上线时仍须验证生产 Nginx 与新路径 512 KiB 请求能力、最终响应头/权限及一份无敏感信息内容样例。本轮已完成隔离数据库备份恢复，不代表生产库恢复演练；实体设备和完整屏幕阅读器仍未验证。根目录遗留的未跟踪自动生成 `payload-types.ts` 与正式类型声明冲突，已完整移至 `.local/interactive-html-release/payload-types.generated.ts.txt` 保留；不要再恢复它干扰 CI 类型检查。
 

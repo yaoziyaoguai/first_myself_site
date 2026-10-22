@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { preparePublicHtml } from "@/lib/interactive-html/profile";
 import {
   canonicalFence,
   canonicalizeMarker,
@@ -140,13 +141,14 @@ describe("interactive marker 协议", () => {
 describe("answer-me-with-html 真实样例", () => {
   it("原始生成文件含隐藏源文，公开副本已清空且校验通过", () => {
     const original = readFileSync(
-      ".local/interactive-html-impl/p0/source/am-sample.html",
+      "__tests__/fixtures/interactive-html/html/am-generated.html",
       "utf8",
     );
-    const adapted = readFileSync(
-      ".local/interactive-html-impl/p0/source/am-sample.public.html",
-      "utf8",
-    );
+    const prepared = preparePublicHtml(Buffer.from(original), { adapt: true });
+    expect(prepared.ok).toBe(true);
+    if (!prepared.ok) return;
+    const adapted = prepared.value.html;
+    expect(preparePublicHtml(Buffer.from(adapted), { adapt: false }).ok).toBe(true);
     const sourceBody = (html: string) => {
       const match = html.match(
         /<textarea[^>]*id="am-source"[^>]*>([\s\S]*?)<\/textarea>/,
