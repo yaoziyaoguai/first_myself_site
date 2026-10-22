@@ -67,7 +67,7 @@
 
 **改动**：PR #68 包含交互 HTML 完整功能和接手修复；全局 Skill 在仓库外独立更新。后续收尾只同步 README、TESTING_GUIDE、原执行包与 STATUS/RECENT，不触碰应用或依赖。证据在 `.local/interactive-html-release/`、`output/playwright/interactive-html-{release,production}-20261022/`，不把原始轨迹或凭据提交。
 
-**遗留**：实体设备、完整屏幕阅读器和生产数据库恢复演练未运行；全局 Skill 不会随网站 Actions 自动分发到其他机器。推送时 GitHub 的 94 条存量依赖告警未在本轮升级，不能把新增依赖审查通过说成全站漏洞已清零。
+**遗留**：实体设备、完整屏幕阅读器和生产数据库恢复演练未运行；全局 Skill 不会随网站 Actions 自动分发到其他机器。推送时 GitHub 仍提示存量依赖告警，最新数量见 STATUS 快照；本轮未逐项升级，不能把新增依赖审查通过说成全站漏洞已清零。
 
 **下一步**：本轮功能交付收口，收尾文档按同一 PR/CI 流程合入并确认文档差异不重建生产镜像；后续文章可使用现有 Skill 上传 HTML，不需要再次构建网站。
 
