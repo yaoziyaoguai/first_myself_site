@@ -101,7 +101,7 @@ npm run build
 
 ## 发布文章
 
-可以直接在 Payload Admin 中编辑，也可以从任意 Codex 项目调用全局 `publish-site-article` Skill，把 Markdown 和文中引用的本地图片同步到网站。
+可以直接在 Payload Admin 中编辑，也可以从任意 Codex / Claude Code 项目调用已安装的全局 `publish-site-article` Skill，把 Markdown、本地图片和经过审查的交互 HTML 同步到网站。全局 Skill 独立安装，不会随网站的 GitHub Actions 部署自动安装到其他电脑。
 
 发布 Skill 的安全约定：
 
@@ -112,6 +112,7 @@ npm run build
 - 交互资源未齐时只允许保持 `draft + private`，不能公开或写入 ready Agent 索引；同计划中断只用 `draft --resume-draft-id <id>` 补齐资源，不改正文
 - 已存在的 slug 默认停止，避免误覆盖线上文章
 - 凭据只从本机环境变量或系统 Keychain 读取，不进入仓库
+- 普通公开文章的内容更新只修改标题、摘要、正文与阅读时长；保留发布日期、slug、标签、封面、附件及合集，不把并发撤回的文章重新公开
 - 已公开且绑定 ready Agent package 的文章，可明确执行 `update-published --confirm-published-update`：保留原 GitHub 固定提交，校验来源后在同一事务更新文字与索引；不改 slug、发布日期、标签和合集，失败保留旧版
 
 推荐流程：先生成文章 → 本地预检 → 上传草稿 → 后台校对 → 明确公开发布。

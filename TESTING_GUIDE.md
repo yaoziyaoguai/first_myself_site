@@ -4,14 +4,22 @@
 
 ## 当前基线
 
-截至 2026-10-22 的交互 HTML 本地实现分支（尚未提交、部署或生产验收）：
+截至 2026-10-22，交互 HTML PR #68（合入 main 为 `ea1e527`）的发布候选证据：
 
-- 101 个测试文件通过，9 个按真库条件跳过；968 个自动化测试通过，28 个按真库条件跳过（本地使用 `--maxWorkers=4`）
+- CI Run 39720927514：101 个测试文件通过，9 个按真库条件跳过；969 个自动化测试通过，28 个按真库条件跳过。本地全量为 968 项；CI 前补入实际生成器的 tracked fixture 后多 1 项
 - 另运行 CI 的 PostgreSQL 15 专项入口，10 个文件、39 项通过；隔离备份/恢复验证了 HTML 字节、文章归属与不可变触发器，临时库已清理
-- 全局 `publish-site-article` Skill 的 42 项 Python 测试通过，并与网站共享交互协议 fixtures；真实本地 CLI 的 plan/draft/resume/publish/回读/撤回及匿名桌面、手机交互通过
+- 全局 `publish-site-article` Skill 的 43 项 Python 测试通过，并与网站共享交互协议 fixtures；真实本地 CLI 的 plan/draft/resume/publish/回读/撤回及匿名桌面、手机交互通过。普通公开更新只提交四个编辑字段，回读核对日期、标签、媒体及合集，不把并发撤回重新公开
 - ESLint 零警告、CI TypeScript 和 production build 通过
 - Chromium、Firefox、WebKit 在 1440 / 768 / 390px 各 51 项通过；390×470 短视口/Shift+Tab/reduced-motion 共 12 项通过；后台/权限/错误与响应头 24 项通过；后台编辑稳定性与新资源未保存预览 12 项通过
-- 这些是本地隔离环境证据，不代表生产 Nginx、生产迁移、部署或实体手机已验证
+- 以上条目只描述本地与 CI 证据，生产验证单列如下；实体手机不能由自动化视口验证替代
+
+### 2026-10-22 生产验收
+
+- PR #68 的 `ea1e527` 经 [Run 39721714408](https://github.com/yaoziyaoguai/first_myself_site/actions/runs/39721714408) 部署迁移并保持 HTML 关闭；同镜像私有候选验证后，[Run 39726180969](https://github.com/yaoziyaoguai/first_myself_site/actions/runs/39726180969) 正式启用。运行时 HTML/Agent 开关均 true、镜像 revision 匹配、容器 healthy，两个部署的真实 Agent canary 均通过
+- 获准的合成文章 ID 33 经过 Skill draft/resume/publish/update-published 和逐字回读；发布日期、标签、封面、附件与合集不变。正式 HTTPS 512 KiB 上传成功、+1 字节返回 413，未引用资源匿名 404；最终 CSP、no-store、nosniff、Referrer-Policy、X-Robots-Tag、X-Frame-Options 验证通过
+- Chromium/Firefox/WebKit × 1440/390px 实测启动前零 HTML 制品请求、点击/键盘滑块/计数、放大与收回保持 iframe 和状态、宿主 DOM 隔离、停止、无横向溢出及零页面/控制台错误。WebKit 自动化不等于实体 iPhone/Safari 验收
+- 测完 ID 33 已恢复 `draft + private`，匿名文章页和 HTML 都 404；之后 Chromium 两视口重测首页、手机菜单、28→7 篇筛选、原有代码文章、目录与返回列表，公开列表仍为 28 篇且无错误。没有修改原有文章；测试浏览器从 `?analytics=off` 进入
+- 本轮临时验证容器、SSH 转发和本地服务已关闭。证据为 `.local/interactive-html-release/production-report.json`、`production-regression-report.json` 与 `output/playwright/interactive-html-production-20261022/`。实体设备、完整屏幕阅读器和生产数据库恢复演练未运行
 
 不要用“测试文件存在”代替“测试已运行”。超时、截断输出或没有成功退出码都不能算通过。
 

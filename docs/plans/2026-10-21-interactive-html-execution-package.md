@@ -2,7 +2,7 @@
 
 审计日期：2026-10-21。目标仓库：`yaoziyaoguai/first_myself_site`。
 
-> 审计与执行包已完成；2026-10-22 已按本文件在本地实现并完成隔离验证，尚未提交、推送、执行生产迁移或部署。Oracle 使用网页控件确认的最高 5/5，正常结束并保存完整回答。本文件是经本地源码复核后的执行版本；与 Oracle 原始建议不一致时，以本文件明确的裁决为准。
+> 审计与执行包已完成；2026-10-22 已实现、隔离验证、经 PR #68 合入 main（`ea1e527`）并通过 GitHub Actions 部署启用，生产三浏览器交互与撤回验收通过。实际证据见 TESTING_GUIDE 与 STATUS/RECENT。Oracle 使用网页控件确认的最高 5/5，正常结束并保存完整回答。本文件是经本地源码复核后的执行版本；与 Oracle 原始建议不一致时，以本文件明确的裁决为准。
 
 **主路线：文章绑定的私有 HTML 存储 + 专用 HTML 响应 + HTTP CSP 沙箱；点击启动，同一 iframe 原位放大。** 不全站开启 raw HTML，不新建域名/服务，不把 HTML 加入 RAG。
 
@@ -323,9 +323,9 @@ npm run build
 
 - 审计阶段已完成：公开仓库/HEAD/工作区核对；相关公开源码与全局发布 Skill 的审阅；真实生成器输出结构的源码核对；官方 CSP/Next 资料核对；Oracle 5/5 提交、完整结果回收、正常退出与临时浏览器清理；对 Oracle 建议的本地复核与本执行包定稿。
 - 本地实施已完成：严格 marker/HTML profile、文章绑定不可变 PostgreSQL 存储、管理/view/preview API、写入/ready/公开门禁、前后台受控渲染、后台上传插入、Agent 可见文案投影、默认关闭开关与全局发布 Skill 的 plan/draft/resume/publish/update-published 接入。没有建立 Media HTML、`public/` 文件、跨文章资源库、新服务或第二套发布流程。
-- 发布前本地验证：ESLint、非增量 CI TypeScript、production build；101 文件/968 项测试通过，28 条真库条件项由完整 PostgreSQL 15 专项入口的 10 文件/39 项补验。Skill 42 项与真实本地 CLI 发布/恢复链路通过；Chromium/Firefox/WebKit 三视口各 51 项、短视口与键盘 12 项、权限/错误/响应头 24 项、后台编辑与未保存资源预览 12 项通过。隔离备份恢复验证了内容字节、归属和触发器，临时库已清理。
+- 发布前验证：ESLint、非增量 CI TypeScript、production build；本地 101 文件/968 项通过，补入 tracked 实际生成器 fixture 后 CI Run 39720927514 为 969 项通过。28 条真库条件项由完整 PostgreSQL 15 专项入口的 10 文件/39 项补验。Skill 43 项与真实本地 CLI 发布/恢复链路通过；Chromium/Firefox/WebKit 三视口各 51 项、短视口与键盘 12 项、权限/错误/响应头 24 项、后台编辑与未保存资源预览 12 项通过。隔离备份恢复验证了内容字节、归属和触发器，临时库已清理。
 - 本地收尾修正：普通文章新建不受无关资源门禁影响；作者可预览已绑定但未保存到正文的新资源；CLI 不能以 Cookie 后备伪装 Authorization；公开副本检查覆盖隐藏源文引号变体、CSS 变量与 SVG 资源；加载超时/旧请求竞态/焦点已补验；恢复脚本按 Payload GET 的扁平文档读取，并拒绝第三版本正文。
-- 生产发布与线上证据以项目 STATUS/RECENT 的后续记录为准。本地证据不证明 Nginx 新路径的 512 KiB 能力或线上可用；实体设备与完整屏幕阅读器尚未验证。
+- 生产发布：PR #68 / `ea1e527` 经 Run 39721714408 关闭开关部署迁移，同镜像私有候选通过后，Run 39726180969 启用。生产 512 KiB/+1 字节边界、最终响应头、三浏览器桌面/手机交互和 Skill 内容更新保留元数据均通过；获准临时文章 ID 33 已回私有草稿，匿名文章/HTML 404。未改既有文章，临时容器与转发已关闭。详见 TESTING_GUIDE；实体设备、完整屏幕阅读器与生产库恢复演练仍未运行。
 - 本地证据：最初实施记录位于 `.local/interactive-html-impl/`；收尾的测试/发布 Skill/备份恢复日志在 `.local/interactive-html-release/`，截图在 `output/playwright/interactive-html-release-20261022/`。这些目录不作为产品源码提交。
 - 源码依据：仓库内文件以第 3、3.8、3.10、3.11 节对应模块为准；全局 Skill 真源仍是 `/Users/jinkun.wang/.codex/skills/publish-site-article/`，Claude 路径保持 symlink。不存在从本包自动发布、修改安全组、购买服务或运行生产迁移的授权。
 
