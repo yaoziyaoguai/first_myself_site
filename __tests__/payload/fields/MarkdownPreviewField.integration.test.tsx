@@ -1,11 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
+import { canonicalFence } from "@/lib/interactive-html/marker";
 
-const { mockUseField } = vi.hoisted(() => ({ mockUseField: vi.fn() }));
+const { mockUseField, mockUseDocumentInfo } = vi.hoisted(() => ({
+  mockUseField: vi.fn(),
+  mockUseDocumentInfo: vi.fn(() => ({ id: undefined as number | undefined })),
+}));
 
 vi.mock("@payloadcms/ui", () => ({
   useField: mockUseField,
+  useDocumentInfo: mockUseDocumentInfo,
   FieldLabel: () => null,
   FieldDescription: () => null,
   FieldError: () => null,
@@ -33,6 +39,7 @@ function mockScrollGeometry(
 
 describe("MarkdownPreviewField rendered anchor integration", () => {
   beforeEach(() => {
+    mockUseDocumentInfo.mockReturnValue({ id: undefined });
     vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
       callback(0);
       return 1;
@@ -119,5 +126,59 @@ describe("MarkdownPreviewField rendered anchor integration", () => {
 
     expect(preview.scrollTop).toBe(900);
     expect(textarea.scrollTop).toBeLessThan(240);
+  });
+
+  it("keeps a running interactive wrapper mounted when prose is inserted before it", async () => {
+    const sha = "a".repeat(64);
+    const marker = canonicalFence({
+      version: 1,
+      id: "stateful-demo",
+      sha256: sha,
+      caption: "状态演示",
+    });
+    let value = `原有前言\n\n${marker}\n\n结尾`;
+    const setValue = vi.fn((next: string | null) => {
+      value = next ?? "";
+    });
+    mockUseDocumentInfo.mockReturnValue({ id: 1 });
+    mockUseField.mockImplementation(() => ({
+      value,
+      setValue,
+      showError: false,
+      errorMessage: undefined,
+      disabled: false,
+    }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response("", { status: 200 })),
+    );
+
+    const props = {
+      field: { name: "contentMarkdown", type: "textarea" },
+      path: "contentMarkdown",
+    } as unknown as ComponentProps<typeof MarkdownPreviewField>;
+    const { container, rerender } = render(<MarkdownPreviewField {...props} />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "启动交互" }));
+    await waitFor(() =>
+      expect(container.querySelector("iframe")).not.toBeNull(),
+    );
+
+    const wrapper = container.querySelector(".interactive-html")!;
+    const iframe = container.querySelector("iframe")!;
+    const parent = wrapper.parentElement!;
+    const removed: Node[] = [];
+    const observer = new MutationObserver((records) => {
+      for (const record of records) removed.push(...record.removedNodes);
+    });
+    observer.observe(parent, { childList: true });
+
+    value = `新增前置段落\n\n${value}`;
+    rerender(<MarkdownPreviewField {...props} />);
+    observer.disconnect();
+
+    expect(container.querySelector(".interactive-html")).toBe(wrapper);
+    expect(container.querySelector("iframe")).toBe(iframe);
+    expect(removed).not.toContain(wrapper);
   });
 });

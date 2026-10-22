@@ -7,6 +7,22 @@ function source(path: string): string {
 }
 
 describe("Blog Agent production defaults", () => {
+  it("交互 HTML 开关经 Actions 传递，候选和回滚关闭，验收后恢复目标值", () => {
+    const workflow = source(".github/workflows/ci-cd.yml");
+    expect(workflow).toContain("BLOG_INTERACTIVE_HTML_ENABLED: ${{ vars.BLOG_INTERACTIVE_HTML_ENABLED }}");
+    expect(workflow).toMatch(/envs: [^\n]*BLOG_INTERACTIVE_HTML_ENABLED/);
+    const target = workflow.indexOf('target_interactive_html_enabled="$BLOG_INTERACTIVE_HTML_ENABLED"');
+    const disabled = workflow.indexOf("export BLOG_INTERACTIVE_HTML_ENABLED=false", target);
+    const canary = workflow.indexOf("exec -T app npm run blog-agent:canary --");
+    const restore = workflow.indexOf('export BLOG_INTERACTIVE_HTML_ENABLED="$target_interactive_html_enabled"', canary);
+    expect(target).toBeGreaterThan(-1);
+    expect(disabled).toBeGreaterThan(target);
+    expect(canary).toBeGreaterThan(disabled);
+    expect(restore).toBeGreaterThan(canary);
+    const rollback = workflow.slice(workflow.indexOf("fail_closed_rollback() {"), workflow.indexOf("# GitHub 只推送"));
+    expect(rollback).toContain("export BLOG_INTERACTIVE_HTML_ENABLED=false");
+    expect(workflow).toContain("process.env.BLOG_INTERACTIVE_HTML_ENABLED === process.argv[3]");
+  });
   it("uses one dynamic parameter name for sibling Blog API routes", () => {
     const dynamicDirectories = readdirSync(
       resolve(process.cwd(), "app/api/blog"),

@@ -41,6 +41,14 @@ export type PublishedArticlePackageReplacement = ReadyArticlePackage & {
   replacement?: PublishedArticleEdit;
 };
 
+/**
+ * 草稿索引：携带准备的完整文章快照，仓库层在同一事务内核对当前正文
+ * 与互动资源，避免“预检通过、提交时正文已变”的窗口。
+ */
+export type DraftArticlePackage = ReadyArticlePackage & {
+  article: PublicMarkdownArticle;
+};
+
 export type PublishedArticleEdit = Pick<PublicMarkdownArticle, "title" | "excerpt" | "contentMarkdown"> & {
   readingTime: string;
 };
@@ -57,7 +65,7 @@ export interface ArticleIndexRepository {
     packageHash: string;
   }): Promise<ArticlePackageSummary | null>;
 
-  replacePackage(input: ReadyArticlePackage): Promise<void>;
+  replacePackage(input: DraftArticlePackage): Promise<void>;
 
   replacePublishedPackage(input: PublishedArticlePackageReplacement): Promise<void>;
 }

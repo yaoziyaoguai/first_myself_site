@@ -1,5 +1,6 @@
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { toString } from "mdast-util-to-string";
+import { projectInteractiveHtmlForAgent } from "@/lib/interactive-html/marker";
 import type { ArticleChunkSourceKind } from "./articleIndexRepository";
 
 export type ArticleSection = {
@@ -62,7 +63,9 @@ function sectionId(ordinal: number, anchor: string): string {
 }
 
 export function parseArticleMarkdown(markdown: string): ParsedArticleMarkdown {
-  const source = markdown.replace(/\r\n?/g, "\n");
+  // 互动块的 HTML/JS/隐藏数据不进入 RAG：先按源位置投影为可见的
+  // “交互示例：caption。说明：summary。”，再沿用原有切分与标题锚点。
+  const source = projectInteractiveHtmlForAgent(markdown).replace(/\r\n?/g, "\n");
   const tree = fromMarkdown(source);
   const sections: ArticleSection[] = [];
   const headingPath: string[] = [];

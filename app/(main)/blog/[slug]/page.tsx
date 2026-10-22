@@ -4,7 +4,10 @@ import type { Metadata } from "next";
 import { cache, type ComponentProps } from "react";
 import { ArrowUpRight } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
-import { canUsePublicInteractions } from "@/lib/blogVisibility";
+import {
+  canUsePublicInteractions,
+  canViewPrivateBlog,
+} from "@/lib/blogVisibility";
 import {
   findBlogPostBySlugForViewer,
   findBlogPostsForViewer,
@@ -274,6 +277,16 @@ export default async function BlogPostPage({ params }: PageProps) {
                 <MarkdownArticle
                   markdown={markdownContent}
                   title={String(post.title)}
+                  blogId={String(post.id)}
+                  interactiveMode={
+                    // 只有作者级身份能看到非公开文章的预览；公开文章走 view。
+                    post.status === "published" &&
+                    post.visibility === "public"
+                      ? "view"
+                      : canViewPrivateBlog(viewer)
+                        ? "preview"
+                        : "view"
+                  }
                 />
               ) : (
                 <RichText

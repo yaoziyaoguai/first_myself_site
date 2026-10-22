@@ -5,11 +5,20 @@ import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   useField,
+  useDocumentInfo,
   FieldLabel,
   FieldDescription,
   FieldError,
 } from "@payloadcms/ui";
 import type { TextareaFieldClientComponent, StaticDescription } from "payload";
+
+import { InteractiveHtmlEmbed } from "@/components/InteractiveHtmlEmbed";
+import {
+  INTERACTIVE_EMBED_PREFIX,
+  interactiveMarkerIndex,
+  markerFromElementProps,
+} from "@/lib/interactive-html/ast";
+import { InteractiveInsertPanel } from "./InteractiveInsertPanel";
 
 import "./styles.css";
 
@@ -166,6 +175,44 @@ function getSourceLines(content: string) {
 }
 
 /**
+ * 预览里的互动块组件。
+ *
+ * 所有 id 共用一个函数引用：块之间的区分来自 per-id 元素名（见 ast.ts），
+ * React 已能按稳定 key 协调。若每次渲染新建函数，普通打字也会让块被卸载
+ * 重建，正在运行的 iframe 随之重置。
+ */
+function useEmbedComponents(markdown: string, blogId?: string | number | null) {
+  const ids = useMemo(() => {
+    const { markers } = interactiveMarkerIndex(markdown);
+    return [
+      ...new Set([...markers.values()].map((marker) => marker.id)),
+    ].sort();
+  }, [markdown]);
+
+  const embedComponent = useMemo(() => {
+    function PreviewInteractiveHtmlEmbed(props: Record<string, unknown>) {
+      const marker = markerFromElementProps(props);
+      if (!marker) return null;
+      return (
+        <InteractiveHtmlEmbed marker={marker} blogId={blogId} mode="preview" />
+      );
+    }
+    return PreviewInteractiveHtmlEmbed;
+  }, [blogId]);
+
+  return useMemo(() => {
+    const components: Record<
+      string,
+      (props: Record<string, unknown>) => React.ReactNode
+    > = {};
+    for (const id of ids) {
+      components[`${INTERACTIVE_EMBED_PREFIX}${id}`] = embedComponent;
+    }
+    return components;
+  }, [embedComponent, ids]);
+}
+
+/**
  * Narrow a Payload field description (which may be a function on the server
  * config) down to the StaticDescription that survives client sanitization.
  */
@@ -191,6 +238,12 @@ export const MarkdownPreviewField: TextareaFieldClientComponent = ({
   const readOnly = Boolean(readOnlyFromProps || disabled);
   // `useField<string>` is a type assertion; empty input is persisted as null.
   const content = value || "";
+  const { id: documentId } = useDocumentInfo();
+  const embedComponents = useEmbedComponents(content, documentId ?? null);
+  const { plugin, rehypePlugin } = useMemo(
+    () => interactiveMarkerIndex(content),
+    [content],
+  );
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sourceMapRef = useRef<HTMLDivElement>(null);
@@ -381,8 +434,9 @@ export const MarkdownPreviewField: TextareaFieldClientComponent = ({
           >
             {content.trim() ? (
               <Markdown
-                remarkPlugins={[remarkGfm]}
-                components={markdownComponents}
+                remarkPlugins={[remarkGfm, ...plugin]}
+                rehypePlugins={rehypePlugin}
+                components={{ ...markdownComponents, ...embedComponents }}
               >
                 {content}
               </Markdown>
@@ -392,6 +446,29 @@ export const MarkdownPreviewField: TextareaFieldClientComponent = ({
           </div>
         </div>
       </div>
+
+      <InteractiveInsertPanel
+        blogId={documentId ?? null}
+        currentMarkdown={content}
+        disabled={readOnly}
+        getCursorOffset={() => textareaRef.current?.selectionStart}
+        onInserted={(markdown) => {
+          const textarea = textareaRef.current;
+          const cursor = textarea?.selectionStart ?? markdown.length;
+          setValue(markdown);
+          // 插入块已写进正文；把光标移到插入内容之后，便于继续写作。
+          requestAnimationFrame(() => {
+            const next = textareaRef.current;
+            if (!next) return;
+            const position = Math.min(
+              markdown.length,
+              Math.max(0, cursor + (markdown.length - content.length)),
+            );
+            next.focus();
+            next.setSelectionRange(position, position);
+          });
+        }}
+      />
 
       <FieldError path={path} message={errorMessage} showError={showError} />
     </div>

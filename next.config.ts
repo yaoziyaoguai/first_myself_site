@@ -1,5 +1,6 @@
 import { withPayload } from "@payloadcms/next/withPayload";
 import type { NextConfig } from "next";
+import { INTERACTIVE_HTML_ROUTE_HEADERS } from "./src/lib/interactive-html/headers";
 
 const nextConfig: NextConfig = {
   async redirects() {
@@ -71,8 +72,22 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // 交互 HTML 的精确路径策略：只有这两条专用响应放宽为可执行沙箱文档，
+      // 其它 /api 与 /blog 路径继续使用上面的全站保护。后匹配的同名头覆盖前者。
+      {
+        source: "/api/blog/:id/interactive-html/:sha/view",
+        headers: headerEntries(INTERACTIVE_HTML_ROUTE_HEADERS),
+      },
+      {
+        source: "/api/blog/:id/interactive-html/:sha/preview",
+        headers: headerEntries(INTERACTIVE_HTML_ROUTE_HEADERS),
+      },
     ];
   },
 };
+
+function headerEntries(headers: Record<string, string>) {
+  return Object.entries(headers).map(([key, value]) => ({ key, value }));
+}
 
 export default withPayload(nextConfig);

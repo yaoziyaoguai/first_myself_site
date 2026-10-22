@@ -53,6 +53,41 @@ describe("parseArticleMarkdown", () => {
       content: "开场说明",
     });
   });
+
+  it("projects interactive blocks to visible caption/summary only", () => {
+    const sha = "a".repeat(64);
+    const markdown = [
+      "## 演示",
+      "开头说明",
+      "",
+      "```interactive-html",
+      JSON.stringify({
+        version: 1,
+        id: "demo",
+        sha256: sha,
+        caption: "排队延迟",
+        summary: "拖动滑块观察等待时间",
+      }),
+      "```",
+      "",
+      "结尾说明",
+    ].join("\n");
+
+    const parsed = parseArticleMarkdown(markdown);
+
+    expect(parsed.sections).toHaveLength(1);
+    const content = parsed.sections[0]?.content ?? "";
+    expect(content).toContain("交互示例：排队延迟。");
+    expect(content).toContain("说明：拖动滑块观察等待时间。");
+    expect(content).not.toContain(sha);
+    expect(content).not.toContain("interactive-html");
+  });
+
+  it("keeps an invalid interactive fence as ordinary code and does not execute it", () => {
+    const markdown = "## 演示\n\n```interactive-html\nnot json\n```\n";
+    const parsed = parseArticleMarkdown(markdown);
+    expect(parsed.sections[0]?.content).toContain("not json");
+  });
 });
 
 describe("buildArticleEvidence", () => {

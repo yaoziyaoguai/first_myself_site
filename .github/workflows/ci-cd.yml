@@ -91,6 +91,7 @@ jobs:
           __tests__/payload/blog-series-migration.postgres.test.ts
           __tests__/payload/content-cache-invalidation.postgres.test.ts
           __tests__/lib/blog-agent/articleIndexRepository.postgres.test.ts
+          __tests__/lib/interactive-html/repository.postgres.test.ts
           __tests__/lib/blog-agent/runtime.postgres.test.ts
           __tests__/scripts/blog-agent-canary.postgres.test.ts
         env:
@@ -174,6 +175,7 @@ jobs:
           BLOG_AGENT_API_KEY: ${{ secrets.BLOG_AGENT_API_KEY }}
           BLOG_AGENT_ENABLED: ${{ vars.BLOG_AGENT_ENABLED }}
           BLOG_AGENT_GENERATION_ENABLED: ${{ vars.BLOG_AGENT_GENERATION_ENABLED }}
+          BLOG_INTERACTIVE_HTML_ENABLED: ${{ vars.BLOG_INTERACTIVE_HTML_ENABLED }}
           BLOG_AGENT_BASE_URL: ${{ vars.BLOG_AGENT_BASE_URL }}
           BLOG_AGENT_MODEL: ${{ vars.BLOG_AGENT_MODEL }}
           DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
@@ -187,7 +189,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: BLOG_AGENT_API_KEY,BLOG_AGENT_ENABLED,BLOG_AGENT_GENERATION_ENABLED,BLOG_AGENT_BASE_URL,BLOG_AGENT_MODEL,DASHSCOPE_API_KEY,BLOG_AGENT_EMBEDDING_BASE_URL,BLOG_AGENT_EMBEDDING_MODEL,BLOG_AGENT_EMBEDDING_DIMENSIONS,BLOG_AGENT_EMBEDDING_TIMEOUT_MS,BLOG_AGENT_CANARY_SLUG,BLOG_AGENT_CANARY_QUESTION
+          envs: BLOG_AGENT_API_KEY,BLOG_AGENT_ENABLED,BLOG_AGENT_GENERATION_ENABLED,BLOG_AGENT_BASE_URL,BLOG_AGENT_MODEL,DASHSCOPE_API_KEY,BLOG_AGENT_EMBEDDING_BASE_URL,BLOG_AGENT_EMBEDDING_MODEL,BLOG_AGENT_EMBEDDING_DIMENSIONS,BLOG_AGENT_EMBEDDING_TIMEOUT_MS,BLOG_AGENT_CANARY_SLUG,BLOG_AGENT_CANARY_QUESTION,BLOG_INTERACTIVE_HTML_ENABLED
           command_timeout: 60m
           script: |
             set -euo pipefail
@@ -215,6 +217,11 @@ jobs:
 
             export BLOG_AGENT_ENABLED="${BLOG_AGENT_ENABLED:-false}"
             export BLOG_AGENT_GENERATION_ENABLED="${BLOG_AGENT_GENERATION_ENABLED:-false}"
+            export BLOG_INTERACTIVE_HTML_ENABLED="${BLOG_INTERACTIVE_HTML_ENABLED:-false}"
+            if [ "$BLOG_INTERACTIVE_HTML_ENABLED" != "true" ] && [ "$BLOG_INTERACTIVE_HTML_ENABLED" != "false" ]; then
+              echo "BLOG_INTERACTIVE_HTML_ENABLED must be true or false" >&2
+              exit 1
+            fi
             if [ "$BLOG_AGENT_ENABLED" != "true" ] && [ "$BLOG_AGENT_ENABLED" != "false" ]; then
               echo "BLOG_AGENT_ENABLED must be true or false" >&2
               exit 1
@@ -247,9 +254,11 @@ jobs:
 
             target_blog_agent_enabled="$BLOG_AGENT_ENABLED"
             target_blog_agent_generation_enabled="$BLOG_AGENT_GENERATION_ENABLED"
+            target_interactive_html_enabled="$BLOG_INTERACTIVE_HTML_ENABLED"
             # 候选版本通过内部 canary 前不得向匿名访客开放 Agent。
             export BLOG_AGENT_ENABLED=false
             export BLOG_AGENT_GENERATION_ENABLED=false
+            export BLOG_INTERACTIVE_HTML_ENABLED=false
 
             compose=(docker compose --env-file .env.docker.prod -f docker/docker-compose.prod.yml)
 
@@ -281,9 +290,10 @@ jobs:
 
             verify_runtime_agent_flags() {
               "${compose[@]}" exec -T app node -e \
-                'process.exit(process.env.BLOG_AGENT_ENABLED === process.argv[1] && process.env.BLOG_AGENT_GENERATION_ENABLED === process.argv[2] ? 0 : 1)' \
+                'process.exit(process.env.BLOG_AGENT_ENABLED === process.argv[1] && process.env.BLOG_AGENT_GENERATION_ENABLED === process.argv[2] && process.env.BLOG_INTERACTIVE_HTML_ENABLED === process.argv[3] ? 0 : 1)' \
                 "$target_blog_agent_enabled" \
-                "$target_blog_agent_generation_enabled"
+                "$target_blog_agent_generation_enabled" \
+                "$target_interactive_html_enabled"
             }
 
             rollback() {
@@ -311,6 +321,7 @@ jobs:
             fail_closed_rollback() {
               export BLOG_AGENT_ENABLED=false
               export BLOG_AGENT_GENERATION_ENABLED=false
+              export BLOG_INTERACTIVE_HTML_ENABLED=false
               if rollback; then
                 return 0
               fi
@@ -336,7 +347,8 @@ jobs:
                 git diff --name-only "$deployed_revision" "${{ github.sha }}"
               )
               should_deploy="$(bash scripts/deployment/should-deploy.sh "${changed_paths[@]}")"
-              if [ "$should_deploy" = "false" ]; then
+              # 手动 dispatch 也用于应用已审核的服务端开关；不能被纯文档差异误跳过。
+              if [ "$should_deploy" = "false" ] && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
                 echo "Skipping production deploy: all changes since $deployed_revision are repository-only documentation or performance evidence."
                 exit 0
               fi
@@ -425,6 +437,7 @@ jobs:
 
             export BLOG_AGENT_ENABLED="$target_blog_agent_enabled"
             export BLOG_AGENT_GENERATION_ENABLED="$target_blog_agent_generation_enabled"
+            export BLOG_INTERACTIVE_HTML_ENABLED="$target_interactive_html_enabled"
             if ! "${compose[@]}" up -d --no-deps --force-recreate app; then
               if ! fail_closed_rollback; then
                 echo "Unable to establish a fail-closed rollback state" >&2
@@ -447,6 +460,7 @@ jobs:
 
             "${compose[@]}" ps
             unset BLOG_AGENT_API_KEY BLOG_AGENT_ENABLED BLOG_AGENT_GENERATION_ENABLED
+            unset BLOG_INTERACTIVE_HTML_ENABLED
             unset BLOG_AGENT_BASE_URL BLOG_AGENT_MODEL DASHSCOPE_API_KEY
             unset BLOG_AGENT_EMBEDDING_BASE_URL BLOG_AGENT_EMBEDDING_MODEL
             unset BLOG_AGENT_EMBEDDING_DIMENSIONS BLOG_AGENT_EMBEDDING_TIMEOUT_MS

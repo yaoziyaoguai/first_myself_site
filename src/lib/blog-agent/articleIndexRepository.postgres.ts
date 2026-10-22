@@ -4,11 +4,13 @@ import type {
   ArticleChunkSourceKind,
   ArticleIndexRepository,
   ArticlePackageSummary,
+  DraftArticlePackage,
   PublishedArticlePackageReplacement,
   ReadyArticlePackage,
 } from "./articleIndexRepository";
 import type { BlogAgentQueryClient, BlogAgentQueryPool } from "./repository.postgres";
 import { hashPublicArticle } from "./articlePackage";
+import { assertReferencesReady } from "@/lib/interactive-html/repository.postgres";
 
 const SOURCE_KINDS = new Set<ArticleChunkSourceKind>([
   "article",
@@ -284,21 +286,49 @@ export class PostgresArticleIndexRepository implements ArticleIndexRepository {
     };
   }
 
-  async replacePackage(input: ReadyArticlePackage): Promise<void> {
+  async replacePackage(input: DraftArticlePackage): Promise<void> {
     validatePackage(input);
     const client = await this.pool.connect();
     try {
       await client.query("BEGIN");
       const article = await client.query(
-        `SELECT "agent_package_hash"
+        `SELECT "id", "slug", "title", "excerpt", "content_markdown", "agent_package_hash"
            FROM "blog"
           WHERE "id" = $1
           FOR UPDATE`,
         [input.blogId],
       );
-      if (article.rows[0]?.agent_package_hash !== input.packageHash) {
+      const row = article.rows[0];
+      if (row?.agent_package_hash !== input.packageHash) {
         throw new ArticlePackageIndexConflictError();
       }
+      // 草稿索引同样绑定当前正文并核对资源；预检不能替代事务内复查。
+      if (
+        normalizedBlogId(row?.id) !== input.blogId ||
+        typeof row?.slug !== "string" ||
+        typeof row?.title !== "string" ||
+        typeof row?.content_markdown !== "string" ||
+        hashPublicArticle({
+          id: input.blogId,
+          slug: row.slug,
+          title: row.title,
+          excerpt: typeof row.excerpt === "string" ? row.excerpt : "",
+          contentMarkdown: row.content_markdown,
+        }) !==
+          input.articleHash
+      ) {
+        throw new ArticlePackageIndexConflictError();
+      }
+      const references = await assertReferencesReady(
+        {
+          query: async (text, values) => ({
+            rows: (await client.query(text, values as unknown[])).rows,
+          }),
+        },
+        input.blogId,
+        row.content_markdown,
+      );
+      if (!references.ok) throw new ArticlePackageIndexConflictError();
       await client.query(
         `DELETE FROM "blog_agent"."article_packages"
           WHERE "blog_id" = $1 AND "package_hash" <> $2`,
@@ -335,6 +365,18 @@ export class PostgresArticleIndexRepository implements ArticleIndexRepository {
       if (!matchesPublishedSnapshot(article.rows[0], input)) {
         throw new ArticlePackageIndexConflictError();
       }
+      // 同一事务、同一 client 复核互动资源：任何缺失都让正文与索引整体回滚。
+      const finalMarkdown = input.replacement?.contentMarkdown ?? input.article.contentMarkdown;
+      const references = await assertReferencesReady(
+        {
+          query: async (text, values) => ({
+            rows: (await client.query(text, values as unknown[])).rows,
+          }),
+        },
+        input.blogId,
+        finalMarkdown,
+      );
+      if (!references.ok) throw new ArticlePackageIndexConflictError();
       await writePackage(client, input);
       if (input.replacement) {
         // 与新索引在同一事务提交；失败时公开文章及旧 ready hash 一起回滚。

@@ -36,7 +36,8 @@ export class ArticleIndexer {
     packagePayload: unknown;
   }): Promise<ArticleIndexingSummary> {
     const readyPackage = await this.preparePackage(input);
-    await this.dependencies.repository.replacePackage(readyPackage);
+    // 携带准备的正文快照，仓库层在事务内核对当前正文与互动资源。
+    await this.dependencies.repository.replacePackage({ ...readyPackage, article: input.article });
     return this.summary(readyPackage);
   }
 
