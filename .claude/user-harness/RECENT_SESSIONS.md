@@ -61,11 +61,13 @@
 
 **改动**：`ArticleArchive`、`SeriesFeature`、归档页、局部 CSS、相关组件测试和既有文档。截图 / 报告在 `output/playwright/series-tabs-20261027/local/`，改前在 `output/playwright/series-audit-20261027/`。
 
-**遗留**：尚未推送、远端 CI / 生产验收未完成；实体设备和完整屏幕阅读器未运行。本机 PostgreSQL 启动失败源于残留 pid 指向非数据库进程，确认无 postgres 后将陈旧锁文件保留到 `.local/series-tabs-20261027/` 并启动原本地数据库，未改数据库配置或生产服务。
+**上线**：PR #70 的 CI Run 40487233585 全绿，squash 合入 `90ef993`；main Run 40488113284 常规 972 项 / PostgreSQL 专项 39 项通过，Deploy Job 6 分钟成功。正式容器 revision 一致且 healthy，公网 ready，部署 canary 返回 `contextMode=article-package`、`codeExcerpt=true`。正式站 Chromium 三视口重测切换 / 筛选保留 / 文章与合集点击返回 / 刷新 / 旧锚点、无 JS 32 条文章链接和 canonical，零页面 / 控制台异常、无整页横向溢出；截图与结果在 `output/playwright/series-tabs-20261027/production/`。本地预览服务已关闭，未中断部署或手改服务器源码。
 
-**下一步**：提交推送、PR 全绿后合入 main，由既有 GitHub Actions 部署，再验收正式域名并关闭本轮预览服务。
+**遗留**：实体设备和完整屏幕阅读器未运行。本机 PostgreSQL 启动失败源于残留 pid 指向非数据库进程，确认无 postgres 后将陈旧锁文件保留到 `.local/series-tabs-20261027/` 并启动原本地数据库，未改数据库配置。只读进程诊断意外带出现有模型 Key，未写入 Git / 文档或自行轮换；已告知用户并改为仅输出白名单字段，需用户安排轮换。
 
-**对当前状态的影响**：本地归档候选就绪，生产保持原版本；Session-010 的有效事实已保留到 STATUS 和既有设计 / 验收文档，最近记录仍为 5 条。
+**下一步**：仅补齐现有发布记录，通过纯文档 PR 收尾；功能交付完成，不继续扩展。
+
+**对当前状态的影响**：归档切换与紧凑合集目录已上线并验收；Session-010 的有效事实已保留到 STATUS 和既有设计 / 验收文档，最近记录仍为 5 条。
 
 ### 2026-10-22 Session-014
 

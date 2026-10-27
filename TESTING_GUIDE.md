@@ -4,14 +4,16 @@
 
 ## 当前基线
 
-### 2026-10-27 归档切换本地候选
+### 2026-10-27 归档切换验收
 
 - `npm run lint`、`npx tsc --noEmit --incremental false -p tsconfig.ci.json`、生产构建通过；常规 Vitest 972 项通过，28 条真库条件测试未在本轮本地运行，另由 CI PostgreSQL 专项验证；性能工具自测通过
 - 使用匿名公开 API 的 32 篇文章 / 3 个合集副本，在既有隔离库预览；不覆盖既有隔离文章，不复制生产用户、凭据或私有材料，不写生产内容
 - Chromium 1440 / 768 / 390px：默认文章、合集切换、32→7 篇主题筛选及切换保留、方向键焦点与选中、进入原合集详情后返回、刷新恢复、旧锚点兼容、减少动态效果和无整页溢出均通过；切换无 RSC 请求，页面与控制台零错误
 - 首篇文章标题在三个视口分别位于约 574 / 626 / 738px，390×844px 手机首屏可见；紧凑合集单项约 175–208px（手机），不再把多个大面板放在文章前
 - 禁用 JavaScript 后默认页面仍有 32 条文章链接，canonical 保持 `https://wangjinkun333.me/blog`。管理员 / editor / viewer / 访客的管理与创建入口隔离由组件测试覆盖，本轮不改变权限实现
-- 改动前真实生产截图：`output/playwright/series-audit-20261027/`；改动后本地截图与结果：`output/playwright/series-tabs-20261027/local/`。这些是本地证据，不代表生产部署已通过；实体手机与完整屏幕阅读器未运行
+- 改动前真实生产截图：`output/playwright/series-audit-20261027/`；改动后本地截图与结果：`output/playwright/series-tabs-20261027/local/`。本地结果不能单独证明生产效果，生产证据见下文；实体手机与完整屏幕阅读器未运行
+
+生产：PR #70 合入 `90ef993`，经 [Run 40488113284](https://github.com/yaoziyaoguai/first_myself_site/actions/runs/40488113284) 部署成功，Deploy Job 6 分钟。CI 常规 972 项通过、28 条真库条件另跑，PostgreSQL 专项 39 项通过；生产容器 revision 匹配且 healthy、HTTPS 健康接口 ready、Agent canary 含代码 / 文章包引用。正式域名 Chromium 1440 / 768 / 390px 重测上述切换 / 筛选 / 返回 / 刷新 / 锚点，实际点击文章进入正文并返回列表；无 JS 默认输出 32 条文章链接、合集直达视图可读，canonical 不变，无整页溢出与页面 / 控制台错误。生产截图与报告在 `output/playwright/series-tabs-20261027/production/`，不是用本地结果代替生产验收。未修改生产文章、依赖或部署配置，本地服务已关闭。
 
 ### 2026-10-22 交互 HTML 发布基线
 
