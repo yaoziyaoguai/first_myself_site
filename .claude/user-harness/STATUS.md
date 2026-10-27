@@ -20,6 +20,8 @@
 
 ## 当前阶段
 
+**本轮交付候选**（2026-10-27）：文章归档默认展示全部文章，标题下方用醒目双选项切换文章 / 合集；合集改为紧凑目录，保留现有详情、URL、内容、权限与主题筛选。复用已安装 Base UI Tabs，没有新增依赖或后台功能。本地 972 项测试、ESLint、非增量类型检查、构建和三视口真实浏览器通过，详见 TESTING_GUIDE。用户已授权提交 / 推送 / 合并与 GitHub Actions 阿里云部署，当前尚待远端 CI 和生产验收；不得把本地截图当作已上线。
+
 **当前交付**（2026-10-22）：文章内交互 HTML 已通过 PR #68 合入 `main`（`ea1e527c7a9f1dbdb446804c7101063e9692ab55`），并经两次 GitHub Actions 完成阿里云上线。Run 39721714408 首次部署/迁移且保持关闭；同镜像回环候选验证通过后，Run 39726180969 应用 `BLOG_INTERACTIVE_HTML_ENABLED=true`。最终容器 healthy、revision 一致，HTML 与原有 Agent 开关均 true；部署 canary 返回代码与文章包引用。没有直接在服务器修改应用源码或中断部署。
 
 能力包含严格 marker/HTML profile、文章绑定不可变 PostgreSQL 存储、管理/view/preview API、CMS 与 Agent 索引事务门禁、前后台点击启动/保留状态/停止、后台上传插入、Agent 可见文案投影，以及全局发布 Skill 的 plan/draft/resume/publish/update-published。HTML 不放入 Media、`public/` 或 RAG，也不授予 same-origin、表单、弹窗或顶层导航权限。生成器公开副本仍须审查隐藏数据，不是任意网页托管。
@@ -118,5 +120,5 @@ npm run build
 npm run payload -- run payload.config.ts
 ```
 
-**最后更新**：2026-10-22
-**更新说明**：PR #68 已部署并启用，生产交互与撤回验收完成；验收记录以纯文档变更收尾。Session-009 的有效事实已由 Session-010 和当前生产基线保留。
+**最后更新**：2026-10-27
+**更新说明**：归档切换完成本地候选验收，待 GitHub 流程上线。Session-010 的原子发布、设计与生产基线有效事实已保留在本文件和 DESIGN / TESTING_GUIDE 中。

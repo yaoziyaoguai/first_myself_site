@@ -235,22 +235,20 @@
   .archive-header { @apply mb-10 grid gap-6 border-b border-foreground/70 pb-9 md:grid-cols-[1fr_auto] md:items-end md:pb-12; }
   .archive-header h1 { @apply mt-4 font-serif text-4xl font-medium tracking-[-0.04em] md:text-6xl; }
   .archive-header h1 + p { @apply mt-5 max-w-2xl text-sm leading-7 text-muted-foreground md:text-base; }
-  .archive-jumps { @apply flex flex-wrap gap-3 md:gap-6; }
-  .archive-jumps > a:not(.text-link) { @apply inline-flex min-h-11 items-center gap-3 border-b border-border text-sm transition-colors hover:border-primary hover:text-primary; }
-  .archive-jumps > a > span { @apply font-mono text-xs text-muted-foreground; }
-  .archive-series { @apply mb-12 md:mb-16; }
-  .series-feature { @apply grid gap-7 border border-border bg-card p-6 md:grid-cols-[1fr_1fr] md:gap-10 md:p-8; }
-  .series-feature + .series-feature { @apply mt-5; }
+  .archive-tabs { @apply mb-7 grid w-full grid-cols-2 gap-1 rounded-xl border border-border bg-secondary p-1 sm:max-w-md md:mb-8; }
+  .archive-tab { @apply flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium text-foreground hover:bg-card; }
+  .archive-tab[data-active] { @apply bg-primary text-primary-foreground; }
+  .archive-tab-count { @apply rounded-sm bg-foreground/5 px-1.5 py-0.5 font-mono text-xs; }
+  .archive-tab[data-active] .archive-tab-count { @apply bg-primary-foreground/15; }
+  .archive-panel { @apply min-w-0; }
+  .archive-series { @apply border-t border-border; }
+  .series-feature { @apply flex items-start justify-between gap-5 border-b border-border py-6 md:py-7; }
+  .series-feature:hover h3 { @apply text-primary; }
   .series-meta { @apply flex flex-wrap items-center gap-4 text-xs font-medium text-primary; }
   .series-meta > span { @apply text-muted-foreground; }
-  .series-feature h3 { @apply mt-4 text-pretty font-serif text-2xl font-medium leading-[1.4] tracking-tight md:text-[1.8rem]; }
-  .series-feature h3 a { @apply hover:text-primary; }
-  .series-description { @apply mb-3 mt-3 text-sm leading-7 text-muted-foreground; }
-  .series-feature-contents { @apply border-t border-border pt-5 md:border-t-0 md:border-l md:pl-8 md:pt-0; }
-  .series-feature-contents ol { @apply my-3; }
-  .series-feature-contents li { @apply flex items-start gap-3; }
-  .series-feature-contents li > span { @apply pt-3 font-mono text-[0.65rem] text-muted-foreground; }
-  .series-feature-contents li a { @apply flex min-h-11 items-center py-2 text-sm leading-6 transition-colors hover:text-primary; }
+  .series-feature h3 { @apply mt-3 text-pretty font-serif text-2xl font-medium leading-[1.4] tracking-tight md:text-[1.8rem]; overflow-wrap: anywhere; }
+  .series-description { @apply mt-2 line-clamp-2 max-w-3xl text-sm leading-7 text-muted-foreground; }
+  .series-feature-arrow { @apply mt-1 shrink-0 text-primary; }
   .article-filters { @apply flex flex-wrap gap-2; }
   .article-filters button { @apply inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-xs text-muted-foreground transition-colors hover:border-primary/60 hover:text-primary; }
   .article-filters button[aria-pressed="true"] { @apply border-primary bg-primary text-primary-foreground; }
