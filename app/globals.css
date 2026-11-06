@@ -1380,6 +1380,14 @@ body:has(.blog-agent-root) footer > .site-shell {
   }
 }
 
+@media (max-width: 79.999rem) {
+  /* 展开时优先阅读图解；只避让入口，不销毁 Agent 或它的对话历史。 */
+  body:has(.interactive-html--expanded) .blog-agent-trigger {
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .interactive-html__start,
   .interactive-html__control {
