@@ -9,9 +9,11 @@
 
 ## 发布边界
 
-本次只提交 / 推送，不合并部署，也不更新线上 CMS。`docs/` 不进入 Docker 镜像；GitHub Actions 部署应用并不会自动更新数据库里的文章，不能把本包当作已上线。
+首轮只提交 / 推送；用户随后明确授权合并上线，PR #72 合入 `c6671aa`，经 [Run 42228171785](https://github.com/yaoziyaoguai/first_myself_site/actions/runs/42228171785) 部署阿里云。发布 Skill 已更新原文章 ID 43 的两个资源，逐字回读和匿名 API 验证通过，其他正文、原发布日期与合集等信息保持不变。生产功能验收与窄屏浮层避让收尾见 `TESTING_GUIDE.md`。
 
-获得后续上线与覆盖该篇公开文章的明确授权后，先按既有 GitHub 流程部署容器改进，再由全局 `publish-site-article` 对本文件夹的 `article.md` 执行 `plan` 和 `update-published --confirm-published-update`。不要创建同名新文章；沿用 Skill 的并发复核、资源回读、元数据保留和 ready Agent package 原子更新门禁。若线上正文已变，应先重新取得公开版本并合并两处 marker，不能用这里的历史快照覆盖新文字。
+`docs/` 不进入 Docker 镜像；GitHub Actions 部署应用不会自动更新数据库里的文章。本包已经发布，不要仅因接手此目录就重复更新 CMS。
+
+未来再次获得覆盖该篇公开文章的明确授权后，先确认需要的显示容器已部署，再由全局 `publish-site-article` 对本文件夹的 `article.md` 执行 `plan` 和 `update-published --confirm-published-update`。不要创建同名新文章；沿用 Skill 的并发复核、资源回读、元数据保留和 ready Agent package 原子更新门禁。若线上正文已变，应先重新取得公开版本并合并两处 marker，不能用这里的历史快照覆盖新文字。
 
 发布前后均需在实际文章路由检查桌面 / 手机：关键图和结论可读、控件改变实际证据或执行状态、宽屏展开不溢出、收回保留同一个 iframe 与进度。未知状态和示意数据不能变成真实系统结论。安全预检成功不能代替这些验收。
 

@@ -14,6 +14,8 @@
 
 这些是显示容器与本地内容包的改动，不代表线上文章已更新。文章包、发布 Skill 的便携补丁与发布边界见 `docs/article-updates/governance-longform-03/README.md`；实际浏览器证据见 `TESTING_GUIDE.md`。
 
+生产手机验收发现固定机器人入口会压住放大图解。沿用既有 1280px Agent 断点：窄屏展开互动时仅让入口暂时不可见 / 不可点击，收回立即恢复；不销毁 Agent、不改变历史或 iframe 状态，桌面宽屏仍保留入口。不通过提高图解层级覆盖导航、对话框或其他业务浮层。
+
 ## 2. 本轮参考与取舍（2026-10-03）
 
 本轮以 Awwwards、Webby Awards、FWA 优秀网站的完成度为目标，不把获奖当作可以自行认证的结果。方向仍是可持续阅读的个人技术博客。设计参数为 `DESIGN_VARIANCE: 6`、`MOTION_INTENSITY: 3`、`VISUAL_DENSITY: 4`：适度变化版式，低动效，中等信息密度。

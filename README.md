@@ -122,6 +122,8 @@ npm run build
 
 互动显示区域支持视口内展开（桌面最多 1120px），工具栏在内容上方，展开 / 收回不重建 iframe。文章数据与应用部署分别管理：GitHub Actions 不会自动把仓库里的文章包写入 CMS。可参考[交付可靠性互动更新包](docs/article-updates/governance-longform-03/README.md)，后续公开替换仍须使用发布 Skill 并获得对应授权。
 
+窄屏展开图解时，机器人入口会暂时避让，收回立即恢复；Agent 对话与图解进度都不会因此重置。
+
 ## 权限与隐私
 
 文章状态：
