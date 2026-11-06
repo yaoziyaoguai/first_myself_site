@@ -109,6 +109,7 @@ npm run build
 - 只有明确要求公开发布时才会改变公开状态
 - 图片会生成稳定文件名，重复运行可以复用已有媒体
 - Markdown 可用顶层 `interactive-html` fence 引用包内、已审查的 `.html`；Skill 离线预检公开副本、上传并逐字回读，再把本机路径改写为 canonical `sha256` marker
+- 安全预检不等于成品验收：交互应展示可观察的时序、因果或依赖变化，发布前在实际文章容器检查桌面 / 手机的关键图、结论与状态保留，不以切换预设文案代替机制解释
 - 交互资源未齐时只允许保持 `draft + private`，不能公开或写入 ready Agent 索引；同计划中断只用 `draft --resume-draft-id <id>` 补齐资源，不改正文
 - 已存在的 slug 默认停止，避免误覆盖线上文章
 - 凭据只从本机环境变量或系统 Keychain 读取，不进入仓库
@@ -118,6 +119,8 @@ npm run build
 推荐流程：先生成文章 → 本地预检 → 上传草稿 → 后台校对 → 明确公开发布。
 
 交互 HTML 不放入 Media、`public/`、文章列表或 RSC 大字段，也不会进入文章 Agent 的 RAG。Agent 只获得 marker 中读者可见的标题与说明；关键结论仍应写在正文。完整协议、安全 profile 和验收要求见 [执行包](docs/plans/2026-10-21-interactive-html-execution-package.md)。
+
+互动显示区域支持视口内展开（桌面最多 1120px），工具栏在内容上方，展开 / 收回不重建 iframe。文章数据与应用部署分别管理：GitHub Actions 不会自动把仓库里的文章包写入 CMS。可参考[交付可靠性互动更新包](docs/article-updates/governance-longform-03/README.md)，后续公开替换仍须使用发布 Skill 并获得对应授权。
 
 ## 权限与隐私
 

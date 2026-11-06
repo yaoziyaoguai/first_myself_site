@@ -1254,6 +1254,7 @@ body:has(.blog-agent-root) footer > .site-shell {
    尺寸，iframe 实例与内部状态保持不变。 */
 .interactive-html {
   margin: 2.25rem 0;
+  scroll-margin-top: calc(var(--nav-height) + 1rem);
   border: 1px solid var(--border);
   background: var(--card);
 }
@@ -1334,7 +1335,8 @@ body:has(.blog-agent-root) footer > .site-shell {
 .interactive-html__frame {
   display: block;
   width: 100%;
-  height: 420px;
+  height: min(72svh, 680px);
+  min-height: 480px;
   border: 0;
   background: #ffffff;
 }
@@ -1345,13 +1347,18 @@ body:has(.blog-agent-root) footer > .site-shell {
   align-items: center;
   gap: 0.65rem;
   padding: 0.75rem 1.1rem;
-  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .interactive-html--expanded {
   position: relative;
   z-index: 20;
-  width: 100%;
+  width: var(--interactive-wide-width, 100%);
+  transform: translateX(var(--interactive-wide-offset, 0));
+}
+
+.reader-layout:has(.interactive-html--expanded) .reading-nav-desktop {
+  visibility: hidden;
 }
 
 .interactive-html--expanded .interactive-html__frame {
@@ -1359,8 +1366,13 @@ body:has(.blog-agent-root) footer > .site-shell {
 }
 
 @media (max-width: 640px) {
+  .interactive-html__control {
+    padding-inline: 0.75rem;
+  }
+
   .interactive-html__frame {
-    height: min(60svh, 420px);
+    height: min(74svh, 640px);
+    min-height: 440px;
   }
 
   .interactive-html--expanded .interactive-html__frame {

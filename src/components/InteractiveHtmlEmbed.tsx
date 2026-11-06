@@ -109,7 +109,11 @@ export function InteractiveHtmlEmbed({
     } catch {
       if (requestRef.current !== controller) return;
       setState("error");
-      setMessage(timedOut ? "互动内容加载超时，请重试。" : "网络请求失败，请检查连接后重试。");
+      setMessage(
+        timedOut
+          ? "互动内容加载超时，请重试。"
+          : "网络请求失败，请检查连接后重试。",
+      );
     } finally {
       clearTimeout(timeout);
       if (requestRef.current === controller) requestRef.current = null;
@@ -140,6 +144,40 @@ export function InteractiveHtmlEmbed({
   useEffect(() => {
     if (state === "stopped") startButtonRef.current?.focus();
   }, [state]);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    const parent = wrapper?.parentElement;
+    if (!expanded || !wrapper || !parent) return;
+    // 在原位置展开到视口内的阅读宽度，不移动 iframe，也不增加跨沙箱消息接口。
+    const fitReadingWidth = () => {
+      const bounds = parent.getBoundingClientRect();
+      const gutter = window.innerWidth < 640 ? 20 : 40;
+      const width = Math.max(
+        bounds.width,
+        Math.min(1120, window.innerWidth - gutter * 2),
+      );
+      wrapper.style.setProperty("--interactive-wide-width", `${width}px`);
+      wrapper.style.setProperty(
+        "--interactive-wide-offset",
+        `${(window.innerWidth - width) / 2 - bounds.left}px`,
+      );
+    };
+    fitReadingWidth();
+    wrapper.scrollIntoView?.({ block: "start", behavior: "instant" });
+    window.addEventListener("resize", fitReadingWidth);
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(fitReadingWidth);
+    observer?.observe(parent);
+    return () => {
+      window.removeEventListener("resize", fitReadingWidth);
+      observer?.disconnect();
+      wrapper.style.removeProperty("--interactive-wide-width");
+      wrapper.style.removeProperty("--interactive-wide-offset");
+    };
+  }, [expanded]);
 
   useEffect(() => {
     if (!expanded) return;
@@ -178,7 +216,7 @@ export function InteractiveHtmlEmbed({
             启动交互
           </button>
           <span className="interactive-html__hint">
-            交互内容在点击后才加载；它是一个独立的沙箱页面，不会读取本站数据。
+            点击后加载独立沙箱，不会读取本站数据。
           </span>
         </div>
       ) : null}
@@ -212,15 +250,6 @@ export function InteractiveHtmlEmbed({
 
       {state === "ready" && loadedEndpoint === endpoint && loadedEndpoint ? (
         <div id={regionId} className="interactive-html__frame-shell">
-          <iframe
-            key={frameKey}
-            className="interactive-html__frame"
-            src={loadedEndpoint}
-            title={title}
-            sandbox="allow-scripts"
-            referrerPolicy="no-referrer"
-            loading="lazy"
-          />
           <div className="interactive-html__controls">
             <button
               ref={expandButtonRef}
@@ -233,7 +262,11 @@ export function InteractiveHtmlEmbed({
               {expanded ? "收回原尺寸" : "放大显示"}
             </button>
             {attempt < RETRY_LIMIT ? (
-              <button type="button" className="interactive-html__control" onClick={retry}>
+              <button
+                type="button"
+                className="interactive-html__control"
+                onClick={retry}
+              >
                 重新加载
               </button>
             ) : null}
@@ -245,9 +278,18 @@ export function InteractiveHtmlEmbed({
               停止交互
             </button>
             <span className="interactive-html__hint">
-              重新加载或停止交互会重置内部状态。
+              放大保留进度；重新加载或停止会重置。
             </span>
           </div>
+          <iframe
+            key={frameKey}
+            className="interactive-html__frame"
+            src={loadedEndpoint}
+            title={title}
+            sandbox="allow-scripts"
+            referrerPolicy="no-referrer"
+            loading="lazy"
+          />
         </div>
       ) : null}
     </div>

@@ -4,6 +4,18 @@
 
 ## 当前基线
 
+### 2026-11-06 互动解释质量与显示容器（本地，未上线）
+
+- ESLint、非增量 CI TypeScript、Next production build 通过；常规 Vitest 103 文件 / 979 项通过，28 条真库条件测试跳过，不能算作本轮真库专项通过。最终针对性 2 文件 / 23 项检查覆盖展开 / 调整视口 / 收回保留 iframe，以及实际 HTML 的时间证据与依赖执行逻辑
+- `docs/article-updates/governance-longform-03/` 两个自包含 HTML 通过服务端安全 profile 和 Skill 离线 `plan`，不修改 CSP / sandbox / 存储协议；与匿名公开文章比对，除两处互动引用与说明外，标题、发布日期和正文段落保持不变
+- 全局发布 Skill 的 43 项 Python 测试及结构校验通过，便携补丁 `git apply --check` 通过；Codex / Claude 继续共用现有 symlink。没有登录或更新生产 CMS，offline plan 的目标仍为私有草稿
+- 使用既有隔离 PostgreSQL 库中本轮新增的 local-only ID 35，经真实资源 repository 写入教学示例，在 production build 的 `/blog/interactive-quality-preview-20261106?analytics=off` 验收；不修改其他本地文章、用户或生产数据
+- Chromium 1440 / 768 / 390px：首次点击前零 HTML 请求；四种执行场景、时间回退 / 逐步推进 / 播放暂停、键盘滑块、缺少历史产出阻塞、跨日顺序执行、同轮闭环均通过。初始关键结论和主要操作位于 iframe 可视区域内，图与颜色之外仍有明确文字状态
+- 桌面 iframe 734→1118px；平板保持 702px 宽且高度 680→800px；手机保持 348px 宽且高度约 624.5→640px。放大 / 收回保持 DOM 身份、状态且无额外资源请求；展开中 1440→390→1440 调整视口仍保留状态。宿主工具栏 Escape 返回焦点，sandbox 仍为 `allow-scripts`，脚本不能读取父文档；无整页 / iframe 横向溢出、零页面与控制台错误
+- 真实截图已查看：改动前 `output/playwright/interactive-html-audit-20261106/`，改动后 `output/playwright/interactive-quality-20261106/{final-*,expanded-*,cycle-*,context-*}.png`，结果同目录 `report.json`。验收脚本与检查日志在 `.local/interactive-quality-20261106/`；只提交源文件与结论，不提交浏览器轨迹或本机凭据
+
+验收中出现过启动等待超时与尺寸读取过早，失败不计为通过；增加定位信息、核对匿名 API / SSR 当前资源 hash 与 HEAD 200，并等待实际尺寸后完整重跑。没有据此放宽加载门禁或修改生产缓存。上述结果只证明最终本地候选；Firefox / WebKit、实体设备、完整屏幕阅读器、本轮后台布局和生产发布验证未运行。应用代码与文章内容仍须分别获得上线授权，推送不等于 CMS 已更新。
+
 ### 2026-10-27 归档切换验收
 
 - `npm run lint`、`npx tsc --noEmit --incremental false -p tsconfig.ci.json`、生产构建通过；常规 Vitest 972 项通过，28 条真库条件测试未在本轮本地运行，另由 CI PostgreSQL 专项验证；性能工具自测通过
