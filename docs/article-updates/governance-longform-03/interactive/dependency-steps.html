@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>按业务日期展开依赖</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f9f7f1;
+        --ink: #191915;
+        --muted: #656158;
+        --line: #cec8bc;
+        --blue: #1f4f9f;
+        --good: #24634d;
+        --bad: #a62c35;
+        font-family: "Avenir Next", "PingFang SC", sans-serif;
+        color: var(--ink);
+        background: var(--paper);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        max-width: 1060px;
+        margin-inline: auto;
+      }
+      h1 {
+        font-family: "Iowan Old Style", "Songti SC", serif;
+        font-size: 28px;
+        line-height: 1.35;
+        margin: 0 0 10px;
+        font-weight: 600;
+      }
+      p {
+        margin: 0;
+        line-height: 1.75;
+      }
+      header > p,
+      footer {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      button,
+      input {
+        font: inherit;
+      }
+      button {
+        min-height: 44px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: transparent;
+        color: var(--ink);
+        padding: 8px 12px;
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: var(--blue);
+        color: var(--blue);
+      }
+      button[aria-pressed="true"] {
+        background: var(--blue);
+        color: white;
+        border-color: var(--blue);
+      }
+      :focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 3px;
+      }
+      .modes,
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 18px 0;
+      }
+      .seed {
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 44px;
+      }
+      .seed input {
+        accent-color: var(--blue);
+        width: 18px;
+        height: 18px;
+      }
+      .graph {
+        height: 230px;
+        position: relative;
+        border-block: 1px solid var(--line);
+        margin-top: 12px;
+      }
+      .graph svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+      .edge {
+        fill: none;
+        stroke: var(--muted);
+        stroke-width: 2;
+        vector-effect: non-scaling-stroke;
+      }
+      .edge.active {
+        stroke: var(--good);
+        stroke-width: 3;
+      }
+      .edge.blocked {
+        stroke: var(--bad);
+        stroke-width: 3;
+      }
+      .node {
+        position: absolute;
+        top: 28%;
+        width: 24%;
+        min-height: 94px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--paper);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 6px;
+      }
+      .node strong {
+        font-size: 18px;
+      }
+      .node span {
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+      #a {
+        left: 2%;
+      }
+      #b {
+        left: 38%;
+      }
+      #c {
+        left: 74%;
+      }
+      .node[data-state="done"] {
+        border-color: var(--good);
+        background: #eef5f0;
+      }
+      .node[data-state="done"] span {
+        color: var(--good);
+      }
+      .node[data-state="blocked"] {
+        border-color: var(--bad);
+        background: #f9eded;
+      }
+      .node[data-state="blocked"] span {
+        color: var(--bad);
+      }
+      .graph[data-mode="cycle"] #a {
+        left: 12%;
+      }
+      .graph[data-mode="cycle"] #b {
+        left: 64%;
+      }
+      .graph[data-mode="cycle"] #c {
+        display: none;
+      }
+      .meaning {
+        font-size: 12px;
+        color: var(--muted);
+        padding-top: 8px;
+      }
+      .conclusion {
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 18px;
+      }
+      .conclusion h2 {
+        font-size: 19px;
+        line-height: 1.5;
+        margin: 0 0 8px;
+      }
+      .conclusion[data-blocked="true"] h2 {
+        color: var(--bad);
+      }
+      footer {
+        padding-top: 14px;
+      }
+      @media (max-width: 480px) {
+        body {
+          padding: 18px;
+        }
+        h1 {
+          font-size: 24px;
+        }
+        .modes button {
+          flex: 1;
+        }
+        .graph {
+          height: 200px;
+        }
+        .node {
+          top: 20%;
+          min-height: 118px;
+          padding: 10px 6px;
+        }
+        .node strong {
+          font-size: 15px;
+        }
+        .node span {
+          font-size: 12px;
+        }
+        .controls button {
+          flex: 1;
+        }
+        .conclusion h2 {
+          font-size: 18px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>先看日期，再看环</h1>
+      <p>
+        沿箭头执行一步：跨日关系可以展开为链，同轮严格等待才会回到同一对象。
+      </p>
+    </header>
+    <div class="modes" role="group" aria-label="依赖关系">
+      <button type="button" data-mode="dated" aria-pressed="true">
+        跨日依赖</button
+      ><button type="button" data-mode="cycle" aria-pressed="false">
+        同轮等待
+      </button>
+    </div>
+    <label class="seed"
+      ><input type="checkbox" id="seed" checked />上一日 A
+      的产出已校验、可读取</label
+    >
+    <section class="conclusion" id="conclusion" aria-live="polite">
+      <h2 id="verdict"></h2>
+    </section>
+    <div class="controls">
+      <button type="button" id="reset">重置过程</button
+      ><button type="button" id="step">执行下一步</button>
+    </div>
+    <div
+      id="graph"
+      class="graph"
+      data-mode="dated"
+      aria-label="按业务日期区分的数据节点"
+    >
+      <svg
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="箭头表示生产执行所需的上游产出"
+      >
+        <defs>
+          <marker
+            id="arrow"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto-start-reverse"
+          >
+            <path
+              d="M 1 1 L 9 5 L 1 9"
+              fill="none"
+              stroke="context-stroke"
+              stroke-width="1.5"
+            />
+          </marker>
+        </defs>
+        <path id="edge1" class="edge" marker-end="url(#arrow)" />
+        <path id="edge2" class="edge" marker-end="url(#arrow)" />
+      </svg>
+      <div class="node" id="a">
+        <strong>A[D−1]</strong><span>已有历史产出</span>
+      </div>
+      <div class="node" id="b"><strong>B[D]</strong><span>尚未执行</span></div>
+      <div class="node" id="c"><strong>A[D]</strong><span>尚未执行</span></div>
+    </div>
+    <p class="meaning" id="meaning">
+      箭头表示上游产出供下游使用，不仅是表名引用。
+    </p>
+    <details>
+      <summary>查看判断依据</summary>
+      <p id="reason"></p>
+    </details>
+    <footer>
+      合成依赖示例。真实恢复还需核对版本、等待条件、幂等性和已发布产出；此图不生成生产操作指令。
+    </footer>
+    <script>
+      "use strict";
+      let mode = "dated",
+        step = 0;
+      const seed = document.getElementById("seed"),
+        graph = document.getElementById("graph");
+      function node(id, title, status, state) {
+        const element = document.getElementById(id);
+        element.querySelector("strong").textContent = title;
+        element.querySelector("span").textContent = status;
+        element.dataset.state = state;
+      }
+      function render() {
+        const dated = mode === "dated",
+          ready = seed.checked,
+          blocked = !dated || !ready;
+        graph.dataset.mode = mode;
+        seed.disabled = !dated;
+        document.querySelectorAll("[data-mode]").forEach((button) => {
+          if (button.tagName === "BUTTON")
+            button.setAttribute(
+              "aria-pressed",
+              String(button.dataset.mode === mode),
+            );
+        });
+        let paths;
+        if (dated) {
+          paths = ["M 27 49 L 36 49", "M 63 49 L 72 49"];
+          node(
+            "a",
+            "A[D−1]",
+            ready ? "历史产出已就绪" : "缺少初始化产出",
+            ready ? "done" : "blocked",
+          );
+          node(
+            "b",
+            "B[D]",
+            !ready
+              ? "等待 A[D−1]"
+              : step >= 1
+                ? "读取历史 A，产出已就绪"
+                : "上游就绪，可执行",
+            !ready ? "blocked" : step >= 1 ? "done" : "pending",
+          );
+          node(
+            "c",
+            "A[D]",
+            !ready
+              ? "等待 B[D]"
+              : step >= 2
+                ? "读取当日 B，产出已就绪"
+                : "等待 B[D]",
+            !ready ? "blocked" : step >= 2 ? "done" : "pending",
+          );
+        } else {
+          paths = [
+            "M 36 35 C 48 10 60 10 64 35",
+            "M 64 67 C 52 93 40 93 36 67",
+          ];
+          node(
+            "a",
+            "A[D]",
+            step ? "无法执行：等待同轮 B[D]" : "等待同轮 B[D]",
+            "blocked",
+          );
+          node(
+            "b",
+            "B[D]",
+            step ? "无法执行：等待同轮 A[D]" : "等待同轮 A[D]",
+            "blocked",
+          );
+        }
+        paths.forEach((path, i) => {
+          const edge = document.getElementById("edge" + (i + 1));
+          edge.setAttribute("d", path);
+          edge.setAttribute(
+            "class",
+            "edge" + (blocked ? " blocked" : step >= i + 1 ? " active" : ""),
+          );
+        });
+        let title, reason;
+        if (!dated) {
+          title = step
+            ? "双方都不能先执行，等待回到了同一对象"
+            : "同一轮 A[D] 与 B[D] 相互等待";
+          reason =
+            "A[D] 与 B[D] 通过两条有向边形成闭环，沿箭头会回到原来的对象。没有替代生产路径或特殊放行条件时，重复尝试不会自动解决等待。";
+        } else if (!ready) {
+          title = "日期展开没有环，但初始化产出缺失";
+          reason =
+            "B[D] 需要的 A[D−1] 尚不可用，因此 B[D] 和 A[D] 都不能继续。无环不等于现在已经可运行。";
+        } else if (step === 0) {
+          title = "先有历史 A，再生产今天的 B 和 A";
+          reason =
+            "A[D−1] 与 A[D] 是不同业务日期的对象。点“执行下一步”，沿上游产出顺序推进。";
+        } else if (step === 1) {
+          title = "B[D] 已就绪，A[D] 现在才可以执行";
+          reason =
+            "B 读取上一日 A，并产生当日有效产出。下一步 A 读取的是当日 B，不是等待上一日 A 重新运行。";
+        } else {
+          title = "执行完成：A[D−1] → B[D] → A[D]";
+          reason =
+            "同一个表名不等于同一个执行节点。业务日期、版本和依赖语义共同决定这条路径能否执行。";
+        }
+        document.getElementById("verdict").textContent = title;
+        document.getElementById("reason").textContent = reason;
+        document.getElementById("conclusion").dataset.blocked = String(blocked);
+        document.getElementById("step").disabled = dated && ready && step >= 2;
+      }
+      document.querySelectorAll("button[data-mode]").forEach((button) =>
+        button.addEventListener("click", () => {
+          mode = button.dataset.mode;
+          step = 0;
+          render();
+        }),
+      );
+      seed.addEventListener("change", () => {
+        step = 0;
+        render();
+      });
+      document.getElementById("reset").addEventListener("click", () => {
+        step = 0;
+        render();
+      });
+      document.getElementById("step").addEventListener("click", () => {
+        step = Math.min(step + 1, 2);
+        render();
+      });
+      render();
+    </script>
+  </body>
+</html>

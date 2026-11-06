@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>运行恢复与交付证据时间线</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f9f7f1;
+        --ink: #191915;
+        --muted: #656158;
+        --line: #cec8bc;
+        --blue: #1f4f9f;
+        --good: #24634d;
+        --bad: #a62c35;
+        --wait: #815409;
+        font-family: "Avenir Next", "PingFang SC", sans-serif;
+        color: var(--ink);
+        background: var(--paper);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        max-width: 1060px;
+        margin-inline: auto;
+      }
+      h1 {
+        font-family: "Iowan Old Style", "Songti SC", serif;
+        font-size: 28px;
+        line-height: 1.35;
+        margin: 0 0 10px;
+        font-weight: 600;
+      }
+      p {
+        line-height: 1.75;
+        margin: 0;
+      }
+      header > p,
+      footer {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      button,
+      select,
+      input {
+        font: inherit;
+      }
+      button,
+      select {
+        min-height: 44px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: transparent;
+        color: var(--ink);
+        padding: 8px 12px;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: var(--blue);
+        color: var(--blue);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      button[aria-pressed="true"] {
+        background: var(--blue);
+        color: white;
+        border-color: var(--blue);
+      }
+      :focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 3px;
+      }
+      .settings {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin: 20px 0;
+      }
+      .settings label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+      }
+      .clock {
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+        color: var(--blue);
+      }
+      .timeline {
+        border-block: 1px solid var(--line);
+        padding: 18px 0;
+      }
+      .lane {
+        display: grid;
+        grid-template-columns: 5em minmax(0, 1fr) 7em;
+        align-items: center;
+        gap: 12px;
+        min-height: 66px;
+        font-size: 14px;
+      }
+      .lane svg {
+        width: 100%;
+        height: 36px;
+        overflow: visible;
+      }
+      .lane output {
+        font-weight: 600;
+        text-align: right;
+      }
+      .lane[data-status="good"] {
+        color: var(--good);
+      }
+      .lane[data-status="bad"] {
+        color: var(--bad);
+      }
+      .lane[data-status="wait"] {
+        color: var(--wait);
+      }
+      .scrubber {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 12px;
+        margin-top: 14px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      input[type="range"] {
+        width: 100%;
+        height: 44px;
+        accent-color: var(--blue);
+        cursor: ew-resize;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 12px 0 20px;
+      }
+      .conclusion {
+        padding: 18px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .conclusion h2 {
+        font-size: 19px;
+        line-height: 1.5;
+        margin: 0 0 8px;
+      }
+      .conclusion[data-delivered="true"] h2 {
+        color: var(--good);
+      }
+      .events {
+        font-size: 13px;
+        margin: 16px 0;
+        padding-left: 22px;
+        line-height: 1.9;
+      }
+      .events li[data-future="true"] {
+        color: var(--muted);
+      }
+      .events time {
+        font-variant-numeric: tabular-nums;
+        margin-right: 10px;
+      }
+      footer {
+        padding-top: 12px;
+      }
+      .hint {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 8px;
+      }
+      @media (max-width: 480px) {
+        body {
+          padding: 18px;
+        }
+        h1 {
+          font-size: 24px;
+        }
+        .settings {
+          align-items: stretch;
+          gap: 8px;
+          margin: 14px 0;
+        }
+        .settings label {
+          width: 100%;
+          justify-content: space-between;
+        }
+        .settings select {
+          max-width: 70%;
+          min-width: 0;
+        }
+        .lane {
+          grid-template-columns: 4.5em minmax(0, 1fr) 6em;
+          gap: 8px;
+          font-size: 13px;
+          min-height: 48px;
+        }
+        .timeline {
+          padding: 8px 0;
+        }
+        .controls {
+          margin: 8px 0 14px;
+        }
+        .conclusion {
+          padding: 0 0 8px;
+          border-bottom: 0;
+        }
+        .controls button {
+          flex: 1;
+          padding-inline: 8px;
+        }
+        .conclusion h2 {
+          font-size: 18px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>成功发生在哪一层？</h1>
+      <p>推进观察时间，看运行状态、数据产出和消费者证据分别在什么时候成立。</p>
+    </header>
+    <div class="settings">
+      <label for="scenario"
+        >执行场景<select id="scenario">
+          <option value="recovered">失败后正常成功</option>
+          <option value="regressed">正常成功后失败</option>
+          <option value="forced">失败后强制成功</option>
+          <option value="open">失败后执行未闭合</option>
+        </select></label
+      >
+      <p>观察至 <output class="clock" id="clock" for="minute">09:45</output></p>
+    </div>
+    <div class="scrubber">
+      <span>09:00</span
+      ><input
+        id="minute"
+        type="range"
+        min="0"
+        max="60"
+        value="45"
+        aria-label="观察时间，09 点之后的分钟数"
+      /><span>10:00</span>
+    </div>
+    <div class="controls">
+      <button id="reset" type="button">回到起点</button
+      ><button id="next" type="button">下一条证据</button
+      ><button id="play" type="button" aria-pressed="false">播放过程</button>
+    </div>
+    <section class="conclusion" id="conclusion" aria-live="polite">
+      <h2 id="verdict"></h2>
+    </section>
+    <div class="timeline" aria-label="三层独立证据">
+      <div class="lane" id="run">
+        <span>任务运行</span
+        ><svg
+          viewBox="0 0 200 36"
+          preserveAspectRatio="none"
+          role="img"
+          aria-label="任务运行进展"
+        >
+          <line
+            x1="6"
+            y1="18"
+            x2="194"
+            y2="18"
+            stroke="#cec8bc"
+            stroke-width="2"
+          />
+          <line
+            class="progress"
+            x1="6"
+            y1="18"
+            x2="6"
+            y2="18"
+            stroke="currentColor"
+            stroke-width="3"
+          />
+          <line
+            class="point"
+            x1="6"
+            y1="18"
+            x2="6"
+            y2="18"
+            stroke="currentColor"
+            stroke-width="10"
+            stroke-linecap="round"
+            vector-effect="non-scaling-stroke"
+          /></svg
+        ><output>正常成功</output>
+      </div>
+      <div class="lane" id="artifact">
+        <span>数据产出</span
+        ><svg
+          viewBox="0 0 200 36"
+          preserveAspectRatio="none"
+          role="img"
+          aria-label="数据产出进展"
+        >
+          <line
+            x1="6"
+            y1="18"
+            x2="194"
+            y2="18"
+            stroke="#cec8bc"
+            stroke-width="2"
+          />
+          <line
+            class="progress"
+            x1="6"
+            y1="18"
+            x2="6"
+            y2="18"
+            stroke="currentColor"
+            stroke-width="3"
+          />
+          <line
+            class="point"
+            x1="6"
+            y1="18"
+            x2="6"
+            y2="18"
+            stroke="currentColor"
+            stroke-width="10"
+            stroke-linecap="round"
+            vector-effect="non-scaling-stroke"
+          /></svg
+        ><output>尚无证据</output>
+      </div>
+      <div class="lane" id="consumer">
+        <span>消费者</span
+        ><svg
+          viewBox="0 0 200 36"
+          preserveAspectRatio="none"
+          role="img"
+          aria-label="消费者进展"
+        >
+          <line
+            x1="6"
+            y1="18"
+            x2="194"
+            y2="18"
+            stroke="#cec8bc"
+            stroke-width="2"
+          />
+          <line
+            class="progress"
+            x1="6"
+            y1="18"
+            x2="6"
+            y2="18"
+            stroke="currentColor"
+            stroke-width="3"
+          />
+          <line
+            class="point"
+            x1="6"
+            y1="18"
+            x2="6"
+            y2="18"
+            stroke="currentColor"
+            stroke-width="10"
+            stroke-linecap="round"
+            vector-effect="non-scaling-stroke"
+          /></svg
+        ><output>尚无证据</output>
+      </div>
+    </div>
+    <details>
+      <summary class="hint">查看判断依据</summary>
+      <p id="reason"></p>
+    </details>
+    <details>
+      <summary class="hint">查看这组示意事件</summary>
+      <ol class="events" id="events"></ol>
+    </details>
+    <footer>
+      全部为合成教学事件，不接入真实系统。没有观察到产出或消费证据，不等于已经证明数据不存在。
+    </footer>
+    <script>
+      "use strict";
+      const scenarios = {
+        recovered: [
+          [10, "run", "失败"],
+          [45, "run", "正常成功"],
+          [52, "artifact", "产出已校验"],
+          [57, "consumer", "消费者可读"],
+        ],
+        regressed: [
+          [10, "run", "正常成功"],
+          [18, "artifact", "产出已校验"],
+          [23, "consumer", "消费者可读"],
+          [45, "run", "失败"],
+        ],
+        forced: [
+          [10, "run", "失败"],
+          [45, "run", "强制成功"],
+        ],
+        open: [
+          [10, "run", "失败"],
+          [30, "run", "已开始，结束未知"],
+        ],
+      };
+      const labels = {
+        run: "任务运行",
+        artifact: "数据产出",
+        consumer: "消费者",
+      };
+      const minute = document.getElementById("minute"),
+        scenario = document.getElementById("scenario");
+      let timer = null;
+      function time(t) {
+        return t === 60 ? "10:00" : "09:" + String(t).padStart(2, "0");
+      }
+      function pause() {
+        clearInterval(timer);
+        timer = null;
+        const button = document.getElementById("play");
+        button.textContent = "播放过程";
+        button.setAttribute("aria-pressed", "false");
+      }
+      function render() {
+        const t = Number(minute.value),
+          events = scenarios[scenario.value];
+        document.getElementById("clock").textContent = time(t);
+        minute.setAttribute("aria-valuetext", time(t));
+        const visible = events.filter((e) => e[0] <= t),
+          state = {};
+        for (const e of visible) state[e[1]] = e;
+        for (const key of Object.keys(labels)) {
+          const row = document.getElementById(key),
+            event = state[key],
+            text = event?.[2] ?? "尚无证据";
+          row.dataset.status = !event
+            ? "wait"
+            : text === "失败"
+              ? "bad"
+              : ["正常成功", "产出已校验", "消费者可读"].includes(text)
+                ? "good"
+                : "wait";
+          row.querySelector("output").textContent = text;
+          row
+            .querySelector("svg")
+            .setAttribute("aria-label", labels[key] + "：" + text);
+          const x = event ? 6 + (event[0] / 60) * 188 : 6;
+          row.querySelector(".progress").setAttribute("x2", x);
+          row.querySelector(".point").setAttribute("x1", x);
+          row.querySelector(".point").setAttribute("x2", x);
+        }
+        const delivered = Boolean(state.artifact && state.consumer),
+          run = state.run?.[2];
+        let title, reason;
+        if (delivered && run === "失败") {
+          title = "末次运行失败，已确认的交付证据仍须分别保留";
+          reason =
+            "这组示意保留了之前已校验、已可读的产出。真实系统还需核查后续失败是否破坏它，不能仅靠末次状态推断。";
+        } else if (delivered) {
+          title = "到 " + time(t) + "，三层证据才同时可见";
+          reason =
+            "正常成功、产出校验、消费者可读已经分别出现。是否按时，还要与这次交付的业务截止时间比较。";
+        } else if (state.artifact) {
+          title = "数据已校验，消费者是否可用仍待确认";
+          reason =
+            "产出就绪不是消费者已经可读。继续推进到下一条证据，观察这两个时点的差别。";
+        } else if (run === "正常成功") {
+          title = "运行恢复了，但交付尚未确认";
+          reason =
+            "已经看到正常成功；尚未看到指定产出和消费者的证据。继续推进观察时间，不把运行成功直接写成交付成功。";
+        } else if (run === "强制成功") {
+          title = "强制成功没有补出数据交付证据";
+          reason = "调整执行状态不能证明产出已提交或消费者可读，需要独立复核。";
+        } else if (run === "已开始，结束未知") {
+          title = "观察还没有闭合，不能编造终态";
+          reason = "只能确认一次执行已经开始；其结果和最终恢复时长仍未知。";
+        } else {
+          title =
+            run === "失败"
+              ? "已观察到失败，后续证据还未到来"
+              : "从第一条证据之前开始观察";
+          reason =
+            "拖动时间，或点“下一条证据”。三条轨道只展示当时已经观察到的事实。";
+        }
+        document.getElementById("verdict").textContent = title;
+        document.getElementById("reason").textContent = reason;
+        document.getElementById("conclusion").dataset.delivered =
+          String(delivered);
+        document.getElementById("next").disabled = !events.some(
+          (e) => e[0] > t,
+        );
+        const nodes = events.map((e) => {
+          const li = document.createElement("li"),
+            stamp = document.createElement("time");
+          stamp.textContent = time(e[0]);
+          li.dataset.future = String(e[0] > t);
+          li.append(
+            stamp,
+            document.createTextNode(labels[e[1]] + " · " + e[2]),
+          );
+          return li;
+        });
+        document.getElementById("events").replaceChildren(...nodes);
+      }
+      function next() {
+        const event = scenarios[scenario.value].find(
+          (e) => e[0] > Number(minute.value),
+        );
+        if (event) {
+          minute.value = event[0];
+          render();
+        } else pause();
+      }
+      minute.addEventListener("input", () => {
+        pause();
+        render();
+      });
+      scenario.addEventListener("change", () => {
+        pause();
+        minute.value = 45;
+        render();
+      });
+      document.getElementById("reset").addEventListener("click", () => {
+        pause();
+        minute.value = 0;
+        render();
+      });
+      document.getElementById("next").addEventListener("click", () => {
+        pause();
+        next();
+      });
+      document.getElementById("play").addEventListener("click", () => {
+        if (timer) {
+          pause();
+          return;
+        }
+        if (!scenarios[scenario.value].some((e) => e[0] > Number(minute.value)))
+          minute.value = 0;
+        render();
+        const button = document.getElementById("play");
+        button.textContent = "暂停过程";
+        button.setAttribute("aria-pressed", "true");
+        timer = setInterval(() => {
+          next();
+          if (
+            !scenarios[scenario.value].some((e) => e[0] > Number(minute.value))
+          )
+            pause();
+        }, 1100);
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) pause();
+      });
+      render();
+    </script>
+  </body>
+</html>

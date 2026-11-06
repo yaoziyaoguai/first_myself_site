@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { InteractiveHtmlEmbed } from "@/components/InteractiveHtmlEmbed";
@@ -43,23 +49,46 @@ function markdownWithMarkers(): string {
 describe("InteractiveHtmlEmbed", () => {
   it("切换版本后忽略旧 HEAD 的迟到结果", async () => {
     let resolveRequest!: (value: Response) => void;
-    fetchMock.mockImplementationOnce(() => new Promise<Response>((resolve) => { resolveRequest = resolve; }));
-    const { rerender } = render(<InteractiveHtmlEmbed marker={MARKER} blogId="42" />);
+    fetchMock.mockImplementationOnce(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveRequest = resolve;
+        }),
+    );
+    const { rerender } = render(
+      <InteractiveHtmlEmbed marker={MARKER} blogId="42" />,
+    );
     fireEvent.click(screen.getByRole("button", { name: "启动交互" }));
-    rerender(<InteractiveHtmlEmbed marker={{ ...MARKER, sha256: "b".repeat(64) }} blogId="42" />);
+    rerender(
+      <InteractiveHtmlEmbed
+        marker={{ ...MARKER, sha256: "b".repeat(64) }}
+        blogId="42"
+      />,
+    );
     await act(async () => resolveRequest(new Response("", { status: 200 })));
     expect(document.querySelector("iframe")).toBeNull();
-    expect(screen.getByRole("button", { name: "启动交互" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "启动交互" }),
+    ).toBeInTheDocument();
   });
 
   it("HEAD 超时终止请求并显示可重试错误", async () => {
     vi.useFakeTimers();
-    fetchMock.mockImplementation((_url, { signal }: RequestInit) => new Promise((_resolve, reject) => {
-      signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")), { once: true });
-    }));
+    fetchMock.mockImplementation(
+      (_url, { signal }: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          signal?.addEventListener(
+            "abort",
+            () => reject(new DOMException("aborted", "AbortError")),
+            { once: true },
+          );
+        }),
+    );
     render(<InteractiveHtmlEmbed marker={MARKER} blogId="42" />);
     fireEvent.click(screen.getByRole("button", { name: "启动交互" }));
-    await act(async () => { await vi.advanceTimersByTimeAsync(15_000); });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
     expect(screen.getByRole("alert")).toHaveTextContent("超时");
     expect(screen.getByRole("button", { name: "重试" })).toBeInTheDocument();
   });
@@ -71,7 +100,11 @@ describe("InteractiveHtmlEmbed", () => {
     await user.click(screen.getByRole("button", { name: "启动交互" }));
     await user.click(await screen.findByRole("button", { name: "放大显示" }));
     const button = screen.getByRole("button", { name: "收回原尺寸" });
-    expect(document.getElementById(button.getAttribute("aria-controls")!)?.querySelector("iframe")).not.toBeNull();
+    expect(
+      document
+        .getElementById(button.getAttribute("aria-controls")!)
+        ?.querySelector("iframe"),
+    ).not.toBeNull();
     screen.getByRole("button", { name: "停止交互" }).focus();
     await user.keyboard("{Escape}");
     expect(screen.getByRole("button", { name: "放大显示" })).toHaveFocus();
@@ -134,6 +167,45 @@ describe("InteractiveHtmlEmbed", () => {
     await user.click(screen.getByRole("button", { name: "收回原尺寸" }));
     expect(document.querySelector("iframe")).toBe(before);
     expect(document.querySelector(".interactive-html--expanded")).toBeNull();
+  });
+
+  it("展开时在视口内增加阅读宽度，调整视口与收回后保留 iframe", async () => {
+    fetchMock.mockResolvedValue(new Response("", { status: 200 }));
+    vi.stubGlobal("innerWidth", 1440);
+    const user = userEvent.setup();
+    render(<InteractiveHtmlEmbed marker={MARKER} blogId="42" />);
+    await user.click(screen.getByRole("button", { name: "启动交互" }));
+    const wrapper = document.querySelector<HTMLElement>(".interactive-html")!;
+    const iframe = document.querySelector("iframe");
+    const parentBounds = vi
+      .spyOn(wrapper.parentElement!, "getBoundingClientRect")
+      .mockReturnValue(new DOMRect(385, 0, 734, 900));
+    await user.click(screen.getByRole("button", { name: "放大显示" }));
+    expect(wrapper.style.getPropertyValue("--interactive-wide-width")).toBe(
+      "1120px",
+    );
+    expect(wrapper.style.getPropertyValue("--interactive-wide-offset")).toBe(
+      "-225px",
+    );
+    vi.stubGlobal("innerWidth", 768);
+    parentBounds.mockReturnValue(new DOMRect(32, 0, 704, 900));
+    fireEvent(window, new Event("resize"));
+    expect(wrapper.style.getPropertyValue("--interactive-wide-width")).toBe(
+      "704px",
+    );
+    vi.stubGlobal("innerWidth", 390);
+    parentBounds.mockReturnValue(new DOMRect(24, 0, 342, 900));
+    fireEvent(window, new Event("resize"));
+    expect(wrapper.style.getPropertyValue("--interactive-wide-width")).toBe(
+      "350px",
+    );
+    expect(document.querySelector("iframe")).toBe(iframe);
+    await user.click(screen.getByRole("button", { name: "收回原尺寸" }));
+    expect(wrapper.style.getPropertyValue("--interactive-wide-width")).toBe("");
+    expect(wrapper.style.getPropertyValue("--interactive-wide-offset")).toBe(
+      "",
+    );
+    expect(document.querySelector("iframe")).toBe(iframe);
   });
 
   it("停止交互销毁 iframe 并明示状态重置", async () => {
