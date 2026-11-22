@@ -70,12 +70,12 @@ export default async function Home() {
     <SpotlightSurfaces className="site-shell home-page">
       <header className="home-intro tech-grid-backdrop">
         <div>
-          <p className="home-status animate-tech-in"><span aria-hidden="true" /> Online · Data &amp; AI Agent Engineering</p>
+          <p className="home-status"><span aria-hidden="true" /> Online · Data &amp; AI Agent Engineering</p>
           <h1>{title}</h1>
           <p className="home-role">{role}</p>
           <p className="home-bio">{bio}</p>
         </div>
-        <ol className="home-directions animate-tech-in" aria-label="当前研究方向">
+        <ol className="home-directions" aria-label="当前研究方向">
           {directions.map(({ label }, index) => (
             <li key={label}>
               <span aria-hidden="true">{String(index + 1).padStart(2, "0")} /</span>
@@ -89,10 +89,10 @@ export default async function Home() {
         {featuredPost ? (
           <Link
             prefetch={false}
-            className="group home-feature spotlight-card"
+            className="group home-feature spotlight-card animate-tech-in"
             href={`/blog/${featuredPost.slug}`}
           >
-            <span className="home-feature-meta animate-tech-in">
+            <span className="home-feature-meta">
               <span>Latest Dispatch</span>
               <time dateTime={featuredPost.publishedDate}>
                 {formatSiteDate(featuredPost.publishedDate).replaceAll("-", ".")}
@@ -120,8 +120,8 @@ export default async function Home() {
             </Link>
           </div>
         )}
-        <aside className="home-series spotlight-card">
-          <p className="home-series-label animate-tech-in">
+        <aside className="home-series spotlight-card animate-tech-in">
+          <p className="home-series-label">
             Featured Track
             {featuredCollection && <span className="series-meter" aria-hidden="true"
               data-completed={featuredCollection.series.progress === "completed"}>

@@ -5,6 +5,7 @@ import { CommandMenu } from "@/components/CommandMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { discardArchiveReturnOutside } from "@/lib/archiveNavigation";
 
 const navLinks = [
   { href: "/", label: "首页", segment: "" },
@@ -37,6 +38,10 @@ export function Navbar({ admin = false }: { admin?: boolean }) {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    discardArchiveReturnOutside(pathname);
+  }, [pathname]);
 
   useEffect(() => {
     if (!open) return;

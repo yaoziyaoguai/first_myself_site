@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArticleSearch } from "@/components/ArticleSearch";
 import { ArticleIndex } from "@/components/ArticleIndex";
 import { ArticleArchive } from "@/components/ArticleArchive";
-import { SeriesFeature } from "@/components/SeriesFeature";
+import { SeriesArchiveResults } from "@/components/SeriesFeature";
 import { SpotlightSurfaces } from "@/components/SpotlightSurfaces";
 import { siteDefaults } from "@/content/siteDefaults";
 import { getCurrentUser } from "@/lib/auth";
@@ -70,9 +70,7 @@ export default async function BlogPage() {
           </Link>
         </div>
       ) : (
-        collections.map((collection) => (
-          <SeriesFeature key={collection.series.id} collection={collection} />
-        ))
+        <SeriesArchiveResults collections={collections} />
       )}
     </section>
   );

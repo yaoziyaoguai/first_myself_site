@@ -39,6 +39,7 @@ type PanelResizeStart = PanelSize & {
   pointerId: number;
   clientX: number;
   clientY: number;
+  axis: "width" | "both";
 };
 
 type PanelStyle = CSSProperties & {
@@ -596,7 +597,7 @@ export function BlogAgent({
     }));
   };
 
-  const beginResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const beginResize = (event: ReactPointerEvent<HTMLElement>, axis: PanelResizeStart["axis"]) => {
     if (!desktopLayout || event.button !== 0 || !panelRef.current) return;
     event.currentTarget.focus();
     const bounds = panelRef.current.getBoundingClientRect();
@@ -606,22 +607,23 @@ export function BlogAgent({
       clientY: event.clientY,
       width: bounds.width,
       height: bounds.height,
+      axis,
     };
     setResizing(true);
     event.currentTarget.setPointerCapture?.(event.pointerId);
     event.preventDefault();
   };
 
-  const resizeFromPointer = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const resizeFromPointer = (event: ReactPointerEvent<HTMLElement>) => {
     const start = resizeStartRef.current;
     if (!start || event.pointerId !== start.pointerId) return;
     setPanelSize(clampPanelSize({
       width: start.width - (event.clientX - start.clientX),
-      height: start.height - (event.clientY - start.clientY),
+      height: start.axis === "both" ? start.height - (event.clientY - start.clientY) : start.height,
     }));
   };
 
-  const finishResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const finishResize = (event: ReactPointerEvent<HTMLElement>) => {
     if (event.pointerId !== resizeStartRef.current?.pointerId) return;
     resizeStartRef.current = null;
     setResizing(false);
@@ -672,20 +674,15 @@ export function BlogAgent({
               style={panelStyle}
             >
               {desktopLayout && (
-                <button
-                  type="button"
-                  className="blog-agent-resize-handle"
-                  aria-label="调整文章 Agent 对话框大小"
-                  title="拖动或使用方向键调整大小"
-                  onPointerDown={beginResize}
+                <div
+                  className="blog-agent-resize-rail"
+                  aria-hidden="true"
+                  onPointerDown={(event) => beginResize(event, "width")}
                   onPointerMove={resizeFromPointer}
                   onPointerUp={finishResize}
                   onPointerCancel={finishResize}
                   onLostPointerCapture={finishResize}
-                  onKeyDown={resizeWithKeyboard}
-                >
-                  <MoveDiagonal2 aria-hidden="true" size={15} />
-                </button>
+                />
               )}
               <header className="blog-agent-panel-header">
                 <div>
@@ -695,6 +692,22 @@ export function BlogAgent({
                   <h2>正在阅读《{articleTitle}》</h2>
                 </div>
                 <div className="blog-agent-header-actions">
+                  {desktopLayout && (
+                    <button
+                      type="button"
+                      className="blog-agent-icon-button blog-agent-resize-handle"
+                      aria-label="调整文章 Agent 对话框大小"
+                      title="拖动或使用方向键调整大小"
+                      onPointerDown={(event) => beginResize(event, "both")}
+                      onPointerMove={resizeFromPointer}
+                      onPointerUp={finishResize}
+                      onPointerCancel={finishResize}
+                      onLostPointerCapture={finishResize}
+                      onKeyDown={resizeWithKeyboard}
+                    >
+                      <MoveDiagonal2 aria-hidden="true" size={15} />
+                    </button>
+                  )}
                   {state.turns.length > 0 && (
                     <button
                       type="button"
@@ -749,7 +762,6 @@ export function BlogAgent({
                           key={`${turn.response.queryId}:${index}`}
                         >
                           <div className="blog-agent-user-message">
-                            <span aria-hidden="true">你</span>
                             <p>{turn.question}</p>
                           </div>
                           {turn.response.insufficientEvidence ? (
@@ -809,7 +821,6 @@ export function BlogAgent({
                   {loading && (
                     <div className="blog-agent-pending-turn">
                       <div className="blog-agent-user-message">
-                        <span aria-hidden="true">你</span>
                         <p>{state.pendingQuestion}</p>
                       </div>
                       <ThinkingOrb />

@@ -20,6 +20,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
@@ -72,5 +73,37 @@ describe("ArticleReadingNav", () => {
   it("does not add a directory to a short note", () => {
     render(<Article headings={["一个章节"]} />);
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+  });
+
+  it("uses the article bottom for progress and only reveals a scrolled-away dock on upward movement or an endpoint", () => {
+    let scrollY = 0;
+    vi.stubGlobal("scrollY", 0);
+    vi.stubGlobal("innerHeight", 800);
+    const { container } = render(<Article />);
+    const content = document.getElementById("article-content")!;
+    vi.spyOn(content, "getBoundingClientRect").mockImplementation(() => new DOMRect(0, -scrollY, 400, 3000));
+    act(() => frame(0));
+    const shell = container.querySelector(".site-shell")!;
+    function scrollTo(next: number) {
+      act(() => {
+        scrollY = next;
+        vi.stubGlobal("scrollY", next);
+        window.dispatchEvent(new Event("scroll"));
+        frame(0);
+      });
+    }
+    scrollTo(300);
+    expect(screen.getByRole("progressbar")).toHaveAttribute("value", "14");
+    expect(screen.getByText("READ 14%")).toBeInTheDocument();
+    expect(shell).toHaveAttribute("data-dock-hidden");
+    scrollTo(295);
+    expect(shell).toHaveAttribute("data-dock-hidden");
+    scrollTo(288);
+    expect(shell).not.toHaveAttribute("data-dock-hidden");
+    scrollTo(700);
+    expect(shell).toHaveAttribute("data-dock-hidden");
+    scrollTo(2200);
+    expect(screen.getByRole("progressbar")).toHaveAttribute("value", "100");
+    expect(shell).not.toHaveAttribute("data-dock-hidden");
   });
 });

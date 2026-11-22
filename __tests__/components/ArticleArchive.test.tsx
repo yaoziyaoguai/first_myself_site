@@ -1,9 +1,10 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import Link from "next/link";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleArchive } from "@/components/ArticleArchive";
 import { ArticleIndex } from "@/components/ArticleIndex";
+import { ArticleSearch } from "@/components/ArticleSearch";
+import { SeriesArchiveResults } from "@/components/SeriesFeature";
 
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(window.location.search),
@@ -43,7 +44,11 @@ function Archive() {
           ]}
         />
       }
-      series={<Link href="/blog/series/real-series">真实合集</Link>}
+      series={<SeriesArchiveResults collections={[{
+        series: { id: "3", title: "真实合集", slug: "real-series", description: "系统运行笔记", progress: "completed" },
+        articles: [{ id: "1", slug: "agent", title: "执行边界" }],
+      }]} />}
+      search={<ArticleSearch />}
     />
   );
 }
@@ -52,6 +57,21 @@ beforeEach(() => window.history.replaceState(null, "", "/blog?analytics=off"));
 afterEach(cleanup);
 
 describe("ArticleArchive", () => {
+  it("filters series by linked article titles without leaving the series tab", () => {
+    window.history.replaceState(null, "", "/blog?view=series");
+    const { rerender } = render(<Archive />);
+    const search = screen.getByRole("searchbox", { name: "搜索文章" });
+    fireEvent.change(search, { target: { value: "执行边界" } });
+    rerender(<Archive />);
+    expect(screen.getByRole("link", { name: "真实合集" })).toBeVisible();
+    fireEvent.change(search, { target: { value: "不存在" } });
+    rerender(<Archive />);
+    expect(window.location.search).toContain("view=series");
+    expect(screen.getByRole("tab", { name: "文章合集 1" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("link", { name: "真实合集" })).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("没有符合当前关键词的合集");
+  });
+
   it("switches views without losing the existing article filter or unrelated query parameters", async () => {
     const user = userEvent.setup();
     const { rerender } = render(<Archive />);
@@ -68,8 +88,8 @@ describe("ArticleArchive", () => {
     );
     expect(screen.getByRole("link", { name: "真实合集" })).toBeVisible();
     expect(
-      screen.queryByRole("link", { name: /执行边界/ }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("link", { name: /执行边界/ }),
+    ).toBeVisible();
     await user.click(screen.getByRole("tab", { name: "全部文章 2" }));
     rerender(<Archive />);
     expect(window.location.search).toBe("?analytics=off&tag=Agent");

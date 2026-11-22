@@ -29,7 +29,7 @@ import { HashAnchorScroller } from "@/components/HashAnchorScroller";
 import { SITE_URL, siteDefaults } from "@/content/siteDefaults";
 import { canShowBlogAgent } from "@/lib/blog-agent/config";
 import { articleTags, relatedArticles } from "@/lib/articleDiscovery";
-import type { ArticleCover } from "@/lib/articlePresentation";
+import type { ArticleCover } from "@/lib/articleStructure";
 import { resolveText } from "@/lib/contentFallback";
 import { formatSiteDate } from "@/lib/siteDate";
 import {
@@ -176,7 +176,7 @@ export default async function BlogPostPage({ params }: PageProps) {
       />
       <article id="blog-article-top" className="article-page">
         <HashAnchorScroller />
-        <ArticleBackLink className="text-link article-back" />
+        <ArticleBackLink key={post.slug} pathname={`/blog/${post.slug}`} className="text-link article-back" />
 
         <header className="reading-header">
           {series ? (
@@ -194,7 +194,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             {editUrl && (
               <a
                 href={editUrl}
-                className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-full border border-border bg-muted px-4 text-sm transition-colors hover:bg-accent"
+                className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-border bg-muted px-4 font-mono text-xs transition-colors hover:bg-accent"
               >
                 <span>编辑</span>
               </a>
@@ -241,7 +241,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                           aria-current={
                             index === seriesIndex ? "page" : undefined
                           }
-                          className={`flex min-h-11 items-start gap-3 py-3 text-sm leading-6 hover:text-primary ${index === seriesIndex ? "font-medium text-primary" : "text-muted-foreground"}`}
+                          className={`flex min-h-11 items-start gap-3 py-3 text-sm leading-6 hover:text-brand-ink ${index === seriesIndex ? "font-medium text-brand-ink" : "text-muted-foreground"}`}
                         >
                           <span className="shrink-0 font-mono">
                             {String(index + 1).padStart(2, "0")}
@@ -292,17 +292,17 @@ export default async function BlogPostPage({ params }: PageProps) {
               )}
             </div>
 
-            <div className="mx-auto my-14 h-px max-w-[46rem] bg-border" />
+            <div className="my-14 h-px bg-border" />
 
             {series ? (
               <nav
                 aria-label={`${series.title}合集导航`}
-                className="mx-auto mb-12 max-w-[46rem]"
+                className="mb-12"
               >
                 <div className="mb-4 flex items-center justify-between gap-4">
                   <Link
                     prefetch={false}
-                    className="text-sm font-medium text-primary"
+                    className="text-sm font-medium text-brand-ink"
                     href={`/blog/series/${series.slug}`}
                   >
                     查看合集
@@ -312,7 +312,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                   </span>
                 </div>
                 {previousArticle || nextArticle ? (
-                  <div className="grid gap-px overflow-hidden border border-border bg-border sm:grid-cols-2">
+                  <div className="grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2">
                     {previousArticle ? (
                       <Link
                         prefetch={false}
@@ -350,7 +350,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                     已读到合集当前最后一篇。
                     <Link
                       prefetch={false}
-                      className="text-primary underline underline-offset-4"
+                      className="text-brand-ink underline underline-offset-4"
                       href="/blog"
                     >
                       看看其他文章 →
@@ -360,7 +360,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               </nav>
             ) : null}
 
-            <div className="mx-auto max-w-[46rem]">
+            <div>
               <ShareActions url={`${SITE_URL}/blog/${post.slug}`} title={post.title} summary={post.excerpt}>
                 {showPublicInteractions && (
                   <LikeButton targetId={String(post.id)} targetType="blog" size="sm" />
@@ -403,7 +403,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             {recommendations.length > 0 ? (
               <section
                 aria-labelledby="related-heading"
-                className="mx-auto mt-16 max-w-[52rem] border-t border-border pt-8 md:mt-20"
+                className="mt-16 max-w-[var(--reading-width)] border-t border-border pt-8 md:mt-20"
               >
                 <div className="mb-2 flex items-end justify-between gap-4">
                   <div>
@@ -428,7 +428,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                       key={article.id}
                     >
                       <span>
-                        <span className="block font-sans text-xl font-medium leading-snug transition-colors duration-200 group-hover:text-primary">
+                        <span className="block font-sans text-xl font-medium leading-snug transition-colors duration-200 group-hover:text-brand-ink">
                           {article.title}
                         </span>
                         <span className="mt-2 block text-sm text-muted-foreground">

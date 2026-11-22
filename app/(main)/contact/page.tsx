@@ -1,6 +1,8 @@
+import "../listing.css";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { SpotlightSurfaces } from "@/components/SpotlightSurfaces";
 import { siteDefaults, type ContactMethod, type Direction } from "@/content/siteDefaults";
 import { buildContactMethods } from "@/lib/contact";
 import { resolveArray, resolveText } from "@/lib/contentFallback";
@@ -34,18 +36,18 @@ export default async function ContactPage() {
   );
 
   return (
-    <div className="site-shell page-space">
-      <header className="page-header">
+    <SpotlightSurfaces className="site-shell page-space">
+      <header className="page-header tech-grid-backdrop">
         <p className="eyebrow">CONTACT</p>
         <h1>交流与联系</h1>
         <p>{introText}</p>
       </header>
 
-      <div className="grid grid-cols-1 gap-12 border-t border-border pt-10 md:grid-cols-[minmax(0,1fr)_minmax(17rem,0.55fr)]">
-        <div className="border-y border-border">
+      <div className="grid grid-cols-1 gap-12 md:grid-cols-[minmax(0,1fr)_minmax(17rem,0.55fr)]">
+        <div className="grid grid-cols-1 gap-3">
           {contactMethods.map((method) => (
             <Link
-              className="group flex min-h-40 items-end justify-between gap-6 border-b border-border py-7 transition-colors duration-200 last:border-b-0 hover:bg-card/70 md:px-4"
+              className="spotlight-card group flex min-h-40 items-end justify-between gap-4 p-5 sm:gap-6 md:p-7"
               href={method.href}
               key={`${method.title}-${method.href}`}
               rel={method.href.startsWith("http") ? "noopener noreferrer" : undefined}
@@ -62,13 +64,13 @@ export default async function ContactPage() {
                   </span>
                 ) : null}
               </span>
-              <ArrowUpRight aria-hidden="true" className="shrink-0 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              <ArrowUpRight aria-hidden="true" className="shrink-0 transition-[color,transform] duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-brand-ink" />
             </Link>
           ))}
         </div>
 
-        <aside className="border-t-2 border-primary pt-6">
-          <p className="font-mono text-[0.68rem] uppercase tracking-[0.16em] text-primary">可以聊聊</p>
+        <aside className="border-t border-border pt-6">
+          <p className="font-mono text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">可以聊聊</p>
           <ul className="mt-6 space-y-4">
             {discussionTopics.map((topic) => (
               <li className="border-b border-border pb-4 text-sm leading-6 text-muted-foreground" key={topic.label}>
@@ -78,6 +80,6 @@ export default async function ContactPage() {
           </ul>
         </aside>
       </div>
-    </div>
+    </SpotlightSurfaces>
   );
 }

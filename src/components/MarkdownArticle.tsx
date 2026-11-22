@@ -1,9 +1,11 @@
 import type { Components } from "react-markdown";
+import { ArticleCodeBlock, ArticleTable } from "@/components/ArticleBlocks";
 import { ArticleImage } from "@/components/ArticleImage";
 import { CopyCodeButton } from "@/components/CopyCodeButton";
 import { HeadingLink } from "@/components/HeadingLink";
 import { InteractiveHtmlEmbed } from "@/components/InteractiveHtmlEmbed";
-import { prepareArticlePresentation, type ArticleCover } from "@/lib/articlePresentation";
+import { prepareArticlePresentation } from "@/lib/articlePresentation";
+import type { ArticleCover } from "@/lib/articleStructure";
 import { INTERACTIVE_EMBED_PREFIX, markerFromElementProps } from "@/lib/interactive-html/ast";
 import { parseMarkdown, renderMarkdown } from "@/lib/renderMarkdown";
 
@@ -17,26 +19,8 @@ const components = {
       </div>
     );
   },
-  pre: ({ children, node }) => {
-    const { "data-language": language, "data-lines": lines } = node!.properties;
-    return (
-      <div className="article-code">
-        <div className="article-code-toolbar">
-          <span>{language!.toString()}</span>
-          <span>{lines!.toString()} 行</span>
-          <CopyCodeButton />
-        </div>
-        <pre tabIndex={0} role="region" aria-label="可横向滚动的代码">
-          {children}
-        </pre>
-      </div>
-    );
-  },
-  table: ({ children }) => (
-    <div aria-label="可横向滚动的表格" className="article-table-scroll" role="region" tabIndex={0}>
-      <table>{children}</table>
-    </div>
-  ),
+  pre: ({ children, node }) => <ArticleCodeBlock node={node!} action={<CopyCodeButton />}>{children}</ArticleCodeBlock>,
+  table: ({ children }) => <ArticleTable>{children}</ArticleTable>,
   "article-image": ({ node, ...props }) => {
     void node;
     return <ArticleImage {...props} />;

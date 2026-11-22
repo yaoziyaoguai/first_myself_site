@@ -45,6 +45,7 @@ export function InteractiveHtmlEmbed({
       ? `/api/blog/${encodeURIComponent(String(blogId))}/interactive-html/${marker.sha256}/${mode}`
       : null;
   const previousEndpoint = useRef(endpoint);
+  const readyEndpoint = state === "ready" && loadedEndpoint === endpoint ? loadedEndpoint : null;
 
   useEffect(() => {
     if (previousEndpoint.current !== endpoint) {
@@ -200,8 +201,34 @@ export function InteractiveHtmlEmbed({
       data-interactive-id={marker.id}
     >
       <div className="interactive-html__chrome">
-        <span className="interactive-html__lights" aria-hidden="true"><i /><i /><i /></span>
-        <span>Sandbox · Isolated Runtime</span>
+        <span className="interactive-html__light" aria-hidden="true" />
+        <span>Sandbox</span>
+        {readyEndpoint !== null && (
+          <div className="interactive-html__toolbar" role="group" aria-label="沙箱操作">
+            <button
+              ref={expandButtonRef}
+              type="button"
+              className="interactive-html__control"
+              aria-label={expanded ? "收回原尺寸" : "放大显示"}
+              aria-expanded={expanded}
+              aria-controls={regionId}
+              onClick={() => setExpanded((value) => !value)}
+            >
+              {expanded ? <Minimize2 size={14} aria-hidden="true" /> : <Maximize2 size={14} aria-hidden="true" />}
+              {expanded ? "收回" : "放大"}
+            </button>
+            {attempt < RETRY_LIMIT && (
+              <button type="button" className="interactive-html__control" aria-label="重新加载" onClick={retry}>
+                <RotateCcw size={14} aria-hidden="true" />
+                重载
+              </button>
+            )}
+            <button type="button" className="interactive-html__control" aria-label="停止交互" onClick={stop}>
+              <Square size={13} aria-hidden="true" />
+              停止
+            </button>
+          </div>
+        )}
       </div>
       <div className="interactive-html__header">
         <p className="interactive-html__caption">{marker.caption}</p>
@@ -253,46 +280,12 @@ export function InteractiveHtmlEmbed({
         </p>
       ) : null}
 
-      {state === "ready" && loadedEndpoint === endpoint && loadedEndpoint ? (
+      {readyEndpoint !== null ? (
         <div id={regionId} className="interactive-html__frame-shell">
-          <div className="interactive-html__controls">
-            <button
-              ref={expandButtonRef}
-              type="button"
-              className="interactive-html__control"
-              aria-expanded={expanded}
-              aria-controls={regionId}
-              onClick={() => setExpanded((value) => !value)}
-            >
-              {expanded ? <Minimize2 size={14} aria-hidden="true" /> : <Maximize2 size={14} aria-hidden="true" />}
-              {expanded ? "收回原尺寸" : "放大显示"}
-            </button>
-            {attempt < RETRY_LIMIT ? (
-              <button
-                type="button"
-                className="interactive-html__control"
-                onClick={retry}
-              >
-                <RotateCcw size={14} aria-hidden="true" />
-                重新加载
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className="interactive-html__control"
-              onClick={stop}
-            >
-              <Square size={13} aria-hidden="true" />
-              停止交互
-            </button>
-            <span className="interactive-html__hint">
-              放大保留进度；重新加载或停止会重置。
-            </span>
-          </div>
           <iframe
             key={frameKey}
             className="interactive-html__frame"
-            src={loadedEndpoint}
+            src={readyEndpoint}
             title={title}
             sandbox="allow-scripts"
             referrerPolicy="no-referrer"

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArticleLinkFeedback } from "@/components/ArticleLinkFeedback";
-import { rememberArchiveLocation, updateArchiveQuery } from "@/components/ArticleSearch";
+import { rememberArchiveLocation, updateArchiveQuery } from "@/lib/archiveNavigation";
 import { matchesArticle, searchTerms } from "@/lib/articleDiscovery";
 
 export type ArticleIndexEntry = {
@@ -91,7 +91,7 @@ export function ArticleIndex({ articles }: { articles: ArticleIndexEntry[] }) {
             {entries.map((article) => (
               <li key={article.id}>
                 <Link prefetch={false} href={`/blog/${article.slug}`} className="group article-row"
-                  onNavigate={rememberArchiveLocation}>
+                  onNavigate={() => rememberArchiveLocation(`/blog/${article.slug}`)}>
                   <span className="article-date">
                     <time dateTime={article.publishedDate}>{article.date.replaceAll("-", ".")}</time>
                     <span>{article.readingTime}</span>

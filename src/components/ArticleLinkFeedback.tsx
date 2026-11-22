@@ -24,7 +24,7 @@ export function ArticleLinkFeedback({
       <span
         aria-live="polite"
         className={cn(
-          "inline-flex min-h-6 items-center gap-2 whitespace-nowrap font-sans text-xs font-medium text-primary",
+          "inline-flex min-h-6 items-center gap-2 whitespace-nowrap font-sans text-xs font-medium text-brand-ink",
           compact &&
             "col-start-1 row-start-1 justify-self-end md:col-auto md:row-auto",
           className,

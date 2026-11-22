@@ -39,7 +39,7 @@ export async function Footer() {
               © {new Date().getFullYear()} {name}
             </p>
             <Link
-              className="inline-flex min-h-11 items-center underline decoration-border underline-offset-4 transition-colors hover:text-primary"
+              className="inline-flex min-h-11 items-center underline decoration-border underline-offset-4 transition-colors hover:text-brand-ink"
               href="https://beian.miit.gov.cn/"
               rel="noopener noreferrer"
               target="_blank"

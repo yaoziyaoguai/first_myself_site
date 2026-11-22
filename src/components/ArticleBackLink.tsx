@@ -2,19 +2,26 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useLayoutEffect } from "react";
+import { archiveReturnSearch, consumeArchiveReturn } from "@/lib/archiveNavigation";
 
-export function ArticleBackLink({ className = "text-link" }: { className?: string }) {
+export function ArticleBackLink({
+  pathname,
+  className = "text-link",
+}: { pathname: string; className?: string }) {
   const router = useRouter();
+  useLayoutEffect(() => consumeArchiveReturn(pathname), [pathname]);
+
   return (
     <Link
       className={className}
       prefetch={false}
       href="/blog"
       onNavigate={(event) => {
-        const query = new URLSearchParams(sessionStorage.getItem("article-archive-query") ?? "");
-        if (query.size > 0) {
+        const search = archiveReturnSearch(pathname);
+        if (search) {
           event.preventDefault();
-          router.push(`/blog?${query}`);
+          router.push(`/blog${search}`);
         }
       }}
     >
