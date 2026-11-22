@@ -30,6 +30,7 @@ vi.mock("react", async (importOriginal) => {
 
 vi.mock("next/navigation", () => ({ notFound: mocks.notFound, useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("next/link", () => ({
+  useLinkStatus: () => ({ pending: false }),
   default: ({ prefetch, onNavigate, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
     prefetch?: boolean;
     onNavigate?: unknown;

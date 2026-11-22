@@ -67,12 +67,12 @@ export function ArticleIndex({ articles }: { articles: ArticleIndexEntry[] }) {
               params.delete("tag");
               params.delete("page");
             })}>
-            全部 <span>{articles.length}</span>
+            全部 <span>[{articles.length}]</span>
           </button>
           {visibleTopics.map(([topic, count]) => (
             <button type="button" key={topic} aria-pressed={tags.includes(topic)}
               onClick={() => selectTag(topic)}>
-              {topic} <span>{tags.includes(topic) ? "×" : count}</span>
+              {topic} <span>[{count}]</span>
             </button>
           ))}
           {topics.length > 6 && (
@@ -93,7 +93,7 @@ export function ArticleIndex({ articles }: { articles: ArticleIndexEntry[] }) {
                 <Link prefetch={false} href={`/blog/${article.slug}`} className="group article-row"
                   onNavigate={rememberArchiveLocation}>
                   <span className="article-date">
-                    <time dateTime={article.publishedDate}>{article.date.slice(5)}</time>
+                    <time dateTime={article.publishedDate}>{article.date.replaceAll("-", ".")}</time>
                     <span>{article.readingTime}</span>
                   </span>
                   <span className="min-w-0">

@@ -23,18 +23,18 @@ export async function Footer() {
 
   return (
     <footer className="site-footer">
-      <div className="site-shell grid gap-10 py-12 md:grid-cols-[1fr_auto] md:items-end">
+      <div className="site-shell grid gap-6 py-9 md:grid-cols-[1fr_auto] md:items-end">
         <div>
-          <p className="font-serif text-xl font-semibold">
+          <p className="flex flex-wrap items-baseline gap-2.5 text-sm font-semibold">
             {name}{" "}
-            <span className="ml-2 font-mono text-xs font-normal tracking-widest text-muted-foreground">
-              FIELD NOTES
+            <span className="font-mono text-[0.68rem] font-normal tracking-wide text-muted-foreground">
+              / 精密工程志
             </span>
           </p>
-          <p className="mt-3 max-w-xl text-sm leading-7 text-muted-foreground">
+          <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
             {bioShort}
           </p>
-          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-xs text-muted-foreground">
             <p className="uppercase tracking-[0.16em]">
               © {new Date().getFullYear()} {name}
             </p>
@@ -62,7 +62,7 @@ export async function Footer() {
               {link.label} ↗
             </Link>
           ))}
-          <Link className="footer-link" href="/rss.xml">
+          <Link className="footer-link" href="/rss.xml" prefetch={false}>
             RSS
           </Link>
         </div>

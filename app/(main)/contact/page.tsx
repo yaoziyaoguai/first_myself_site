@@ -41,7 +41,7 @@ export default async function ContactPage() {
         <p>{introText}</p>
       </header>
 
-      <div className="grid gap-12 border-t border-border pt-10 md:grid-cols-[minmax(0,1fr)_minmax(17rem,0.55fr)]">
+      <div className="grid grid-cols-1 gap-12 border-t border-border pt-10 md:grid-cols-[minmax(0,1fr)_minmax(17rem,0.55fr)]">
         <div className="border-y border-border">
           {contactMethods.map((method) => (
             <Link
@@ -55,7 +55,7 @@ export default async function ContactPage() {
                 <span className="block text-xs uppercase tracking-[0.18em] text-muted-foreground">
                   {method.title}
                 </span>
-                <span className="mt-5 block break-words font-serif text-xl font-medium sm:text-2xl">{method.value}</span>
+                <span className="mt-5 block break-words font-sans text-xl font-medium sm:text-2xl">{method.value}</span>
                 {method.description ? (
                   <span className="mt-2 block text-sm leading-6 text-muted-foreground">
                     {method.description}

@@ -13,7 +13,7 @@ import type {
   KeyboardEvent as ReactKeyboardEvent,
   PointerEvent as ReactPointerEvent,
 } from "react";
-import { ArrowDown, MoveDiagonal2, Send, Sparkles, X } from "lucide-react";
+import { ArrowDown, FileCode2, MoveDiagonal2, Send, Sparkles, X } from "lucide-react";
 import { Dialog } from "@base-ui/react/dialog";
 import type {
   BlogAgentCitation,
@@ -327,10 +327,13 @@ function ThinkingOrb() {
       <span className="blog-agent-orb" aria-hidden="true">
         <span />
       </span>
-      <span className="blog-agent-thinking-copy">
-        <strong>正在思考</strong>
-        <span>正在检索当前文章与代码依据…</span>
-      </span>
+      <div className="blog-agent-thinking-copy">
+        <strong>正在检索当前文章与代码依据</strong>
+        <ul aria-label="检索范围">
+          <li>当前文章的段落锚点</li>
+          <li>已关联的固定版本源码</li>
+        </ul>
+      </div>
     </div>
   );
 }
@@ -353,6 +356,7 @@ export function BlogAgent({
   const [draft, setDraft] = useState("");
   const [showLatest, setShowLatest] = useState(false);
   const [desktopLayout, setDesktopLayout] = useState(false);
+  const [resizing, setResizing] = useState(false);
   const [panelSize, setPanelSize] = useState<PanelSize | null>(() => (
     typeof window === "undefined" ? null : readStoredPanelSize()
   ));
@@ -413,7 +417,10 @@ export function BlogAgent({
     const media = window.matchMedia?.(DESKTOP_MEDIA_QUERY);
     const update = () => {
       const nextDesktopLayout = media?.matches ?? window.innerWidth >= 1_280;
-      if (!nextDesktopLayout) resizeStartRef.current = null;
+      if (!nextDesktopLayout) {
+        resizeStartRef.current = null;
+        setResizing(false);
+      }
       setDesktopLayout(nextDesktopLayout);
     };
     update();
@@ -430,19 +437,18 @@ export function BlogAgent({
     }
   }, [panelSize]);
 
-  useEffect(() => {
-    if (!state.isOpen || !desktopLayout) return;
+  useLayoutEffect(() => {
+    if (!state.isOpen || !desktopLayout || !panelSize) return;
     const shell = rootRef.current?.closest<HTMLElement>(".site-shell");
     if (!shell) return;
-    // 将浮层实际宽度交给文章容器，拖拽时正文也让出空间；关闭后恢复原版式。
-    const width = panelRef.current?.getBoundingClientRect().width || panelSize?.width || 416;
-    shell.style.setProperty("--article-agent-width", `${width}px`);
+    shell.style.setProperty("--article-agent-width", `${panelSize.width}px`);
     return () => { shell.style.removeProperty("--article-agent-width"); };
-  }, [state.isOpen, desktopLayout, panelSize?.width]);
+  }, [state.isOpen, desktopLayout, panelSize]);
 
   useEffect(() => {
     const cancelResize = () => {
       resizeStartRef.current = null;
+      setResizing(false);
     };
     window.addEventListener("blur", cancelResize);
     return () => window.removeEventListener("blur", cancelResize);
@@ -454,6 +460,7 @@ export function BlogAgent({
     requestSequence.current += 1;
     loadingRef.current = false;
     resizeStartRef.current = null;
+    setResizing(false);
     dispatch({ type: "close" });
   }, []);
 
@@ -600,6 +607,7 @@ export function BlogAgent({
       width: bounds.width,
       height: bounds.height,
     };
+    setResizing(true);
     event.currentTarget.setPointerCapture?.(event.pointerId);
     event.preventDefault();
   };
@@ -616,6 +624,7 @@ export function BlogAgent({
   const finishResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (event.pointerId !== resizeStartRef.current?.pointerId) return;
     resizeStartRef.current = null;
+    setResizing(false);
     if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -644,14 +653,13 @@ export function BlogAgent({
     : undefined;
 
   return (
-    <div className="blog-agent-root" ref={rootRef}>
+    <div className="blog-agent-root" ref={rootRef} data-resizing={resizing || undefined}>
       <Dialog.Root
         open={state.isOpen}
         modal={!desktopLayout}
         disablePointerDismissal
         onOpenChange={(open) => { if (!open) close(); }}
       >
-        {state.isOpen && (
           <Dialog.Portal container={rootRef}>
             {!desktopLayout && <Dialog.Backdrop className="blog-agent-backdrop" />}
             <Dialog.Popup
@@ -682,7 +690,7 @@ export function BlogAgent({
               <header className="blog-agent-panel-header">
                 <div>
                   <p className="blog-agent-kicker">
-                    <Sparkles aria-hidden="true" size={14} /> ARTICLE AGENT
+                    <Sparkles aria-hidden="true" size={14} /> ARTICLE COPILOT
                   </p>
                   <h2>正在阅读《{articleTitle}》</h2>
                 </div>
@@ -765,7 +773,7 @@ export function BlogAgent({
                                           href={citation.github.url}
                                           aria-label={`查看 GitHub 源码 ${citation.github.path} 第 ${citation.github.lineStart} 到 ${citation.github.lineEnd} 行`}
                                         >
-                                          <span>查看源码 · {citation.github.path}</span>
+                                          <span className="blog-agent-source-path"><FileCode2 size={14} aria-hidden="true" />查看源码 · {citation.github.path}</span>
                                           <span>
                                             L{citation.github.lineStart}–L{citation.github.lineEnd} ↗
                                           </span>
@@ -891,8 +899,6 @@ export function BlogAgent({
               </form>
             </Dialog.Popup>
           </Dialog.Portal>
-        )}
-
         <button
           ref={triggerRef}
           type="button"

@@ -1,13 +1,22 @@
-import { useCallback } from "react";
 import type { Components } from "react-markdown";
 import { ArticleImage } from "@/components/ArticleImage";
 import { CopyCodeButton } from "@/components/CopyCodeButton";
+import { HeadingLink } from "@/components/HeadingLink";
 import { InteractiveHtmlEmbed } from "@/components/InteractiveHtmlEmbed";
 import { prepareArticlePresentation, type ArticleCover } from "@/lib/articlePresentation";
-import { markerFromElementProps } from "@/lib/interactive-html/ast";
+import { INTERACTIVE_EMBED_PREFIX, markerFromElementProps } from "@/lib/interactive-html/ast";
 import { parseMarkdown, renderMarkdown } from "@/lib/renderMarkdown";
 
 const components = {
+  h2: ({ node, id, ...props }) => {
+    void node;
+    return (
+      <div className="article-heading">
+        <h2 {...props} id={id} />
+        <HeadingLink id={id!} />
+      </div>
+    );
+  },
   pre: ({ children, node }) => {
     const { "data-language": language, "data-lines": lines } = node!.properties;
     return (
@@ -34,7 +43,17 @@ const components = {
   },
 } satisfies Components & { "article-image": Components["img"] };
 
-export function MarkdownArticle({
+function ArticleInteractiveHtmlEmbed(props: Record<string, unknown>) {
+  return (
+    <InteractiveHtmlEmbed
+      marker={markerFromElementProps(props)}
+      blogId={props["data-blog-id"] as string | number | null | undefined}
+      mode={props["data-interactive-mode"] as "view" | "preview"}
+    />
+  );
+}
+
+export async function MarkdownArticle({
   markdown,
   title,
   cover,
@@ -47,16 +66,13 @@ export function MarkdownArticle({
   blogId?: string | number | null;
   interactiveMode?: "view" | "preview";
 }) {
-  const embed = useCallback(function ArticleInteractiveHtmlEmbed(props: Record<string, unknown>) {
-    return (
-      <InteractiveHtmlEmbed
-        marker={markerFromElementProps(props)}
-        blogId={blogId}
-        mode={interactiveMode}
-      />
-    );
-  }, [blogId, interactiveMode]);
   const tree = parseMarkdown(markdown, title);
-  prepareArticlePresentation(tree, cover);
-  return renderMarkdown(tree, components, embed);
+  await prepareArticlePresentation(tree, cover);
+  for (const node of tree.children) {
+    if (node.type === "element" && node.tagName.startsWith(INTERACTIVE_EMBED_PREFIX)) {
+      node.properties["data-blog-id"] = blogId;
+      node.properties["data-interactive-mode"] = interactiveMode;
+    }
+  }
+  return renderMarkdown(tree, components, ArticleInteractiveHtmlEmbed);
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { Maximize2, Minimize2, RotateCcw, Square } from "lucide-react";
 import type { InteractiveHtmlMarker } from "@/lib/interactive-html/marker";
 
 /**
@@ -198,8 +199,11 @@ export function InteractiveHtmlEmbed({
       data-state={state}
       data-interactive-id={marker.id}
     >
+      <div className="interactive-html__chrome">
+        <span className="interactive-html__lights" aria-hidden="true"><i /><i /><i /></span>
+        <span>Sandbox · Isolated Runtime</span>
+      </div>
       <div className="interactive-html__header">
-        <p className="interactive-html__label">INTERACTIVE EXPLAINER · 交互图解</p>
         <p className="interactive-html__caption">{marker.caption}</p>
         {marker.summary ? (
           <p className="interactive-html__summary">{marker.summary}</p>
@@ -260,6 +264,7 @@ export function InteractiveHtmlEmbed({
               aria-controls={regionId}
               onClick={() => setExpanded((value) => !value)}
             >
+              {expanded ? <Minimize2 size={14} aria-hidden="true" /> : <Maximize2 size={14} aria-hidden="true" />}
               {expanded ? "收回原尺寸" : "放大显示"}
             </button>
             {attempt < RETRY_LIMIT ? (
@@ -268,6 +273,7 @@ export function InteractiveHtmlEmbed({
                 className="interactive-html__control"
                 onClick={retry}
               >
+                <RotateCcw size={14} aria-hidden="true" />
                 重新加载
               </button>
             ) : null}
@@ -276,6 +282,7 @@ export function InteractiveHtmlEmbed({
               className="interactive-html__control"
               onClick={stop}
             >
+              <Square size={13} aria-hidden="true" />
               停止交互
             </button>
             <span className="interactive-html__hint">

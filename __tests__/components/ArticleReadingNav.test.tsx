@@ -13,7 +13,10 @@ beforeEach(() => {
     }),
   );
   vi.stubGlobal("cancelAnimationFrame", vi.fn());
-
+  vi.stubGlobal("ResizeObserver", class {
+    observe = vi.fn();
+    disconnect = vi.fn();
+  });
 });
 afterEach(() => {
   cleanup();

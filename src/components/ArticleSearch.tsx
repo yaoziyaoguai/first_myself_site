@@ -33,7 +33,7 @@ export function ArticleSearch() {
         aria-label="搜索文章"
         id="article-search"
         type="search"
-        placeholder="搜索标题、摘要、标签"
+        placeholder="筛选标题、摘要或技术栈…"
         value={query}
         onChange={(event) => {
           const value = event.target.value;

@@ -30,7 +30,7 @@
  * 3. 不删除 `status` 过滤（草稿不应该出现在前台公开列表里）
  */
 
-export type FrontendViewer = Record<string, unknown> | null | undefined;
+export type FrontendViewer = { id?: string | number; role?: unknown } | null | undefined;
 
 /** 前台 Blog 查询的 where 子句类型（status 必填，visibility 仅对外部访客必填） */
 export type BlogFrontendWhere =

@@ -5,6 +5,7 @@ import { ArticleSearch } from "@/components/ArticleSearch";
 import { ArticleIndex } from "@/components/ArticleIndex";
 import { ArticleArchive } from "@/components/ArticleArchive";
 import { SeriesFeature } from "@/components/SeriesFeature";
+import { SpotlightSurfaces } from "@/components/SpotlightSurfaces";
 import { siteDefaults } from "@/content/siteDefaults";
 import { getCurrentUser } from "@/lib/auth";
 import { buildSeriesCollections, type SeriesArticle } from "@/lib/blogSeries";
@@ -76,8 +77,8 @@ export default async function BlogPage() {
     </section>
   );
   return (
-    <div className="site-shell page-space">
-      <header className="archive-header">
+    <SpotlightSurfaces className="site-shell page-space">
+      <header className="archive-header tech-grid-backdrop">
         <div>
           <p className="eyebrow">WRITING</p>
           <h1>文章与笔记</h1>
@@ -109,6 +110,6 @@ export default async function BlogPage() {
           {articles}
         </>
       )}
-    </div>
+    </SpotlightSurfaces>
   );
 }

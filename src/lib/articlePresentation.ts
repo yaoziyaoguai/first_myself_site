@@ -1,13 +1,15 @@
 import type { Element, Root, Text } from "hast";
-import { common, createLowlight } from "lowlight";
+import { bundledLanguages, createHighlighter, type BundledLanguage } from "shiki";
 import { visit } from "unist-util-visit";
 
-const highlighter = createLowlight(common);
+const themes = { light: "github-light-default", dark: "vesper" } as const;
+let highlighter: ReturnType<typeof createHighlighter> | undefined;
 
 export type ArticleCover = { url: string; width?: number; height?: number };
 
-export function prepareArticlePresentation(tree: Root, cover?: ArticleCover) {
+export async function prepareArticlePresentation(tree: Root, cover?: ArticleCover) {
   let firstImage = true;
+  const fences: { code: Element; source: string; lang: BundledLanguage }[] = [];
   visit(tree, "element", (node) => {
     if (node.tagName === "img") {
       node.properties.loading = firstImage ? "eager" : "lazy";
@@ -30,9 +32,9 @@ export function prepareArticlePresentation(tree: Root, cover?: ArticleCover) {
     node.properties["data-language"] = language.toUpperCase();
     node.properties["data-lines"] = source.replace(/\n$/, "").split("\n").length;
 
-    const registered = language.toLowerCase();
-    if (highlighter.registered(registered)) {
-      code.children = highlighter.highlight(registered, source).children as Element["children"];
+    const lang = language.toLowerCase();
+    if (Object.hasOwn(bundledLanguages, lang)) {
+      fences.push({ code, source, lang: lang as BundledLanguage });
     }
   });
 
@@ -64,5 +66,17 @@ export function prepareArticlePresentation(tree: Root, cover?: ArticleCover) {
       properties: { className: ["article-figure"] },
       children: content,
     };
+  }
+
+  if (fences.length > 0) {
+    highlighter ??= createHighlighter({ themes: Object.values(themes), langs: [] });
+    const engine = await highlighter;
+    await engine.loadLanguage(...new Set(fences.map(({ lang }) => lang)));
+    for (const { code, source, lang } of fences) {
+      const result = engine.codeToHast(source, { lang, themes, defaultColor: false });
+      const pre = result.children[0] as Element;
+      code.children = (pre.children[0] as Element).children;
+      code.properties.className = ["shiki-code"];
+    }
   }
 }

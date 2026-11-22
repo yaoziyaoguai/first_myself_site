@@ -22,6 +22,7 @@ import { CommentSection } from "@/components/CommentSection";
 import { LikeButton } from "@/components/LikeButton";
 import { MarkdownArticle } from "@/components/MarkdownArticle";
 import { ArticleReadingNav } from "@/components/ArticleReadingNav";
+import { ArticleLinkFeedback } from "@/components/ArticleLinkFeedback";
 import { BlogAgent } from "@/components/blog-agent/BlogAgent";
 import { ShareActions } from "@/components/ShareActions";
 import { HashAnchorScroller } from "@/components/HashAnchorScroller";
@@ -116,7 +117,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     admin && post.id ? `/admin/collections/blog/${post.id}` : null;
 
   const tags = articleTags(post.tags);
-  const dateStr = post.publishedDate ? formatSiteDate(post.publishedDate) : "";
+  const dateStr = formatSiteDate(post.publishedDate).replaceAll("-", ".");
   const showPublicInteractions = canUsePublicInteractions(post.visibility);
   const markdownContent =
     typeof post.contentMarkdown === "string" ? post.contentMarkdown.trim() : "";
@@ -207,7 +208,7 @@ export default async function BlogPostPage({ params }: PageProps) {
           <div className="mt-3 flex flex-wrap gap-2">
             {tags.map((tag) => (
               <div key={tag} className="topic-pill">
-                {tag}
+                #{tag}
               </div>
             ))}
           </div>
@@ -249,6 +250,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                             {String(article.title)}
                             {index === seriesIndex ? "（正在阅读）" : ""}
                           </span>
+                          {index !== seriesIndex && <ArticleLinkFeedback compact iconSize={14} />}
                         </Link>
                       </li>
                     ))}
@@ -376,7 +378,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               ) : null}
 
               <aside className="mt-14 grid gap-4 border-y border-border py-7 sm:grid-cols-[8rem_1fr]">
-                <h2 className="font-serif text-lg font-medium">关于作者</h2>
+                <h2 className="font-sans text-lg font-medium">关于作者</h2>
                 <div>
                   <p className="text-sm leading-7 text-muted-foreground">{authorBio}</p>
                   <div className="flex flex-wrap gap-x-4">
@@ -388,7 +390,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               </aside>
               {linkedProjects.length > 0 && (
                 <nav className="mt-8" aria-label="相关项目">
-                  <h2 className="font-serif text-lg font-medium">相关项目</h2>
+                  <h2 className="font-sans text-lg font-medium">相关项目</h2>
                   <ul className="flex flex-wrap gap-x-4">
                     {linkedProjects.map((project) => (
                       <li key={project.id}><Link className="text-link" href={`/projects#${project.slug}`}>{project.title} →</Link></li>
@@ -407,7 +409,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                   <div>
                     <p className="eyebrow">KEEP READING</p>
                     <h2
-                      className="mt-3 font-serif text-2xl font-medium"
+                      className="mt-3 font-sans text-2xl font-medium"
                       id="related-heading"
                     >
                       继续阅读
@@ -426,7 +428,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                       key={article.id}
                     >
                       <span>
-                        <span className="block font-serif text-xl font-medium leading-snug transition-colors duration-200 group-hover:text-primary">
+                        <span className="block font-sans text-xl font-medium leading-snug transition-colors duration-200 group-hover:text-primary">
                           {article.title}
                         </span>
                         <span className="mt-2 block text-sm text-muted-foreground">

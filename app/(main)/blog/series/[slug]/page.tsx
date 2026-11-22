@@ -56,7 +56,7 @@ export default async function BlogSeriesPage({ params }: PageProps) {
       <header className="grid gap-7 border-b border-foreground/70 pb-9 md:grid-cols-[minmax(0,1fr)_9rem] md:items-end md:pb-12">
         <div className="max-w-4xl">
           <p className="eyebrow">文章合集</p>
-          <h1 className="mt-5 break-words text-pretty font-serif text-[2.25rem] font-medium leading-[1.25] tracking-[-0.035em] md:text-5xl">
+          <h1 className="mt-5 break-words text-pretty font-sans text-[2.25rem] font-medium leading-[1.25] tracking-[-0.035em] md:text-5xl">
             {series.title}
           </h1>
           <p className="mt-5 max-w-3xl text-sm leading-7 text-muted-foreground md:text-base md:leading-8">

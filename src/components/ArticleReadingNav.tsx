@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { List } from "lucide-react";
 
 type Section = { id: string; title: string; nested: boolean };
 
@@ -11,6 +11,7 @@ export function ArticleReadingNav({ articleSlug }: { articleSlug: string }) {
   const [active, setActive] = useState(0);
   const [progress, setProgress] = useState(0);
   const disclosure = useRef<HTMLDetailsElement>(null);
+  const minimap = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const content = document.getElementById("article-content")!;
@@ -63,6 +64,20 @@ export function ArticleReadingNav({ articleSlug }: { articleSlug: string }) {
     };
   }, [articleSlug]);
 
+  useLayoutEffect(() => {
+    const map = minimap.current;
+    if (!map) return;
+    const link = map.querySelector<HTMLElement>("[aria-current]")!;
+    function positionCursor() {
+      map!.style.setProperty("--reading-cursor-y", `${link.offsetTop}px`);
+      map!.style.setProperty("--reading-cursor-height", `${link.offsetHeight}px`);
+    }
+    positionCursor();
+    const observer = new ResizeObserver(positionCursor);
+    observer.observe(map);
+    return () => observer.disconnect();
+  }, [active, sections]);
+
   const links = (
     <ol className="reading-nav-list">
       {sections.map((section, index) => (
@@ -86,20 +101,26 @@ export function ArticleReadingNav({ articleSlug }: { articleSlug: string }) {
   return (
     <>
       <progress className="reading-progress" max={100} value={progress} aria-label="阅读进度" />
+      <span className="reading-progress-beam" aria-hidden="true" />
       {sections.length >= 3 && (
         <aside className="reading-nav">
           <nav aria-label="本文目录" className="reading-nav-desktop">
             <p className="reading-nav-label">本文目录</p>
-            {links}
+            <div className="reading-nav-viewport">
+              <div className="reading-nav-minimap" ref={minimap}>
+                <span className="reading-nav-cursor" aria-hidden="true" />
+                {links}
+              </div>
+            </div>
             <div className="reading-nav-footer">
-              <span>已读 {progress}%</span>
+              <span>READ {progress}%</span>
               <a href="#blog-article-top" className="reading-nav-top">回到顶部 ↑</a>
             </div>
           </nav>
           <details ref={disclosure} className="reading-nav-mobile">
             <summary>
-              <span>目录 <span>{active + 1}/{sections.length}</span></span>
-              <ChevronDown size={15} aria-hidden="true" />
+              <List size={15} aria-hidden="true" />
+              <span>章节 <span>{String(active + 1).padStart(2, "0")}/{String(sections.length).padStart(2, "0")}</span></span>
             </summary>
             <nav aria-label="移动端本文目录">{links}</nav>
           </details>

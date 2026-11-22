@@ -55,8 +55,10 @@ describe("ArticleArchive", () => {
   it("switches views without losing the existing article filter or unrelated query parameters", async () => {
     const user = userEvent.setup();
     const { rerender } = render(<Archive />);
-    await user.click(screen.getByRole("button", { name: "Agent 1" }));
+    await user.click(screen.getByRole("button", { name: "Agent [1]" }));
+    const entries = window.history.length;
     await user.click(screen.getByRole("tab", { name: "文章合集 1" }));
+    expect(window.history.length).toBe(entries + 1);
     expect(window.location.search).toBe("?analytics=off&tag=Agent&view=series");
     // Next 的路由上下文在原生 history 更新后重渲染；单元测试显式刷新该上下文。
     rerender(<Archive />);
@@ -72,7 +74,7 @@ describe("ArticleArchive", () => {
     rerender(<Archive />);
     expect(window.location.search).toBe("?analytics=off&tag=Agent");
     expect(screen.getByRole("status")).toHaveTextContent("1 篇文章");
-    expect(screen.getByRole("button", { name: "Agent ×" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Agent [1]" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );

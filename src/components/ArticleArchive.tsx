@@ -52,25 +52,22 @@ export function ArticleArchive({
         if (value === "series") url.searchParams.set("view", "series");
         else url.searchParams.delete("view");
         url.hash = "";
-        window.history.pushState(null, "", url);
+        if (url.href !== window.location.href) window.history.pushState(null, "", url);
       }}
     >
       <div className="archive-tools">
-      <Tabs.List
-        aria-label="文章浏览方式"
-        className="archive-tabs"
-        activateOnFocus
-      >
-        <Tabs.Tab value="articles" className="archive-tab">
-          <List size={18} aria-hidden="true" />
-          全部文章 <span className="archive-tab-count">{articleCount}</span>
-        </Tabs.Tab>
-        <Tabs.Tab value="series" className="archive-tab">
-          <LibraryBig size={18} aria-hidden="true" />
-          文章合集 <span className="archive-tab-count">{seriesCount}</span>
-        </Tabs.Tab>
-      </Tabs.List>
-      {search}
+        <Tabs.List aria-label="文章浏览方式" className="archive-tabs" activateOnFocus>
+          <Tabs.Tab value="articles" className="archive-tab">
+            <List size={16} aria-hidden="true" />
+            全部文章 <span className="archive-tab-count">{articleCount}</span>
+          </Tabs.Tab>
+          <Tabs.Tab value="series" className="archive-tab">
+            <LibraryBig size={16} aria-hidden="true" />
+            文章合集 <span className="archive-tab-count">{seriesCount}</span>
+          </Tabs.Tab>
+          <Tabs.Indicator className="archive-tab-indicator" />
+        </Tabs.List>
+        {search}
       </div>
       <Tabs.Panel value="articles" keepMounted className="archive-panel">
         {articles}
