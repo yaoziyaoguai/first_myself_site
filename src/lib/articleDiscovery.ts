@@ -21,8 +21,12 @@ export function relatedArticles<T extends {
   title?: string;
   excerpt?: string | null;
   tags?: { tag?: string | null }[] | null;
-  publishedDate?: string | null;
-}>(articles: readonly T[], current: T, excludedIds: ReadonlySet<string> = new Set()): T[] {
+  publishedDate: string;
+}>(
+  articles: readonly T[],
+  current: { id: number | string; tags?: { tag?: string | null }[] | null },
+  excludedIds: ReadonlySet<string> = new Set(),
+): T[] {
   const tags = new Set(articleTags(current.tags).map((tag) => tag.toLowerCase()));
   return articles
     .filter((article) => String(article.id) !== String(current.id) && !excludedIds.has(String(article.id)))
@@ -33,7 +37,7 @@ export function relatedArticles<T extends {
       return { article, overlap, keywords };
     })
     .sort((left, right) => right.overlap - left.overlap || right.keywords - left.keywords ||
-      (right.article.publishedDate ?? "").localeCompare(left.article.publishedDate ?? ""))
+      right.article.publishedDate.localeCompare(left.article.publishedDate))
     .slice(0, 3)
     .map(({ article }) => article);
 }

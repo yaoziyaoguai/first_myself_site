@@ -1,5 +1,5 @@
 import { cache } from "react";
-import type { GlobalAfterChangeHook, SelectType } from "payload";
+import type { GlobalAfterChangeHook, PaginatedDocs, SelectType } from "payload";
 import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
 
 /**
@@ -73,6 +73,18 @@ const articleIndexSelect = {
   series: true,
   seriesOrder: true,
 } as const;
+
+type ArticleIndexRecord = {
+  id: string | number;
+  slug: string;
+  title: string;
+  excerpt: string;
+  publishedDate: string;
+  readingTime?: string | null;
+  tags?: { tag?: string | null }[] | null;
+  series?: unknown;
+  seriesOrder?: number | null;
+};
 
 async function findBlogPostsDirect(opts: ListOpts, viewer: MaybeViewer = null) {
   const payload = await getPayloadInstance();
@@ -159,7 +171,10 @@ export function findBlogPostsForViewer(viewer: MaybeViewer, opts: ListOpts) {
 }
 
 export function findArticleIndexForViewer(viewer: MaybeViewer) {
-  return findBlogPostsForViewer(viewer, { sort: "-publishedDate", limit: 500, depth: 1, summary: true });
+  return findBlogPostsForViewer(
+    viewer,
+    { sort: "-publishedDate", limit: 500, depth: 1, summary: true },
+  ) as Promise<PaginatedDocs<ArticleIndexRecord>>;
 }
 
 /** 单篇文章查询：登录态直查，访客走缓存 */
