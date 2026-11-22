@@ -48,12 +48,8 @@ RUN npm prune \
 # -------------------------------------------------
 # 阶段 2: 构建应用
 # -------------------------------------------------
-FROM node:22.23.5-alpine AS builder
-
-WORKDIR /app
-
-# 从 deps 阶段复制完整 node_modules（测试环境简化方案）
-COPY --from=deps /app/node_modules ./node_modules
+# 复用依赖镜像层，避免在构建机上再复制一份完整的 node_modules。
+FROM deps AS builder
 
 # 复制所有源代码
 COPY . .
