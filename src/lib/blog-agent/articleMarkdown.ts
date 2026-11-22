@@ -1,3 +1,4 @@
+import { createArticleHeadingSlugger } from "@/lib/articleHeadings";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { toString } from "mdast-util-to-string";
 import { projectInteractiveHtmlForAgent } from "@/lib/interactive-html/marker";
@@ -38,26 +39,6 @@ export type ArticleEvidence = {
 const DEFAULT_MAX_CHARACTERS = 14_000;
 const DEFAULT_MAX_SECTIONS = 5;
 
-function normalizeHeading(heading: string): string {
-  return heading
-    .normalize("NFKC")
-    .trim()
-    .toLocaleLowerCase()
-    .replace(/[`*_~[\](){}<>]/g, "")
-    .replace(/[^\p{L}\p{N}\s-]/gu, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-") || "section";
-}
-
-export function slugifyArticleHeading(
-  heading: string,
-  occurrence = 1,
-): string {
-  const base = normalizeHeading(heading);
-  return occurrence > 1 ? `${base}-${occurrence}` : base;
-}
-
 function sectionId(ordinal: number, anchor: string): string {
   return `section:${ordinal}:${anchor}`;
 }
@@ -69,7 +50,7 @@ export function parseArticleMarkdown(markdown: string): ParsedArticleMarkdown {
   const tree = fromMarkdown(source);
   const sections: ArticleSection[] = [];
   const headingPath: string[] = [];
-  const anchorCounts = new Map<string, number>();
+  const headingId = createArticleHeadingSlugger();
   let currentHeading = "文章开头";
   let currentPath: string[] = [];
   let currentAnchor = "top";
@@ -108,10 +89,7 @@ export function parseArticleMarkdown(markdown: string): ParsedArticleMarkdown {
     headingPath[level - 1] = heading;
     currentHeading = heading;
     currentPath = headingPath.filter(Boolean);
-    const baseAnchor = normalizeHeading(heading);
-    const occurrence = (anchorCounts.get(baseAnchor) ?? 0) + 1;
-    anchorCounts.set(baseAnchor, occurrence);
-    currentAnchor = slugifyArticleHeading(heading, occurrence);
+    currentAnchor = headingId(heading);
     contentStart = headingEnd;
   }
 

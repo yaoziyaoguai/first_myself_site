@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import "../globals.css";
-import { AdminLink } from "@/components/AdminLink";
+import { isAdmin } from "@/lib/auth";
 import { Footer } from "@/components/Footer";
 import { Navbar } from "@/components/Navbar";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 import { SITE_URL, siteDefaults } from "@/content/siteDefaults";
-import { buildSiteJsonLd, serializeJsonLd } from "@/lib/discovery";
+import { buildSiteJsonLd, OG_DEFAULT_PATH, serializeJsonLd } from "@/lib/discovery";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -25,27 +25,21 @@ export const metadata: Metadata = {
     locale: "zh_CN",
     siteName: "Jinkun Wang",
     url: SITE_URL,
-    images: [
-      {
-        url: "/og-image.svg",
-        width: 1200,
-        height: 630,
-        alt: "Jinkun Wang 的个人网站",
-      },
-    ],
+
   },
   twitter: {
     card: "summary_large_image",
     title: "Jinkun Wang · 数据工程与 AI 学习记录",
     description: siteDefaults.identity.bio,
-    images: ["/og-image.svg"],
+    images: [OG_DEFAULT_PATH],
   },
 };
 
-export default function MainRootLayout({
+export default async function MainRootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const siteJsonLd = buildSiteJsonLd();
+  const admin = await isAdmin();
 
   return (
     <html data-scroll-behavior="smooth" lang="zh-CN">
@@ -58,10 +52,7 @@ export default function MainRootLayout({
         <a className="skip-link" href="#main-content">
           跳到主要内容
         </a>
-        <Navbar />
-        <div className="absolute right-4 top-20 z-40 hidden md:block">
-          <AdminLink />
-        </div>
+        <Navbar admin={admin} />
         <main className="flex-1" id="main-content">
           {children}
         </main>

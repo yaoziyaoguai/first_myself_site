@@ -51,12 +51,6 @@ vi.mock("@payloadcms/ui", () => ({
     ) : null,
 }));
 
-vi.mock("react-markdown", () => ({
-  default: ({ children }: { children: string }) => (
-    <div data-testid="markdown-rendered">{children}</div>
-  ),
-}));
-
 vi.mock("remark-gfm", () => ({ default: () => ({}) }));
 
 // Import AFTER mocks — vi.mock is hoisted by Vitest so this resolves to mocks.
@@ -210,7 +204,7 @@ describe("MarkdownPreviewField", () => {
     render(<MarkdownPreviewField {...makeProps()} />);
 
     expect(screen.getByText("（无内容预览）")).toBeInTheDocument();
-    expect(screen.queryByTestId("markdown-rendered")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading")).not.toBeInTheDocument();
   });
 
   it("renders Markdown output when value is non-empty", () => {
@@ -219,9 +213,7 @@ describe("MarkdownPreviewField", () => {
     render(<MarkdownPreviewField {...makeProps()} />);
 
     expect(screen.queryByText("（无内容预览）")).not.toBeInTheDocument();
-    expect(screen.getByTestId("markdown-rendered")).toHaveTextContent(
-      "# Hello",
-    );
+    expect(screen.getByRole("heading", { name: "Hello" })).toBeInTheDocument();
   });
 
   it("renders the error message when showError is true", () => {

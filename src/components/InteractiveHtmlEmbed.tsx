@@ -199,6 +199,7 @@ export function InteractiveHtmlEmbed({
       data-interactive-id={marker.id}
     >
       <div className="interactive-html__header">
+        <p className="interactive-html__label">INTERACTIVE EXPLAINER · 交互图解</p>
         <p className="interactive-html__caption">{marker.caption}</p>
         {marker.summary ? (
           <p className="interactive-html__summary">{marker.summary}</p>

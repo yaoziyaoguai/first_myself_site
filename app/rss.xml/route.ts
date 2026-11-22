@@ -16,6 +16,8 @@ export async function GET(): Promise<Response> {
       title: true,
       slug: true,
       excerpt: true,
+      tags: true,
+      contentMarkdown: true,
       publishedDate: true,
       status: true,
       visibility: true,

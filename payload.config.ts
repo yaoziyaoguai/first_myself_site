@@ -40,6 +40,9 @@ export default buildConfig({
     migrationDir: resolve(process.cwd(), "src/payload/migrations"),
     pool: {
       connectionString: process.env.DATABASE_URL!,
+      max: 8,
+      idleTimeoutMillis: 30_000,
+      statement_timeout: 30_000,
     },
     prodMigrations,
   }),

@@ -6,7 +6,7 @@
 - `https://wangjinkun333.me/sitemap.xml`
 - `https://wangjinkun333.me/rss.xml`
 
-公开页面使用 `https://wangjinkun333.me` 作为 canonical 域名；全站输出关联的 Person / WebSite JSON-LD，文章页输出 BlogPosting JSON-LD，并在有封面时复用封面作为分享与结构化数据图片。sitemap 的 `lastmod` 来自文章真实更新时间。`/admin/` 和 `/api/` 不允许搜索引擎抓取。
+公开页面使用 `https://wangjinkun333.me` 作为 canonical 域名；全站输出关联的 Person / WebSite JSON-LD，文章页输出 BlogPosting JSON-LD，并在有封面时复用封面作为分享与结构化数据图片。无封面的公开文章生成带标题、日期和读时的 1200×630 PNG 分享图。RSS 条目包含完整摘要、可用的章节大纲及标签。sitemap 的 `lastmod` 来自文章真实更新时间。`/admin/` 和 `/api/` 不允许搜索引擎抓取。
 
 ## 首次接入
 

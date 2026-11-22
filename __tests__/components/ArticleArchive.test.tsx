@@ -25,7 +25,8 @@ function Archive() {
               slug: "agent",
               title: "执行边界",
               excerpt: "",
-              date: "",
+              date: "2026-08-23",
+              publishedDate: "2026-08-23T00:00:00Z",
               readingTime: "",
               tags: ["Agent"],
             },
@@ -34,7 +35,8 @@ function Archive() {
               slug: "data",
               title: "数据管道",
               excerpt: "",
-              date: "",
+              date: "2026-08-20",
+              publishedDate: "2026-08-20T00:00:00Z",
               readingTime: "",
               tags: ["Data"],
             },
@@ -55,7 +57,7 @@ describe("ArticleArchive", () => {
     const { rerender } = render(<Archive />);
     await user.click(screen.getByRole("button", { name: "Agent 1" }));
     await user.click(screen.getByRole("tab", { name: "文章合集 1" }));
-    expect(window.location.search).toBe("?analytics=off&view=series");
+    expect(window.location.search).toBe("?analytics=off&tag=Agent&view=series");
     // Next 的路由上下文在原生 history 更新后重渲染；单元测试显式刷新该上下文。
     rerender(<Archive />);
     expect(screen.getByRole("tab", { name: "文章合集 1" })).toHaveAttribute(
@@ -68,9 +70,9 @@ describe("ArticleArchive", () => {
     ).not.toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: "全部文章 2" }));
     rerender(<Archive />);
-    expect(window.location.search).toBe("?analytics=off");
-    expect(screen.getByRole("status")).toHaveTextContent("Agent · 1 篇文章");
-    expect(screen.getByRole("button", { name: "Agent 1" })).toHaveAttribute(
+    expect(window.location.search).toBe("?analytics=off&tag=Agent");
+    expect(screen.getByRole("status")).toHaveTextContent("1 篇文章");
+    expect(screen.getByRole("button", { name: "Agent ×" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );

@@ -24,7 +24,7 @@ describe("LikeButton", () => {
     render(<LikeButton targetId="blog-1" targetType="blog" />);
 
     await waitFor(() => {
-      expect(screen.getByText("点赞")).toBeInTheDocument();
+      expect(screen.getByRole("button", { pressed: false })).toBeEnabled();
     });
   });
 
@@ -32,7 +32,7 @@ describe("LikeButton", () => {
     render(<LikeButton targetId="blog-1" targetType="blog" />);
 
     await waitFor(() => {
-      expect(screen.getByText(/5 人点赞/)).toBeInTheDocument();
+      expect(screen.getByText(/5 人觉得有启发/)).toBeInTheDocument();
     });
   });
 
@@ -45,7 +45,7 @@ describe("LikeButton", () => {
     render(<LikeButton targetId="blog-1" targetType="blog" />);
 
     await waitFor(() => {
-      expect(screen.getByText("已点赞")).toBeInTheDocument();
+      expect(screen.getByRole("button", { pressed: true })).toBeInTheDocument();
     });
   });
 
@@ -55,10 +55,10 @@ describe("LikeButton", () => {
     render(<LikeButton targetId="blog-1" targetType="blog" />);
 
     await waitFor(() => {
-      expect(screen.getByText("点赞")).toBeInTheDocument();
+      expect(screen.getByRole("button", { pressed: false })).toBeEnabled();
     });
 
-    fireEvent.click(screen.getByText("点赞"));
+    fireEvent.click(screen.getByRole("button", { pressed: false }));
 
     await waitFor(() => {
       expect(createLikeSpy).toHaveBeenCalledWith(
@@ -74,15 +74,15 @@ describe("LikeButton", () => {
     render(<LikeButton targetId="blog-1" targetType="blog" />);
 
     await waitFor(() => {
-      expect(screen.getByText("点赞")).toBeInTheDocument();
-      expect(screen.getByText(/5 人点赞/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { pressed: false })).toBeEnabled();
+      expect(screen.getByText(/5 人觉得有启发/)).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByText("点赞"));
+    fireEvent.click(screen.getByRole("button", { pressed: false }));
 
     await waitFor(() => {
-      expect(screen.getByText("已点赞")).toBeInTheDocument();
-      expect(screen.getByText(/6 人点赞/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { pressed: true })).toBeInTheDocument();
+      expect(screen.getByText(/6 人觉得有启发/)).toBeInTheDocument();
     });
   });
 
@@ -95,7 +95,7 @@ describe("LikeButton", () => {
     render(<LikeButton targetId="blog-1" targetType="blog" />);
 
     await waitFor(() => {
-      const button = screen.getByText("已点赞").closest("button");
+      const button = screen.getByRole("button", { pressed: true }).closest("button");
       expect(button).toBeDisabled();
     });
   });
@@ -103,17 +103,17 @@ describe("LikeButton", () => {
   it("should show loading state initially", () => {
     render(<LikeButton targetId="blog-1" targetType="blog" />);
 
-    expect(screen.getByText(/加载中/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { busy: true })).toBeDisabled();
   });
 
   it("should hide count when showCount is false", async () => {
     render(<LikeButton targetId="blog-1" targetType="blog" showCount={false} />);
 
     await waitFor(() => {
-      expect(screen.getByText("点赞")).toBeInTheDocument();
+      expect(screen.getByRole("button", { pressed: false })).toBeEnabled();
     });
 
-    expect(screen.queryByText(/人点赞/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/人觉得有启发/)).not.toBeInTheDocument();
   });
 
   it("should apply different sizes", async () => {
@@ -122,13 +122,13 @@ describe("LikeButton", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("点赞")).toBeInTheDocument();
+      expect(screen.getByRole("button", { pressed: false })).toBeEnabled();
     });
 
     rerender(<LikeButton targetId="blog-1" targetType="blog" size="lg" />);
 
     await waitFor(() => {
-      expect(screen.getByText("点赞")).toBeInTheDocument();
+      expect(screen.getByRole("button", { pressed: false })).toBeEnabled();
     });
   });
 
@@ -148,10 +148,10 @@ describe("LikeButton", () => {
     render(<LikeButton targetId="blog-1" targetType="blog" />);
 
     await waitFor(() => {
-      expect(screen.getByText("点赞")).toBeInTheDocument();
+      expect(screen.getByRole("button", { pressed: false })).toBeEnabled();
     });
 
-    fireEvent.click(screen.getByText("点赞"));
+    fireEvent.click(screen.getByRole("button", { pressed: false }));
 
     await waitFor(() => {
       expect(screen.getByText(/点赞失败/)).toBeInTheDocument();
@@ -164,13 +164,13 @@ describe("LikeButton", () => {
     render(<LikeButton targetId="blog-1" targetType="blog" />);
 
     await waitFor(() => {
-      expect(screen.getByText("点赞")).toBeInTheDocument();
+      expect(screen.getByRole("button", { pressed: false })).toBeEnabled();
     });
 
-    fireEvent.click(screen.getByText("点赞"));
+    fireEvent.click(screen.getByRole("button", { pressed: false }));
 
     await waitFor(() => {
-      expect(screen.getByText("已点赞")).toBeInTheDocument();
+      expect(screen.getByRole("button", { pressed: true })).toBeInTheDocument();
     });
   });
 });

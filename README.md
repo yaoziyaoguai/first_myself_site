@@ -65,7 +65,7 @@
 
 ## 本地开发
 
-需要 Node.js 20.9 或更高版本（CI 与生产镜像使用 Node.js 22），以及可访问的 PostgreSQL。
+需要 Node.js 22.23.5（CI 与生产镜像使用同一版本），以及可访问的 PostgreSQL。
 
 ```bash
 npm ci
@@ -84,7 +84,7 @@ BLOG_INTERACTIVE_HTML_ENABLED=false
 
 交互 HTML 默认关闭。只有迁移、真实浏览器与代理响应头都完成验收并获得对应环境授权后，才把 `BLOG_INTERACTIVE_HTML_ENABLED` 设为 `true`；它是服务端运行开关，不替代文章权限。
 
-生产开关来自 GitHub 仓库变量 `BLOG_INTERACTIVE_HTML_ENABLED`，缺省为 `false`。发布流程先关闭候选版本的互动能力，健康检查与既有 Agent canary 通过后才恢复目标开关；失败回滚同样关闭。调整该变量后，手动触发 `CI/CD` 的 `workflow_dispatch`，仍经过 CI 与阿里云发布，不在服务器改应用源码。手动发布不会被纯文档差异跳过；普通文档 push 保留跳过重建的行为。
+生产开关来自 GitHub 仓库变量 `BLOG_INTERACTIVE_HTML_ENABLED`，缺省为 `false`。发布流程在独立候选容器使用目标开关执行健康检查和 Agent Canary，通过后替换线上 app。切换后健康检查失败时，回滚镜像会关闭互动能力。调整该变量后，手动触发 `CI/CD` 的 `workflow_dispatch`，仍经过 CI 与阿里云发布，不在服务器改应用源码。手动发布不会被纯文档差异跳过；普通文档 push 保留跳过重建的行为。
 
 `ADMIN_SECRET_TOKEN`、`PAYLOAD_INITIAL_ADMIN_EMAIL` 和 `PAYLOAD_INITIAL_ADMIN_PASSWORD` 只用于显式调用开发环境初始化接口。仓库不提供默认管理员凭证，生产环境会拒绝这些接口。
 
@@ -150,7 +150,7 @@ Blog Agent 始终以一篇 Blog 为唯一的数据与安全边界。Orb 入口�
 
 文章包由全局发布 Skill 离线生成，并通过 admin/editor 认证接口写入私有 PostgreSQL 表。包必须来自 Git `HEAD` 中已跟踪且干净的文件，受 source 数量、大小、chunk 数、hash 和敏感信息扫描约束。公开 GitHub 项目还可把经过校验、与本地 remote 一致的仓库根地址绑定进 package；服务端根据固定 commit、source path 和 chunk 行号生成 `blob/<commit>/...#Lx-Ly` 外链，模型不能自行提供 URL。选入 source 也代表允许 Agent 向匿名访客展示与问题直接相关的有界短摘录；明确要求代码但模型只返回解释时，服务端只会从本次选中的当前文章 `code` 证据追加最多 360 字符、6 行且不超过该 source 一半的短摘录。完整文件导出、连续大段复述和跨文章内容仍会被拒绝。索引未 ready 或文章内容发生变化时，Payload 会拒绝公开发布。
 
-模型与 embedding API Key 仅存在于服务端。访客入口与生成能力由两个默认关闭的开关控制，并有持久化配额、并发限制、超时、缓存、无证据拒答和紧急关闭能力。部署候选会先以两个开关关闭的状态完成健康检查和真实 provider 代码 canary，通过后才恢复目标开关；失败回滚也保持 Agent 关闭。完整顺序见 [Blog Agent 运维手册](docs/blog-agent-operations.md)。
+模型与 embedding API Key 仅存在于服务端。访客入口与生成能力由两个默认关闭的开关控制，并有持久化配额、并发限制、超时、缓存、无证据拒答和紧急关闭能力。独立候选容器用目标开关执行健康检查和真实 Provider 代码 Canary，通过后切换线上 app。切换后健康检查失败时，回滚镜像会关闭 Agent。完整顺序见 [Blog Agent 运维手册](docs/blog-agent-operations.md)。
 
 更多安全边界见 [SECURITY.md](SECURITY.md)。
 
@@ -162,7 +162,8 @@ Blog Agent 始终以一篇 Blog 为唯一的数据与安全边界。Orb 入口�
 2. PR 审阅并合并到 `main`。
 3. GitHub Actions 通过 SSH 让阿里云服务器 fast-forward 到最新 `main`。
 4. 服务器在旧容器仍运行时构建新镜像，并在切换前备份数据库与媒体。
-5. 切换后检查应用、数据库和公网 HTTPS；失败时尝试恢复上一应用镜像。
+5. 在独立候选容器验证健康状态和 Agent Canary，通过后切换线上 app 一次。
+6. 切换后检查容器开关、数据库和公网 HTTPS。失败时尝试恢复上一应用镜像。
 
 应用镜像回滚不等于数据库回滚。若新版本已经执行数据库迁移，或服务器没有可用的上一镜像，需要使用部署前备份人工评估并恢复数据库。
 
@@ -197,13 +198,13 @@ curl --fail https://wangjinkun333.me/api/health
 
 ## 备份与运维边界
 
-`scripts/backup.sh` 会从运行中的 Compose 服务生成 PostgreSQL custom-format dump 和媒体归档，并在发布备份文件前校验数据库 dump、媒体包和外层归档均可读取。部署前会自动执行一次备份；自动回滚只处理应用镜像，不恢复数据库。仍应把备份复制到 ECS 之外，并至少每季度做一次隔离恢复演练。
+`scripts/backup.sh` 会从运行中的 Compose 服务生成 PostgreSQL custom-format dump 和媒体归档，并在发布备份文件前校验数据库 dump、媒体包和外层归档均可读取。部署前会自动执行一次备份；自动回滚只处理应用镜像，不恢复数据库。在 ECS 上配置具有私有 Bucket 写权限的 `ossutil` 2.x，并在服务器环境文件中设置 `BACKUP_OSS_URI` 后，每次备份会上传经 OSS AES256 服务端加密的副本。应定期在隔离环境验证恢复。
 
-`.github/workflows/production-maintenance.yml` 每天北京时间 02:17 检查公网与容器健康、TLS 21 天续期窗口、可读备份、30 天统计数据保留和 Agent 当日请求量。达到每日请求上限 80% 或任一检查失败时，GitHub Actions 会标记失败；请确保仓库 Actions 失败通知已开启。完整处置和 API Key 季度轮换步骤见 [Blog Agent 运维手册](docs/blog-agent-operations.md)。
+`.github/workflows/production-maintenance.yml` 每天北京时间 02:17 生成备份并运行服务器维护检查。独立的 GitHub runner 从 ECS 外部探测公网 HTTPS 和 TLS 21 天续期窗口。服务器维护检查还覆盖容器健康、备份可读性、30 天统计数据保留和 Agent 当日请求量。达到每日请求上限 80% 或任一检查失败时，GitHub Actions 会标记失败；请确保仓库 Actions 失败通知已开启。完整处置和 API Key 季度轮换步骤见 [Blog Agent 运维手册](docs/blog-agent-operations.md)。
 
 - Nginx 配置和证书续期属于服务器层；仓库负责在部署时验证 HTTPS 结果
 - ICP、阿里云安全组和网络策略属于云平台配置
-- 第三方 uptime monitoring、异地备份目标和定时备份仍需单独配置
+- 异地备份需要配置专用 OSS Bucket 和服务器写入权限
 
 ## 仓库导航
 

@@ -16,8 +16,8 @@ describe("CommentForm", () => {
     render(<CommentForm onSubmit={vi.fn()} compact />);
 
     expect(screen.getByPlaceholderText("写下你的评论...")).toBeInTheDocument();
-    // In compact mode, name and email inputs are hidden
-    expect(screen.queryByPlaceholderText("匿名用户")).not.toBeInTheDocument();
+    // 回复保留昵称输入。
+    expect(screen.getByPlaceholderText("匿名用户")).toBeInTheDocument();
     expect(screen.queryByPlaceholderText("your@email.com")).not.toBeInTheDocument();
   });
 

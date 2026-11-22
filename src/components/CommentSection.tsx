@@ -4,8 +4,7 @@ import { useState, useEffect } from "react";
 import { CommentItem } from "./CommentItem";
 import { CommentForm } from "./CommentForm";
 import { Button } from "./ui/button";
-import { Separator } from "./ui/separator";
-import { MessageSquare, Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   getComments,
@@ -18,38 +17,22 @@ interface CommentSectionProps {
   targetId: string;
   targetType: "blog" | "project";
   className?: string;
+  initialIsAdmin: boolean;
 }
 
 export function CommentSection({
   targetId,
   targetType,
   className,
+  initialIsAdmin,
 }: CommentSectionProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentUserIsAdmin, setCurrentUserIsAdmin] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
-
-  // 检查当前用户是否是管理员
-  useEffect(() => {
-    const checkAdmin = async () => {
-      try {
-        const response = await fetch("/api/auth/check");
-        if (response.ok) {
-          const data = await response.json();
-          setCurrentUserIsAdmin(data.isAdmin);
-        }
-      } catch {
-        // 忽略错误，默认为非管理员
-        setCurrentUserIsAdmin(false);
-      }
-    };
-    checkAdmin();
-  }, []);
 
   // 加载评论，并在目标切换或组件卸载时忽略过期响应。
   useEffect(() => {
@@ -112,7 +95,7 @@ export function CommentSection({
   };
 
   // 处理回复
-  const handleReply = async (parentId: string, content: string) => {
+  const handleReply = async (parentId: string, content: string, authorName: string) => {
     setSubmitting(true);
     try {
       const newReply = await createComment({
@@ -120,7 +103,7 @@ export function CommentSection({
         targetType,
         parentId,
         content,
-        authorName: "匿名用户", // 回复时简化，使用默认名
+        authorName,
       });
 
       // 更新父评论的 replies
@@ -135,24 +118,10 @@ export function CommentSection({
 
   // 处理删除
   const handleDelete = async (commentId: string) => {
-    if (!confirm("确定要删除这条评论吗？")) {
-      return;
-    }
-
-    try {
-      await softDeleteComment(commentId);
-
-      // 更新本地状态
-      const removedTopLevelComment = comments.some(
-        (comment) => comment.id === commentId,
-      );
-      setComments((prev) => removeComment(prev, commentId));
-      if (removedTopLevelComment) {
-        setTotalCount((prev) => Math.max(0, prev - 1));
-      }
-    } catch (err) {
-      console.error("Failed to delete comment:", err);
-      alert("删除评论失败，请稍后重试");
+    await softDeleteComment(commentId);
+    setComments((prev) => removeComment(prev, commentId));
+    if (comments.some((comment) => comment.id === commentId)) {
+      setTotalCount((prev) => prev - 1);
     }
   };
 
@@ -198,22 +167,14 @@ export function CommentSection({
 
   return (
     <div className={cn("space-y-6", className)}>
-      {/* 标题 */}
-      <div className="flex items-center gap-3">
-        <MessageSquare className="w-5 h-5" />
-        <h3 className="font-serif text-2xl font-medium">
-          评论
-          {totalCount > 0 && (
-            <span className="text-muted-foreground ml-2">({totalCount})</span>
-          )}
-        </h3>
-      </div>
+      <h2 className="font-serif text-2xl font-medium">
+        讨论与交流
+        {totalCount > 0 && (
+          <span className="ml-2 font-mono text-sm text-muted-foreground">({totalCount})</span>
+        )}
+      </h2>
 
-      <Separator />
-
-      {/* 评论表单 */}
       <div className="border-y border-border bg-card/45 py-6 sm:px-6">
-        <h4 className="mb-4 text-sm font-medium">发表评论</h4>
         <CommentForm
           onSubmit={handleSubmitComment}
           isSubmitting={submitting}
@@ -236,20 +197,18 @@ export function CommentSection({
       )}
 
       {/* 评论列表 */}
-      {!loading && comments.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p>暂无评论，来发表第一条评论吧！</p>
-        </div>
+      {!loading && !error && comments.length === 0 ? (
+        <p className="py-5 font-serif italic leading-7 text-muted-foreground">
+          读完有任何不同看法、实践补充或疑问，欢迎留下你的笔记。
+        </p>
       ) : (
         <div className="space-y-0">
           {comments.map((comment) => (
             <CommentItem
               key={comment.id}
               comment={comment}
-              isAuthor={false}
-              currentUserIsAdmin={currentUserIsAdmin}
-              onDelete={currentUserIsAdmin ? handleDelete : undefined}
+              currentUserIsAdmin={initialIsAdmin}
+              onDelete={initialIsAdmin ? handleDelete : undefined}
               onReply={handleReply}
             />
           ))}

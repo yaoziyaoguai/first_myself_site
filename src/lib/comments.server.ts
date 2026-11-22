@@ -2,9 +2,9 @@ import type { Comment } from "./comments";
 import type { InteractionTargetType } from "./interactionTarget";
 import { getPayloadAPI } from "./payload";
 
-type StoredComment = Record<string, unknown> & { id: number | string };
+type StoredComment = { id: number | string } & Partial<Record<keyof Comment, unknown>>;
 
-export function toPublicComment(doc: StoredComment): Comment {
+export function toPublicComment<T extends StoredComment>(doc: T): Comment {
   return {
     id: String(doc.id),
     targetId: String(doc.targetId ?? ""),
@@ -12,6 +12,7 @@ export function toPublicComment(doc: StoredComment): Comment {
     parentId: doc.parentId ? String(doc.parentId) : null,
     content: String(doc.content ?? ""),
     authorName: String(doc.authorName || "匿名用户"),
+    isAuthorRole: doc.isAuthorRole === true,
     createdAt: String(doc.createdAt ?? ""),
   };
 }
@@ -22,6 +23,7 @@ const publicCommentSelect = {
   parentId: true,
   content: true,
   authorName: true,
+  isAuthorRole: true,
   createdAt: true,
 } as const;
 
@@ -116,6 +118,7 @@ type CreateStoredCommentData = {
   content: string;
   authorName?: string;
   authorEmail?: string;
+  isAuthorRole: boolean;
   ipHash: string;
   fingerprint: string;
 };
@@ -133,6 +136,7 @@ export async function createComment(
       content: data.content,
       authorName: data.authorName || "匿名用户",
       authorEmail: data.authorEmail || "",
+      isAuthorRole: data.isAuthorRole,
       ipHash: data.ipHash,
       fingerprint: data.fingerprint,
       isDeleted: false,

@@ -12,7 +12,9 @@
 
 应用在缺少 `DATABASE_URL` 或 `PAYLOAD_SECRET` 时会拒绝启动。仓库不包含默认管理员账号、默认密码或生产密钥。`BLOG_INTERACTIVE_HTML_ENABLED` 是默认关闭的服务端开关；它不替代文章状态、可见性和当前引用检查。
 
-`ADMIN_SECRET_TOKEN`、`PAYLOAD_INITIAL_ADMIN_EMAIL` 和 `PAYLOAD_INITIAL_ADMIN_PASSWORD` 只用于本地开发初始化。`/api/seed` 与 `/api/create-admin` 在生产环境始终拒绝访问；创建接口也不会在响应中返回密码。
+`ADMIN_SECRET_TOKEN`、`PAYLOAD_INITIAL_ADMIN_EMAIL` 和 `PAYLOAD_INITIAL_ADMIN_PASSWORD` 只用于本地开发初始化。`/api/seed` 与 `/api/create-admin` 接受带 Bearer Token 的 POST 请求，在生产环境始终拒绝访问。
+
+评论、点赞和统计写请求必须来自配置的同源站点，使用 `application/json`，且请求体不超过 16 KiB。评论的作者标识由服务端验证的管理员登录态决定。
 
 ## 访问控制
 

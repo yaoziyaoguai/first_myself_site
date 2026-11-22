@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '22.23.5'
           cache: 'npm'
       - run: npm ci
       - run: npm run lint
@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '22.23.5'
           cache: 'npm'
       - run: npm ci
       - run: npx tsc --noEmit -p tsconfig.ci.json
@@ -76,7 +76,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '22.23.5'
           cache: 'npm'
       - run: npm ci
       - run: npm test
@@ -108,7 +108,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '22.23.5'
           cache: 'npm'
       - run: npm ci
       - name: Build
@@ -255,11 +255,6 @@ jobs:
             target_blog_agent_enabled="$BLOG_AGENT_ENABLED"
             target_blog_agent_generation_enabled="$BLOG_AGENT_GENERATION_ENABLED"
             target_interactive_html_enabled="$BLOG_INTERACTIVE_HTML_ENABLED"
-            # 候选版本通过内部 canary 前不得向匿名访客开放 Agent。
-            export BLOG_AGENT_ENABLED=false
-            export BLOG_AGENT_GENERATION_ENABLED=false
-            export BLOG_INTERACTIVE_HTML_ENABLED=false
-
             compose=(docker compose --env-file .env.docker.prod -f docker/docker-compose.prod.yml)
 
             wait_for_local_health() {
@@ -397,47 +392,29 @@ jobs:
             SQL
             # 使用刚构建的 candidate image 执行显式 production migration；失败时旧容器继续服务。
             "${compose[@]}" run --rm --no-deps app npm run payload -- migrate
-            # build 完成后再切换（停机时间 < 10秒）
-            if ! "${compose[@]}" up -d; then
-              if ! fail_closed_rollback; then
-                echo "Unable to establish a fail-closed rollback state" >&2
-              fi
-              exit 1
+            # 候选容器不发布宿主机端口，使用目标开关检查后才替换线上容器。
+            "${compose[@]}" run --rm --no-deps -T app sh -se -- \
+              "$target_blog_agent_generation_enabled" \
+              "${BLOG_AGENT_CANARY_SLUG:-}" "${BLOG_AGENT_CANARY_QUESTION:-}" <<'CANDIDATE'
+            node node_modules/next/dist/bin/next start &
+            server_pid=$!
+            trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+            node --input-type=module <<'PROBE'
+            import { setTimeout } from "node:timers/promises";
+            for (let attempt = 0; attempt < 24; attempt++) {
+              const response = await fetch("http://127.0.0.1:3001/api/health", {
+                signal: AbortSignal.timeout(3000),
+              }).catch(() => null);
+              if (response?.ok) process.exit(0);
+              await setTimeout(2000);
+            }
+            throw new Error("Candidate health check timed out");
+            PROBE
+            if [ "$1" = "true" ]; then
+              npm run blog-agent:canary -- "--slug=$2" "--question=$3" --require-package --require-code
             fi
+            CANDIDATE
 
-            if ! wait_for_local_health || ! verify_agent_disabled; then
-              "${compose[@]}" ps
-              "${compose[@]}" logs --tail=100 app
-              if ! fail_closed_rollback; then
-                echo "Unable to establish a fail-closed rollback state" >&2
-              fi
-              exit 1
-            fi
-
-            # 直连本机 Nginx，验证域名、SNI、证书与代理链路，避免外层安全策略误伤发布探针。
-            if ! verify_nginx_health; then
-              if ! fail_closed_rollback; then
-                echo "Unable to establish a fail-closed rollback state" >&2
-              fi
-              exit 1
-            fi
-
-            if [ "$target_blog_agent_generation_enabled" = "true" ]; then
-              if ! "${compose[@]}" exec -T app npm run blog-agent:canary -- \
-                "--slug=$BLOG_AGENT_CANARY_SLUG" \
-                "--question=$BLOG_AGENT_CANARY_QUESTION" \
-                --require-package \
-                --require-code; then
-                if ! fail_closed_rollback; then
-                  echo "Unable to establish a fail-closed rollback state" >&2
-                fi
-                exit 1
-              fi
-            fi
-
-            export BLOG_AGENT_ENABLED="$target_blog_agent_enabled"
-            export BLOG_AGENT_GENERATION_ENABLED="$target_blog_agent_generation_enabled"
-            export BLOG_INTERACTIVE_HTML_ENABLED="$target_interactive_html_enabled"
             if ! "${compose[@]}" up -d --no-deps --force-recreate app; then
               if ! fail_closed_rollback; then
                 echo "Unable to establish a fail-closed rollback state" >&2

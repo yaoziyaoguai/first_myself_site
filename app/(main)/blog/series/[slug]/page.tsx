@@ -1,12 +1,13 @@
+import "../../../listing.css";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArticleBackLink } from "@/components/ArticleBackLink";
 import { ArticleLinkFeedback } from "@/components/ArticleLinkFeedback";
 import { getCurrentUser } from "@/lib/auth";
 import { sortSeriesArticles, type SeriesArticle } from "@/lib/blogSeries";
-import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
-import { summarizeExcerpt } from "@/lib/discovery";
-import { getPayloadAPI } from "@/lib/payload";
+import { OG_DEFAULT_PATH, summarizeExcerpt } from "@/lib/discovery";
+import { findBlogPostsForViewer, findPublishedSeriesBySlug } from "@/lib/visitorContentCache";
 import { formatSiteDate } from "@/lib/siteDate";
 
 export const dynamic = "force-dynamic";
@@ -15,23 +16,9 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-async function findPublishedSeries(slug: string) {
-  const payload = await getPayloadAPI();
-  const result = await payload.find({
-    collection: "blog-series",
-    where: {
-      slug: { equals: slug },
-      status: { equals: "published" },
-    },
-    limit: 1,
-    depth: 0,
-  });
-  return result.docs[0] ?? null;
-}
-
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const series = await findPublishedSeries(decodeURIComponent(slug));
+  const series = await findPublishedSeriesBySlug(await getCurrentUser(), slug);
 
   if (!series) return { title: "合集未找到" };
   return {
@@ -42,37 +29,29 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: series.title,
       description: series.description,
       type: "website",
+      images: [{ url: OG_DEFAULT_PATH, width: 1200, height: 630, type: "image/png" }],
     },
   };
 }
 
 export default async function BlogSeriesPage({ params }: PageProps) {
   const { slug } = await params;
-  const decodedSlug = decodeURIComponent(slug);
-  const [viewer, series] = await Promise.all([
-    getCurrentUser(),
-    findPublishedSeries(decodedSlug),
-  ]);
+  const viewer = await getCurrentUser();
+  const series = await findPublishedSeriesBySlug(viewer, slug);
 
   if (!series) notFound();
 
-  const payload = await getPayloadAPI();
-  const result = await payload.find({
-    collection: "blog",
-    where: {
-      ...buildBlogFrontendWhere(viewer),
-      series: { equals: series.id },
-    },
-    limit: 100,
+  const result = await findBlogPostsForViewer(viewer, {
+    limit: 500,
     depth: 0,
+    seriesId: series.id,
+    summary: true,
   });
   const articles = sortSeriesArticles(result.docs as unknown as SeriesArticle[]);
 
   return (
     <div className="site-shell page-space">
-      <Link className="text-link mb-10" href="/blog">
-        ← 返回文章列表
-      </Link>
+      <ArticleBackLink className="text-link mb-10" />
 
       <header className="grid gap-7 border-b border-foreground/70 pb-9 md:grid-cols-[minmax(0,1fr)_9rem] md:items-end md:pb-12">
         <div className="max-w-4xl">

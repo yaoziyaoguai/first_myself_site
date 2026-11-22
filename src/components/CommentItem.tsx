@@ -10,17 +10,15 @@ import { CommentForm } from "./CommentForm";
 
 interface CommentItemProps {
   comment: Comment;
-  isAuthor: boolean;
   currentUserIsAdmin: boolean;
-  onDelete?: (commentId: string) => void;
-  onReply?: (parentId: string, content: string) => Promise<void>;
+  onDelete?: (commentId: string) => Promise<void>;
+  onReply?: (parentId: string, content: string, authorName: string) => Promise<void>;
   depth?: number;
   maxDepth?: number;
 }
 
 export function CommentItem({
   comment,
-  isAuthor,
   currentUserIsAdmin,
   onDelete,
   onReply,
@@ -30,6 +28,9 @@ export function CommentItem({
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [showReplies, setShowReplies] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(false);
 
   // 格式化时间
   const formatTime = (dateString: string) => {
@@ -44,12 +45,12 @@ export function CommentItem({
   };
 
   // 处理回复提交
-  const handleReplySubmit = async (content: string) => {
+  const handleReplySubmit = async (content: string, authorName: string) => {
     if (!onReply) return;
 
     setIsSubmitting(true);
     try {
-      await onReply(comment.id, content);
+      await onReply(comment.id, content, authorName);
       setShowReplyForm(false);
     } finally {
       setIsSubmitting(false);
@@ -69,9 +70,9 @@ export function CommentItem({
       {/* 评论头部 */}
       <div className="flex items-center gap-2 mb-2">
         <span className="font-medium text-sm">{comment.authorName}</span>
-        {isAuthor && (
-          <Badge variant="secondary" className="text-xs">
-            博主
+        {comment.isAuthorRole && (
+          <Badge variant="outline" className="border-primary/40 text-xs text-primary">
+            作者
           </Badge>
         )}
         <span className="text-xs text-muted-foreground">
@@ -99,17 +100,50 @@ export function CommentItem({
         )}
 
         {currentUserIsAdmin && onDelete && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="min-h-11 text-xs text-destructive hover:text-destructive"
-            onClick={() => onDelete(comment.id)}
-          >
-            <Trash2 className="w-3.5 h-3.5 mr-1" />
-            删除
-          </Button>
+          <>
+            <Button
+              variant={confirmDelete ? "destructive" : "ghost"}
+              size="sm"
+              className={cn("min-h-11 text-xs", !confirmDelete && "text-destructive hover:text-destructive")}
+              disabled={deleting}
+              onClick={async () => {
+                if (!confirmDelete) {
+                  setConfirmDelete(true);
+                  return;
+                }
+                setDeleting(true);
+                setDeleteError(false);
+                try {
+                  await onDelete(comment.id);
+                } catch {
+                  setDeleteError(true);
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            >
+              {!confirmDelete && <Trash2 className="mr-1 size-3.5" aria-hidden="true" />}
+              {confirmDelete ? "确认删除" : "删除"}
+            </Button>
+            {confirmDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="min-h-11"
+                disabled={deleting}
+                onClick={() => {
+                  setConfirmDelete(false);
+                  setDeleteError(false);
+                }}
+              >
+                取消
+              </Button>
+            )}
+          </>
         )}
       </div>
+
+      {deleteError && <p role="alert" className="mt-2 text-sm text-destructive">删除评论失败，请重试。</p>}
 
       {/* 回复表单 */}
       {showReplyForm && (
@@ -151,7 +185,6 @@ export function CommentItem({
                 <CommentItem
                   key={reply.id}
                   comment={reply}
-                  isAuthor={false}
                   currentUserIsAdmin={currentUserIsAdmin}
                   onDelete={onDelete}
                   onReply={onReply}

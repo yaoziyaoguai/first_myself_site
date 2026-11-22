@@ -28,6 +28,8 @@ import {
   backfillConfigurableContent,
 } from "@/payload/backfillConfigurableContent";
 
+import * as readerFieldsMigration from "@/payload/migrations/20261122_000000_add_reader_fields_and_auth_timestamp";
+
 const castPayload = (mock: Record<string, unknown>): BasePayload =>
   mock as unknown as BasePayload;
 
@@ -94,6 +96,11 @@ describe("configurable portfolio content", () => {
         name: "20261021_000000_add_blog_interactive_html",
         up: blogInteractiveHtmlMigration.up,
         down: blogInteractiveHtmlMigration.down,
+      },
+      {
+        name: "20261122_000000_add_reader_fields_and_auth_timestamp",
+        up: readerFieldsMigration.up,
+        down: readerFieldsMigration.down,
       },
     ]);
   });

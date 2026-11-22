@@ -13,7 +13,7 @@
 # -------------------------------------------------
 # 阶段 1: 依赖安装
 # -------------------------------------------------
-FROM node:22-alpine AS deps
+FROM node:22.23.5-alpine AS deps
 
 WORKDIR /app
 
@@ -48,7 +48,7 @@ RUN npm prune \
 # -------------------------------------------------
 # 阶段 2: 构建应用
 # -------------------------------------------------
-FROM node:22-alpine AS builder
+FROM node:22.23.5-alpine AS builder
 
 WORKDIR /app
 
@@ -73,7 +73,7 @@ RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build \
 # -------------------------------------------------
 # 阶段 3: 运行环境
 # -------------------------------------------------
-FROM node:22-alpine AS runner
+FROM node:22.23.5-alpine AS runner
 
 WORKDIR /app
 

@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   currentUser: vi.fn(),
   findPost: vi.fn(),
   findPosts: vi.fn(),
+  findIndex: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error("NEXT_NOT_FOUND");
   }),
@@ -27,18 +28,22 @@ vi.mock("react", async (importOriginal) => {
   };
 });
 
-vi.mock("next/navigation", () => ({ notFound: mocks.notFound }));
+vi.mock("next/navigation", () => ({ notFound: mocks.notFound, useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("next/link", () => ({
-  default: ({ prefetch, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+  default: ({ prefetch, onNavigate, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
     prefetch?: boolean;
+    onNavigate?: unknown;
   }) => (
-    <a data-prefetch={String(prefetch)} {...props}>{children}</a>
+    <a data-prefetch={String(prefetch)} data-navigate={String(Boolean(onNavigate))} {...props}>{children}</a>
   ),
 }));
 vi.mock("@/lib/auth", () => ({ getCurrentUser: mocks.currentUser }));
 vi.mock("@/lib/visitorContentCache", () => ({
   findBlogPostBySlugForViewer: mocks.findPost,
   findBlogPostsForViewer: mocks.findPosts,
+  findArticleIndexForViewer: mocks.findIndex,
+  findSiteSettingsForViewer: async () => ({ bioShort: "后台作者介绍" }),
+  findProjectsForViewer: async () => ({ docs: [] }),
 }));
 vi.mock("@/lib/blog-agent/config", () => ({ canShowBlogAgent: () => true }));
 vi.mock("@payloadcms/richtext-lexical/react", () => ({
@@ -60,7 +65,7 @@ vi.mock("@/components/blog-agent/BlogAgent", () => ({
   BlogAgent: () => <div data-testid="blog-agent" />,
 }));
 vi.mock("@/components/ShareActions", () => ({
-  ShareActions: () => <div data-testid="share-actions" />,
+  ShareActions: ({ children }: { children: React.ReactNode }) => <div data-testid="share-actions">{children}</div>,
 }));
 vi.mock("@/components/HashAnchorScroller", () => ({
   HashAnchorScroller: () => null,
@@ -91,13 +96,18 @@ const props = {
   params: Promise.resolve({ slug: encodeURIComponent(basePost.slug) }),
 };
 
+async function renderArticle() {
+  const page = await BlogPostPage(props);
+  render(<><header className="site-nav" />{page}</>);
+}
+
 describe("blog article page delivery", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     for (const values of mocks.cacheMaps) values.clear();
     mocks.currentUser.mockResolvedValue(null);
     mocks.findPost.mockResolvedValue(basePost);
-    mocks.findPosts.mockResolvedValue({
+    mocks.findIndex.mockResolvedValue({
       docs: [
         basePost,
         { ...basePost, id: 11, slug: "related-a", title: "相关文章 A" },
@@ -111,18 +121,15 @@ describe("blog article page delivery", () => {
 
   it("shares one slug-keyed article read between metadata and page rendering", async () => {
     const metadata = await generateMetadata(props);
-    render(await BlogPostPage(props));
+    await renderArticle();
 
     expect(metadata.title).toBe(basePost.title);
     expect(metadata.alternates?.canonical).toBe(`/blog/${basePost.slug}`);
     expect(mocks.currentUser).toHaveBeenCalledTimes(1);
     expect(mocks.findPost).toHaveBeenCalledTimes(1);
     expect(mocks.findPost).toHaveBeenCalledWith(null, basePost.slug);
-    expect(mocks.findPosts).toHaveBeenCalledWith(null, {
-      sort: "-publishedDate",
-      limit: 4,
-      depth: 0,
-    });
+    expect(mocks.findIndex).toHaveBeenCalledWith(null);
+    expect(screen.getByText("后台作者介绍")).toBeInTheDocument();
     expect(screen.getByTestId("markdown-article")).toHaveTextContent("# 正文");
     expect(screen.queryByTestId("rich-text")).not.toBeInTheDocument();
     expect(screen.getByTestId("blog-agent")).toBeInTheDocument();
@@ -153,7 +160,7 @@ describe("blog article page delivery", () => {
     mocks.currentUser.mockResolvedValue({ id: 1, role: "admin" });
     mocks.findPost.mockResolvedValue(privatePost);
 
-    render(await BlogPostPage(props));
+    await renderArticle();
 
     expect(mocks.findPost).toHaveBeenCalledWith(
       { id: 1, role: "admin" },
@@ -174,7 +181,7 @@ describe("blog article page delivery", () => {
     mocks.currentUser.mockResolvedValue(editor);
     mocks.findPost.mockResolvedValue({ ...basePost, visibility: "private" });
 
-    render(await BlogPostPage(props));
+    await renderArticle();
 
     expect(mocks.findPost).toHaveBeenCalledWith(editor, basePost.slug);
     expect(screen.queryByRole("link", { name: "编辑" })).not.toBeInTheDocument();
@@ -187,7 +194,7 @@ describe("blog article page delivery", () => {
     const viewer = { id: 3, role: "viewer" };
     mocks.currentUser.mockResolvedValue(viewer);
 
-    render(await BlogPostPage(props));
+    await renderArticle();
 
     expect(mocks.findPost).toHaveBeenCalledWith(viewer, basePost.slug);
     expect(screen.queryByRole("link", { name: "编辑" })).not.toBeInTheDocument();
@@ -212,17 +219,18 @@ describe("blog article page delivery", () => {
     mocks.findPost.mockResolvedValue({ ...basePost, series, seriesOrder: 2 });
     mocks.findPosts.mockResolvedValue({ docs: articles });
 
-    render(await BlogPostPage(props));
+    await renderArticle();
 
     expect(mocks.findPosts).toHaveBeenCalledWith(null, {
       seriesId: 7,
-      limit: 100,
+      limit: 500,
+      summary: true,
       depth: 0,
     });
     expect(mocks.findPosts).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("heading", { name: "继续阅读" }))
       .not.toBeInTheDocument();
-    for (const link of screen.getAllByRole("link")) {
+    for (const link of screen.getAllByRole("link").filter((link) => link.getAttribute("href")?.startsWith("/blog"))) {
       expect(link).toHaveAttribute("data-prefetch", "false");
     }
     const next = screen.getAllByRole("link", { name: /下一篇/ }).at(-1);
@@ -230,9 +238,9 @@ describe("blog article page delivery", () => {
   });
 
   it("disables prefetch on related-reading links and caps them at three", async () => {
-    render(await BlogPostPage(props));
+    await renderArticle();
 
-    const links = screen.getAllByRole("link");
+    const links = screen.getAllByRole("link").filter((link) => link.getAttribute("href")?.startsWith("/blog"));
     expect(links).toHaveLength(5);
     for (const link of links) {
       expect(link).toHaveAttribute("data-prefetch", "false");

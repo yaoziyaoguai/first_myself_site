@@ -4,7 +4,8 @@ import { ArrowUpRight } from "lucide-react";
 import { siteDefaults, type ContactMethod, type Direction } from "@/content/siteDefaults";
 import { buildContactMethods } from "@/lib/contact";
 import { resolveArray, resolveText } from "@/lib/contentFallback";
-import { getPayloadAPI } from "@/lib/payload";
+import { getCurrentUser } from "@/lib/auth";
+import { findContactGlobalForViewer, findSiteSettingsForViewer } from "@/lib/visitorContentCache";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +16,10 @@ export const metadata: Metadata = {
 };
 
 export default async function ContactPage() {
-  const payload = await getPayloadAPI();
+  const viewer = await getCurrentUser();
   const [contact, settings] = await Promise.all([
-    payload.findGlobal({ slug: "contact" }),
-    payload.findGlobal({ slug: "site-settings" }),
+    findContactGlobalForViewer(viewer),
+    findSiteSettingsForViewer(viewer),
   ]);
 
   const introText = resolveText(contact?.introText, siteDefaults.contact.introText);

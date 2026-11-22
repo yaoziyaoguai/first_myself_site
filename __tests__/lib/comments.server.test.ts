@@ -14,6 +14,7 @@ describe("toPublicComment", () => {
       parentId: null,
       content: "公开内容",
       authorName: "访客",
+      isAuthorRole: false,
       createdAt: "2026-08-10T00:00:00.000Z",
       authorEmail: "private@example.com",
       ipHash: "private-ip-hash",
@@ -30,6 +31,7 @@ describe("toPublicComment", () => {
       parentId: null,
       content: "公开内容",
       authorName: "访客",
+      isAuthorRole: false,
       createdAt: "2026-08-10T00:00:00.000Z",
     });
   });

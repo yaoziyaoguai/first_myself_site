@@ -1,18 +1,20 @@
+import { matchesAdminToken } from "@/lib/adminToken";
 import { getPayloadAPI } from "@/lib/payload";
 import { NextResponse } from "next/server";
 
 /**
- * GET /api/create-admin — 创建或重置管理员账号
+ * POST /api/create-admin — 创建或重置管理员账号
  * 需要环境变量: ADMIN_SECRET_TOKEN (安全验证)
  * 不允许在生产环境使用
  */
-export async function GET(request: Request) {
+export async function POST(request: Request) {
   // 生产环境绝对禁止
   if (process.env.NODE_ENV === "production") {
     return NextResponse.json({ error: "Not allowed in production" }, { status: 403 });
   }
 
-  if (!process.env.ADMIN_SECRET_TOKEN) {
+  const token = process.env.ADMIN_SECRET_TOKEN;
+  if (!token) {
     return NextResponse.json(
       { error: "ADMIN_SECRET_TOKEN is required" },
       { status: 500 },
@@ -20,9 +22,7 @@ export async function GET(request: Request) {
   }
 
   // 验证管理员密钥
-  const adminToken = request.headers.get("Authorization");
-  const expectedToken = `Bearer ${process.env.ADMIN_SECRET_TOKEN}`;
-  if (!adminToken || adminToken !== expectedToken) {
+  if (!matchesAdminToken(request, token)) {
     return NextResponse.json({ error: "Unauthorized: missing or invalid token" }, { status: 401 });
   }
 

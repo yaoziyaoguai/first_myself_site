@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
-import { Heart, Loader2 } from "lucide-react";
+import { Heart } from "lucide-react";
 import {
   getLikeStatus,
   createLike,
@@ -67,6 +67,7 @@ export function LikeButton({
 
     setSubmitting(true);
     setError(null);
+    setStatus({ count: status.count + 1, hasLiked: true });
 
     try {
       const nextStatus = await createLike({
@@ -78,8 +79,9 @@ export function LikeButton({
     } catch (err) {
       console.error("Failed to create like:", err);
       if (err instanceof Error && err.message.includes("已经点赞")) {
-        setStatus((prev) => ({ ...prev, hasLiked: true }));
+        setStatus({ ...status, hasLiked: true });
       } else {
+        setStatus(status);
         setError("点赞失败，请稍后重试");
       }
     } finally {
@@ -103,49 +105,22 @@ export function LikeButton({
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <Button
-        variant={status.hasLiked ? "default" : "outline"}
+        variant="outline"
         size="sm"
-        className={cn(
-          sizeClasses[size],
-          "transition-[color,background-color,border-color,transform] duration-200",
-          status.hasLiked && "bg-primary text-primary-foreground hover:bg-primary/90"
-        )}
+        className={cn(sizeClasses[size], "reader-action", status.hasLiked && "reader-action-liked")}
         onClick={handleLike}
+        aria-pressed={status.hasLiked}
+        aria-busy={loading || submitting}
         disabled={status.hasLiked || submitting || loading}
       >
-        {submitting ? (
-          <Loader2 className={cn(iconSizes[size], "animate-spin mr-1")} />
-        ) : (
-          <Heart
-            className={cn(
-              iconSizes[size],
-              "mr-1 transition-[color,fill] duration-200",
-              status.hasLiked && "fill-current"
-            )}
-          />
-        )}
-        <span>
-          {loading
-            ? "加载中…"
-            : status.hasLiked
-            ? "已点赞"
-            : "点赞"}
+        <Heart
+          aria-hidden="true"
+          className={cn(iconSizes[size], "mr-1", status.hasLiked && "fill-current motion-safe:animate-[like-pop_240ms_ease-out]")}
+        />
+        <span aria-live="polite">
+          {loading ? "点赞" : showCount ? `${status.count} 人觉得有启发` : status.hasLiked ? "已点赞" : "点赞"}
         </span>
       </Button>
-
-      {showCount && !loading && (
-        <span
-          className={cn(
-            "text-muted-foreground",
-            size === "sm" && "text-xs",
-            size === "md" && "text-sm",
-            size === "lg" && "text-base"
-          )}
-        >
-          {status.count} 人点赞
-        </span>
-      )}
-
       {error && (
         <span className="text-xs text-destructive">{error}</span>
       )}

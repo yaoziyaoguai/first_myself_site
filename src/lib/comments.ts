@@ -7,6 +7,7 @@ export interface Comment {
   parentId?: string | null;
   content: string;
   authorName: string;
+  isAuthorRole?: boolean;
   createdAt: string;
   replies?: Comment[];
 }
@@ -77,6 +78,8 @@ export async function createComment(data: CreateCommentData): Promise<Comment> {
 export async function softDeleteComment(commentId: string): Promise<{ id: string }> {
   const response = await fetch(`${getApiBaseUrl()}/api/comments?id=${commentId}`, {
     method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
   });
   if (!response.ok) {
     const error = await response.json();

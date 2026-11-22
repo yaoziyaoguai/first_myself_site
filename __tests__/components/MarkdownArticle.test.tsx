@@ -66,7 +66,7 @@ describe("MarkdownArticle", () => {
     );
 
     expect(screen.getAllByRole("heading")).toHaveLength(1);
-    expect(screen.getByText("# 代码里的标题")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "可横向滚动的代码" })).toHaveTextContent("# 代码里的标题");
   });
 
   it("uses rendered inline text for Setext heading IDs", () => {
@@ -108,5 +108,28 @@ describe("MarkdownArticle", () => {
     render(<MarkdownArticle markdown={"## 实现\n```python\nprint('verified')\n```"} />);
     expect(screen.getByRole("region", { name: "可横向滚动的代码" })).toHaveAttribute("tabindex", "0");
     expect(screen.getByRole("heading", { name: "实现" })).toHaveAttribute("tabindex", "-1");
+  });
+  it("keeps the heading IDs and hidden title across repeated preview edits", () => {
+    const markdown = "# 笔记\n\n## 实现\n正文\n## 实现\n细节";
+    const { rerender } = render(<MarkdownArticle title="笔记" markdown={markdown} />);
+    for (const suffix of ["", "一处修改", "两处修改", "第三处修改"]) {
+      rerender(<MarkdownArticle title="笔记" markdown={`${markdown}\n\n${suffix}`} />);
+      expect(screen.queryByRole("heading", { name: "笔记" })).not.toBeInTheDocument();
+      expect(screen.getAllByRole("heading", { name: "实现" }).map((node) => node.id))
+        .toEqual(["实现", "实现-2"]);
+    }
+  });
+
+  it("renders syntax tokens and figures with browser-default priority for the eager first image", () => {
+    const { container } = render(<MarkdownArticle markdown={
+      "~~~sql\nSELECT 1;\n~~~\n\n![查询](https://example.com/a.png)\n\n图 1：查询计划\n\n![明细](https://example.com/b.png)"
+    } />);
+    expect(container.querySelector(".hljs-keyword")).toHaveTextContent("SELECT");
+    expect(screen.getByRole("button", { name: "复制代码" })).toBeEnabled();
+    expect(container.querySelector("figcaption")).toHaveTextContent("图 1：查询计划");
+    expect(screen.getByAltText("查询")).toHaveAttribute("loading", "eager");
+    expect(screen.getByAltText("查询")).toHaveAttribute("decoding", "async");
+    expect(screen.getByAltText("查询")).not.toHaveAttribute("fetchpriority");
+    expect(screen.getByAltText("明细")).toHaveAttribute("loading", "lazy");
   });
 });

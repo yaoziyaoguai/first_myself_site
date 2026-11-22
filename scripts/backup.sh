@@ -91,6 +91,11 @@ chmod 600 "$temporary_file"
 mv -- "$temporary_file" "$backup_file"
 trap 'rm -rf -- "$scratch_dir"' EXIT
 
+if [[ -n "${BACKUP_OSS_URI:-}" ]]; then
+  ossutil cp "$backup_file" "${BACKUP_OSS_URI%/}/$(basename -- "$backup_file")" \
+    --metadata=x-oss-server-side-encryption:AES256 --acl private
+fi
+
 find "$BACKUP_DIR" -maxdepth 1 -type f -name 'first_myself_site_*.tar.gz' \
   -printf '%T@ %p\n' | sort -rn | tail -n +$((MAX_BACKUPS + 1)) | \
   cut -d' ' -f2- | while IFS= read -r old_backup; do

@@ -322,7 +322,7 @@ describe("MarkdownArticle 互动块接入", () => {
     ).toBeInTheDocument();
     // 非法 marker 仍以普通代码块可见、不可执行。
     expect(screen.getByText("not json")).toBeInTheDocument();
-    expect(screen.getByText("console.log(1)")).toBeInTheDocument();
+    expect(screen.getAllByRole("region", { name: "可横向滚动的代码" }).some((region) => region.textContent?.includes("console.log(1)"))).toBe(true);
   });
 
   it("多个 marker 各自独立，块间普通段落不影响数量", () => {

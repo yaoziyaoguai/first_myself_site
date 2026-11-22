@@ -1,3 +1,4 @@
+import { revalidateVisitorGlobal } from "@/lib/visitorContentCache";
 import type { GlobalConfig } from "payload";
 
 const About: GlobalConfig = {
@@ -7,6 +8,7 @@ const About: GlobalConfig = {
     description: "关于页面内容配置",
     group: "页面内容",
   },
+  hooks: { afterChange: [revalidateVisitorGlobal] },
   fields: [
     {
       name: "introText",

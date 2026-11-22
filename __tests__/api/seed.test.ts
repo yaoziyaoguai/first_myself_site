@@ -1,10 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import type { BasePayload } from 'payload'
-import { GET } from '@/app/(main)/api/seed/route'
+import { POST } from '@/app/(main)/api/seed/route'
+import { revalidateTag } from 'next/cache'
 
 // Mock the payload API
 vi.mock('@/lib/payload', () => ({
   getPayloadAPI: vi.fn(),
+}))
+vi.mock('next/cache', () => ({
+  revalidateTag: vi.fn(),
 }))
 
 import { getPayloadAPI } from '@/lib/payload'
@@ -12,7 +16,7 @@ import { getPayloadAPI } from '@/lib/payload'
 // Helper to cast mock payload to expected type
 const castPayload = (mock: Record<string, unknown>): BasePayload => mock as unknown as BasePayload
 
-describe('GET /api/seed', () => {
+describe('POST /api/seed', () => {
   beforeEach(() => {
     vi.stubEnv('NODE_ENV', 'development')
     vi.clearAllMocks()
@@ -33,7 +37,7 @@ describe('GET /api/seed', () => {
         },
       })
 
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(403)
       const data = await response.json()
       expect(data.error).toContain('Not allowed in production')
@@ -48,7 +52,7 @@ describe('GET /api/seed', () => {
 
     it('should return 401 when no authorization header', async () => {
       const request = new Request('http://localhost:3000/api/seed')
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(401)
       const data = await response.json()
       expect(data.error).toContain('Unauthorized')
@@ -60,7 +64,7 @@ describe('GET /api/seed', () => {
           Authorization: 'Bearer wrong-token',
         },
       })
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(401)
     })
 
@@ -70,7 +74,7 @@ describe('GET /api/seed', () => {
           Authorization: 'Basic my-secret-token',
         },
       })
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(401)
     })
 
@@ -88,7 +92,7 @@ describe('GET /api/seed', () => {
         },
       })
 
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(200)
     })
   })
@@ -113,10 +117,11 @@ describe('GET /api/seed', () => {
         },
       })
 
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(200)
       const data = await response.json()
       expect(data.success).toBe(true)
+      expect(revalidateTag).toHaveBeenCalledOnce()
     })
 
     it('should call updateGlobal for home settings', async () => {
@@ -133,7 +138,7 @@ describe('GET /api/seed', () => {
         },
       })
 
-      await GET(request)
+      await POST(request)
       expect(mockPayload.updateGlobal).toHaveBeenCalledWith(
         expect.objectContaining({
           slug: 'home',
@@ -155,7 +160,7 @@ describe('GET /api/seed', () => {
         },
       })
 
-      await GET(request)
+      await POST(request)
       expect(mockPayload.create).toHaveBeenCalledWith(
         expect.objectContaining({
           collection: 'projects',
@@ -182,7 +187,7 @@ describe('GET /api/seed', () => {
         },
       })
 
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(500)
       const data = await response.json()
       expect(data.error).toBeDefined()
@@ -200,7 +205,7 @@ describe('GET /api/seed', () => {
         },
       })
 
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(500)
       const data = await response.json()
       expect(data.error).toBeDefined()
