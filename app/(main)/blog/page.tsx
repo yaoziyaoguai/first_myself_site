@@ -1,5 +1,7 @@
+import "../listing.css";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ArticleSearch } from "@/components/ArticleSearch";
 import { ArticleIndex } from "@/components/ArticleIndex";
 import { ArticleArchive } from "@/components/ArticleArchive";
 import { SeriesFeature } from "@/components/SeriesFeature";
@@ -7,7 +9,8 @@ import { siteDefaults } from "@/content/siteDefaults";
 import { getCurrentUser } from "@/lib/auth";
 import { buildSeriesCollections, type SeriesArticle } from "@/lib/blogSeries";
 import { summarizeExcerpt } from "@/lib/discovery";
-import { findBlogPostsForViewer } from "@/lib/visitorContentCache";
+import { findArticleIndexForViewer } from "@/lib/visitorContentCache";
+import { articleTags } from "@/lib/articleDiscovery";
 import { formatSiteDate } from "@/lib/siteDate";
 
 export const dynamic = "force-dynamic";
@@ -19,11 +22,7 @@ export const metadata: Metadata = {
 
 export default async function BlogPage() {
   const viewer = await getCurrentUser();
-  const result = await findBlogPostsForViewer(viewer, {
-    sort: "-publishedDate",
-    limit: 100,
-    depth: 1,
-  });
+  const result = await findArticleIndexForViewer(viewer);
   const collections = buildSeriesCollections(
     result.docs as unknown as SeriesArticle[],
   );
@@ -43,12 +42,10 @@ export default async function BlogPage() {
           slug: String(post.slug),
           title: String(post.title),
           excerpt: summarizeExcerpt(post.excerpt, 170),
-          date: post.publishedDate ? formatSiteDate(post.publishedDate) : "",
-          publishedDate: post.publishedDate || undefined,
-          readingTime: post.readingTime || "",
-          tags: (post.tags ?? []).flatMap((item: { tag?: string | null }) =>
-            item.tag?.trim() ? [item.tag.trim()] : [],
-          ),
+          date: formatSiteDate(post.publishedDate),
+          publishedDate: post.publishedDate,
+          readingTime: post.readingTime,
+          tags: articleTags(post.tags),
         }))}
       />
     </section>
@@ -104,9 +101,13 @@ export default async function BlogPage() {
           series={series}
           articleCount={result.docs.length}
           seriesCount={collections.length}
+          search={<ArticleSearch />}
         />
       ) : (
-        articles
+        <>
+          <ArticleSearch />
+          {articles}
+        </>
       )}
     </div>
   );

@@ -30,21 +30,7 @@
  * 3. 不删除 `status` 过滤（草稿不应该出现在前台公开列表里）
  */
 
-/**
- * 前台查询里我们关心的最小用户形状。
- * 这里有意写成宽松的 `Record<string, unknown>`，原因是 Payload 的 `req.user`
- * 目前是 `UntypedUser`（`{ [key: string]: any } & BaseUser`），其结构对 TS
- * 的「object literal contextual typing」并不总是兼容更窄的 `{ role?: unknown }`，
- * 所以用通用 record 来稳妥兼容；运行时再按字段读取 role。
- */
 export type FrontendViewer = Record<string, unknown> | null | undefined;
-
-/** 安全地从未知形状的 viewer 中取 role 字段并归一为 string */
-function readRole(viewer: FrontendViewer): string | null {
-  if (!viewer) return null;
-  const role = (viewer as { role?: unknown }).role;
-  return typeof role === "string" ? role : null;
-}
 
 /** 前台 Blog 查询的 where 子句类型（status 必填，visibility 仅对外部访客必填） */
 export type BlogFrontendWhere =
@@ -56,8 +42,7 @@ export type BlogFrontendWhere =
  * 与 Blog.access.read 的语义保持一致：admin / editor。
  */
 export function canViewPrivateBlog(viewer: FrontendViewer): boolean {
-  const role = readRole(viewer);
-  if (!role) return false;
+  const role = viewer?.role;
   return role === "admin" || role === "editor";
 }
 

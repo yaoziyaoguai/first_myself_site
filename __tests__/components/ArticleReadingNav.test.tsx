@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleReadingNav } from "@/components/ArticleReadingNav";
 
 let frame: FrameRequestCallback;
-const disconnect = vi.fn();
 beforeEach(() => {
   vi.stubGlobal(
     "requestAnimationFrame",
@@ -14,13 +13,7 @@ beforeEach(() => {
     }),
   );
   vi.stubGlobal("cancelAnimationFrame", vi.fn());
-  vi.stubGlobal(
-    "IntersectionObserver",
-    class {
-      observe() {}
-      disconnect = disconnect;
-    },
-  );
+
 });
 afterEach(() => {
   cleanup();
@@ -34,22 +27,22 @@ function Article({
   headings?: string[];
 }) {
   return (
-    <>
+    <div className="site-shell">
+      <header className="site-nav" />
       <ArticleReadingNav articleSlug="real-article" />
       <div id="article-content">
-        {headings.map((id) => (
-          <h2 key={id} id={id} tabIndex={-1}>
-            {id}
-          </h2>
-        ))}
+        {headings.map((id, index) => index === 1
+          ? <h3 key={id} id={id} tabIndex={-1}>{id}</h3>
+          : <h2 key={id} id={id} tabIndex={-1}>{id}</h2>
+        )}
         <pre>{"## 不应当进入目录"}</pre>
       </div>
-    </>
+    </div>
   );
 }
 
 describe("ArticleReadingNav", () => {
-  it("uses rendered, including repeated, heading IDs and cleans up its observer", () => {
+  it("uses rendered, including repeated, heading IDs including H3 section links", () => {
     const { unmount } = render(<Article />);
     act(() => frame(0));
     const nav = screen.getByRole("navigation", { name: "本文目录" });
@@ -58,7 +51,8 @@ describe("ArticleReadingNav", () => {
     ).toHaveAttribute("href", `#${encodeURIComponent("中文标题-2")}`);
     expect(within(nav).queryByText("不应当进入目录")).not.toBeInTheDocument();
     unmount();
-    expect(disconnect).toHaveBeenCalledOnce();
+    expect(cancelAnimationFrame).toHaveBeenCalled();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
   });
 
   it("closes the mobile disclosure and transfers focus to the chosen heading", async () => {

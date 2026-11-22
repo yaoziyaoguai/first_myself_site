@@ -3,7 +3,7 @@ import { isInteractionTargetType } from "@/lib/interactionTarget";
 import { targetExists } from "@/lib/interactionTarget.server";
 import { createLike, getLikeCount, getLikeStatus } from "@/lib/likes.server";
 import { isRateLimited } from "@/lib/rateLimit";
-import { readJsonObject } from "@/lib/requestBody";
+import { verifySameOriginJsonRequest } from "@/lib/requestBody";
 import { deriveRequestIdentity } from "@/lib/requestIdentity";
 
 export const dynamic = "force-dynamic";
@@ -42,8 +42,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const data = await readJsonObject(request);
-  if (!data) return errorResponse("Invalid JSON body", 400);
+  const body = await verifySameOriginJsonRequest(request);
+  if (!body.ok) return errorResponse(body.error, body.status);
+  const { data } = body;
   const target = readTarget(data);
   if (!target) return errorResponse("Invalid target", 400);
 

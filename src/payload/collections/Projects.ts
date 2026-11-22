@@ -105,6 +105,15 @@ const Projects: CollectionConfig = {
       ],
     },
     {
+      name: "relatedArticles",
+      label: "相关公开文章",
+      type: "relationship",
+      relationTo: "blog",
+      hasMany: true,
+      access: { read: ({ req }) => req.user?.role === "admin" || req.user?.role === "editor" },
+      filterOptions: { status: { equals: "published" }, visibility: { equals: "public" } },
+    },
+    {
       name: "sortOrder",
       type: "number",
       label: "排序权重",

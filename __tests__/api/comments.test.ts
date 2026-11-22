@@ -53,10 +53,10 @@ const privateStoredComment = {
 describe("POST /api/comments", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(isAdmin).mockResolvedValue(false);
     vi.mocked(isRateLimited).mockReturnValue(false);
     vi.mocked(targetExists).mockResolvedValue(true);
     vi.mocked(parentMatchesTarget).mockResolvedValue(true);
-    vi.mocked(isAdmin).mockResolvedValue(false);
     vi.mocked(createComment).mockResolvedValue({
       id: "comment-1",
       targetId: "post-1",
@@ -71,16 +71,31 @@ describe("POST /api/comments", () => {
     vi.mocked(softDeleteComment).mockResolvedValue({ id: "comment-1" });
   });
 
+  it.each([
+    ["https://other.example", "application/json", "{}", 403],
+    ["http://localhost:3000", "text/plain", "{}", 415],
+    ["http://localhost:3000", "application/json", JSON.stringify({ content: "字".repeat(6000) }), 413],
+  ])("returns the write boundary status %s %s", async (origin, contentType, body, status) => {
+    const response = await POST(new Request("http://localhost:3000/api/comments", {
+      method: "POST",
+      headers: { origin, "content-type": contentType },
+      body,
+    }) as never);
+    expect(response.status).toBe(status);
+    expect(createComment).not.toHaveBeenCalled();
+  });
+
   it("ignores forged client identity and returns a public DTO", async () => {
     const response = await POST(
-      new Request("https://example.com/api/comments", {
+      new Request("http://localhost:3000/api/comments", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", origin: "http://localhost:3000" },
         body: JSON.stringify({
           targetId: "post-1",
           targetType: "blog",
           content: "  你好  ",
           authorName: "访客",
+          isAuthorRole: true,
           authorEmail: "private@example.com",
           ipHash: "forged-ip",
           fingerprint: "forged-fingerprint",
@@ -92,6 +107,7 @@ describe("POST /api/comments", () => {
     expect(createComment).toHaveBeenCalledWith(
       expect.objectContaining({
         content: "你好",
+        isAuthorRole: false,
         ipHash: "server-ip-hash",
         fingerprint: "server-fingerprint",
       }),
@@ -110,6 +126,19 @@ describe("POST /api/comments", () => {
     expect(JSON.stringify(body)).not.toContain(privateStoredComment.authorEmail);
   });
 
+  it("derives the author stamp for an authenticated admin reply", async () => {
+    vi.mocked(isAdmin).mockResolvedValue(true);
+    const response = await POST(new Request("http://localhost:3000/api/comments", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "http://localhost:3000" },
+      body: JSON.stringify({ targetId: "post-1", targetType: "blog", parentId: "comment-1", content: "回复" }),
+    }) as never);
+    expect(response.status).toBe(201);
+    expect(createComment).toHaveBeenCalledWith(expect.objectContaining({
+      parentId: "comment-1", isAuthorRole: true, authorName: "Jinkun Wang",
+    }));
+  });
+
   it.each([
     [{ targetId: "post-1", targetType: "unknown", content: "hi" }, 400],
     [{ targetId: "post-1", targetType: "blog", content: "   " }, 400],
@@ -125,9 +154,9 @@ describe("POST /api/comments", () => {
     ],
   ])("rejects invalid input %#", async (body, status) => {
     const response = await POST(
-      new Request("https://example.com/api/comments", {
+      new Request("http://localhost:3000/api/comments", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", origin: "http://localhost:3000" },
         body: JSON.stringify(body),
       }) as never,
     );
@@ -139,10 +168,10 @@ describe("POST /api/comments", () => {
     "rejects a non-object JSON body %#",
     async (body) => {
       const response = await POST(
-        new Request("https://example.com/api/comments", {
+        new Request("http://localhost:3000/api/comments", {
           method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(body),
+        headers: { "content-type": "application/json", origin: "http://localhost:3000" },
+            body: JSON.stringify(body),
         }) as never,
       );
       expect(response.status).toBe(400);
@@ -153,8 +182,9 @@ describe("POST /api/comments", () => {
   it("returns 404 when the public target does not exist", async () => {
     vi.mocked(targetExists).mockResolvedValue(false);
     const response = await POST(
-      new Request("https://example.com/api/comments", {
+      new Request("http://localhost:3000/api/comments", {
         method: "POST",
+        headers: { "content-type": "application/json", origin: "http://localhost:3000" },
         body: JSON.stringify({ targetId: "missing", targetType: "blog", content: "hi" }),
       }) as never,
     );
@@ -164,8 +194,9 @@ describe("POST /api/comments", () => {
   it("returns 429 for a throttled server-derived identity", async () => {
     vi.mocked(isRateLimited).mockReturnValue(true);
     const response = await POST(
-      new Request("https://example.com/api/comments", {
+      new Request("http://localhost:3000/api/comments", {
         method: "POST",
+        headers: { "content-type": "application/json", origin: "http://localhost:3000" },
         body: JSON.stringify({ targetId: "post-1", targetType: "blog", content: "hi" }),
       }) as never,
     );
@@ -175,8 +206,9 @@ describe("POST /api/comments", () => {
   it("rejects a reply whose parent is not a top-level comment on the target", async () => {
     vi.mocked(parentMatchesTarget).mockResolvedValue(false);
     const response = await POST(
-      new Request("https://example.com/api/comments", {
+      new Request("http://localhost:3000/api/comments", {
         method: "POST",
+        headers: { "content-type": "application/json", origin: "http://localhost:3000" },
         body: JSON.stringify({
           targetId: "post-1",
           targetType: "blog",
@@ -201,7 +233,7 @@ describe("GET /api/comments", () => {
 
   it("rejects an invalid target", async () => {
     const response = await GET(
-      new Request("https://example.com/api/comments?targetId=post-1&targetType=user") as never,
+      new Request("http://localhost:3000/api/comments?targetId=post-1&targetType=user") as never,
     );
     expect(response.status).toBe(400);
   });
@@ -209,7 +241,7 @@ describe("GET /api/comments", () => {
   it("returns 404 for a non-public target", async () => {
     vi.mocked(targetExists).mockResolvedValue(false);
     const response = await GET(
-      new Request("https://example.com/api/comments?targetId=private&targetType=blog") as never,
+      new Request("http://localhost:3000/api/comments?targetId=private&targetType=blog") as never,
     );
     expect(response.status).toBe(404);
   });
@@ -267,7 +299,7 @@ describe("PATCH /api/comments", () => {
 
   it("rejects unauthenticated moderation", async () => {
     const response = await PATCH(
-      new Request("https://example.com/api/comments?id=comment-1", { method: "PATCH" }) as never,
+      new Request("http://localhost:3000/api/comments?id=comment-1", { method: "PATCH", headers: { "content-type": "application/json", origin: "http://localhost:3000" }, body: "{}" }) as never,
     );
     expect(response.status).toBe(403);
     expect(softDeleteComment).not.toHaveBeenCalled();
@@ -276,7 +308,7 @@ describe("PATCH /api/comments", () => {
   it("soft-deletes a comment for an admin", async () => {
     vi.mocked(isAdmin).mockResolvedValue(true);
     const response = await PATCH(
-      new Request("https://example.com/api/comments?id=comment-1", { method: "PATCH" }) as never,
+      new Request("http://localhost:3000/api/comments?id=comment-1", { method: "PATCH", headers: { "content-type": "application/json", origin: "http://localhost:3000" }, body: "{}" }) as never,
     );
     expect(response.status).toBe(200);
     expect(softDeleteComment).toHaveBeenCalledWith("comment-1");

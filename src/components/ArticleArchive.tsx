@@ -10,11 +10,13 @@ export function ArticleArchive({
   series,
   articleCount,
   seriesCount,
+  search,
 }: {
   articles: ReactNode;
   series: ReactNode;
   articleCount: number;
   seriesCount: number;
+  search?: ReactNode;
 }) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -53,6 +55,7 @@ export function ArticleArchive({
         window.history.pushState(null, "", url);
       }}
     >
+      <div className="archive-tools">
       <Tabs.List
         aria-label="文章浏览方式"
         className="archive-tabs"
@@ -67,6 +70,8 @@ export function ArticleArchive({
           文章合集 <span className="archive-tab-count">{seriesCount}</span>
         </Tabs.Tab>
       </Tabs.List>
+      {search}
+      </div>
       <Tabs.Panel value="articles" keepMounted className="archive-panel">
         {articles}
       </Tabs.Panel>

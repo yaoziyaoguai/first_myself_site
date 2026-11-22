@@ -19,6 +19,8 @@ const posts = [
     updatedAt: "2026-08-03T12:30:00.000Z",
     status: "published",
     visibility: "public",
+    tags: [{ tag: "Agent & 数据" }],
+    contentMarkdown: "# 正文\n\n## 评测目录",
   },
   {
     title: "Private",
@@ -70,9 +72,11 @@ describe("discovery metadata", () => {
   it("renders valid escaped RSS XML for public posts", () => {
     const xml = renderRssFeed(posts);
 
-    expect(xml).toContain("<rss version=\"2.0\">");
+    expect(xml).toContain('xmlns:atom="http://www.w3.org/2005/Atom"');
+    expect(xml).toContain('<category>Agent &amp; 数据</category>');
+    expect(xml).toContain("评测目录");
     expect(xml).toContain("A &amp; B");
-    expect(xml).toContain("使用 &lt;Agent&gt; 做可靠实验");
+    expect(xml).toContain("使用 &amp;lt;Agent&amp;gt; 做可靠实验");
     expect(xml).not.toContain("Private");
   });
 
@@ -119,7 +123,7 @@ describe("discovery metadata", () => {
     });
 
     expect(metadata.openGraph).toMatchObject({
-      images: [expect.objectContaining({ url: `${SITE_URL}/og-image.svg` })],
+      images: [expect.objectContaining({ url: `${SITE_URL}/og-default.png` })],
     });
   });
 

@@ -11,7 +11,7 @@ export async function GET() {
       limit: 1,
       depth: 0,
       overrideAccess: true,
-      select: { id: true },
+      select: {},
     });
     return NextResponse.json({ status: "ready" });
   } catch {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { parseAnalyticsEvent } from "@/lib/analytics";
 import { recordPageView, updatePageView } from "@/lib/analytics.server";
 import { isRateLimited } from "@/lib/rateLimit";
-import { readJsonObject } from "@/lib/requestBody";
+import { verifySameOriginJsonRequest } from "@/lib/requestBody";
 import { deriveRequestIdentity } from "@/lib/requestIdentity";
 import { getPayloadAPI } from "@/lib/payload";
 import {
@@ -15,15 +15,6 @@ export const dynamic = "force-dynamic";
 
 function errorResponse(error: string, status: number) {
   return NextResponse.json({ error }, { status });
-}
-
-function expectedOrigin(request: NextRequest) {
-  try {
-    return new URL(process.env.NEXT_PUBLIC_SERVER_URL || request.nextUrl.origin)
-      .origin;
-  } catch {
-    return request.nextUrl.origin;
-  }
 }
 
 async function readOwnerStatus(request: NextRequest) {
@@ -66,20 +57,9 @@ function successResponse(status: number, rememberOwner: boolean) {
 }
 
 export async function POST(request: NextRequest) {
-  if (request.headers.get("origin") !== expectedOrigin(request)) {
-    return errorResponse("Forbidden origin", 403);
-  }
-  if (
-    !request.headers
-      .get("content-type")
-      ?.toLowerCase()
-      .startsWith("application/json")
-  ) {
-    return errorResponse("Content-Type must be application/json", 415);
-  }
-
-  const body = await readJsonObject(request);
-  const event = parseAnalyticsEvent(body);
+  const body = await verifySameOriginJsonRequest(request);
+  if (!body.ok) return errorResponse(body.error, body.status);
+  const event = parseAnalyticsEvent(body.data);
   if (!event) return errorResponse("Invalid analytics event", 400);
 
   try {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import type { BasePayload } from 'payload'
-import { GET } from '@/app/(main)/api/create-admin/route'
+import { POST } from '@/app/(main)/api/create-admin/route'
 
 // Mock the payload API
 vi.mock('@/lib/payload', () => ({
@@ -12,7 +12,7 @@ import { getPayloadAPI } from '@/lib/payload'
 // Helper to cast mock payload to expected type
 const castPayload = (mock: Record<string, unknown>): BasePayload => mock as unknown as BasePayload
 
-describe('GET /api/create-admin', () => {
+describe('POST /api/create-admin', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.stubEnv('NODE_ENV', 'development')
@@ -34,7 +34,7 @@ describe('GET /api/create-admin', () => {
         },
       })
 
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(403)
       const data = await response.json()
       expect(data.error).toContain('Not allowed in production')
@@ -49,7 +49,7 @@ describe('GET /api/create-admin', () => {
 
     it('should return 401 when no authorization header', async () => {
       const request = new Request('http://localhost:3000/api/create-admin')
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(401)
       const data = await response.json()
       expect(data.error).toContain('Unauthorized')
@@ -61,7 +61,7 @@ describe('GET /api/create-admin', () => {
         headers: { Authorization: 'Bearer undefined' },
       })
 
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(500)
     })
 
@@ -71,7 +71,7 @@ describe('GET /api/create-admin', () => {
           Authorization: 'Bearer wrong-token',
         },
       })
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(401)
     })
 
@@ -91,7 +91,7 @@ describe('GET /api/create-admin', () => {
         },
       })
 
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(200)
     })
   })
@@ -117,7 +117,7 @@ describe('GET /api/create-admin', () => {
         },
       })
 
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(500)
       const data = await response.json()
       expect(data.error).toContain('PAYLOAD_INITIAL_ADMIN_EMAIL')
@@ -138,7 +138,7 @@ describe('GET /api/create-admin', () => {
         },
       })
 
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(500)
       const data = await response.json()
       expect(data.error).toContain('PAYLOAD_INITIAL_ADMIN_PASSWORD')
@@ -159,7 +159,7 @@ describe('GET /api/create-admin', () => {
         },
       })
 
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(500)
     })
   })
@@ -185,7 +185,7 @@ describe('GET /api/create-admin', () => {
         },
       })
 
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(200)
       expect(mockPayload.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -212,7 +212,7 @@ describe('GET /api/create-admin', () => {
         },
       })
 
-      const response = await GET(request)
+      const response = await POST(request)
       const data = await response.json()
       expect(data.message).toContain('管理员已创建')
       expect(data.email).toBe('admin@example.com')
@@ -232,7 +232,7 @@ describe('GET /api/create-admin', () => {
         },
       })
 
-      await GET(request)
+      await POST(request)
       expect(mockPayload.create).toHaveBeenCalledWith(
         expect.objectContaining({
           overrideAccess: true,
@@ -265,7 +265,7 @@ describe('GET /api/create-admin', () => {
         },
       })
 
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(200)
       expect(mockPayload.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -295,7 +295,7 @@ describe('GET /api/create-admin', () => {
         },
       })
 
-      const response = await GET(request)
+      const response = await POST(request)
       const data = await response.json()
       expect(data.message).toContain('管理员密码已重置')
       expect(data.email).toBe('admin@example.com')
@@ -318,7 +318,7 @@ describe('GET /api/create-admin', () => {
         },
       })
 
-      await GET(request)
+      await POST(request)
       expect(mockPayload.update).toHaveBeenCalledWith(
         expect.objectContaining({
           overrideAccess: true,
@@ -347,7 +347,7 @@ describe('GET /api/create-admin', () => {
         },
       })
 
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(500)
       const data = await response.json()
       expect(data.error).toBeDefined()
@@ -365,7 +365,7 @@ describe('GET /api/create-admin', () => {
         },
       })
 
-      const response = await GET(request)
+      const response = await POST(request)
       expect(response.status).toBe(500)
       const data = await response.json()
       expect(data.error).toBeDefined()

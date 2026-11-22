@@ -1,3 +1,4 @@
+import { ArticleBackLink } from "@/components/ArticleBackLink";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -9,7 +10,10 @@ import {
   canViewPrivateBlog,
 } from "@/lib/blogVisibility";
 import {
+  findArticleIndexForViewer,
   findBlogPostBySlugForViewer,
+  findProjectsForViewer,
+  findSiteSettingsForViewer,
   findBlogPostsForViewer,
 } from "@/lib/visitorContentCache";
 import { RichText } from "@payloadcms/richtext-lexical/react";
@@ -23,6 +27,9 @@ import { ShareActions } from "@/components/ShareActions";
 import { HashAnchorScroller } from "@/components/HashAnchorScroller";
 import { SITE_URL, siteDefaults } from "@/content/siteDefaults";
 import { canShowBlogAgent } from "@/lib/blog-agent/config";
+import { articleTags, relatedArticles } from "@/lib/articleDiscovery";
+import type { ArticleCover } from "@/lib/articlePresentation";
+import { resolveText } from "@/lib/contentFallback";
 import { formatSiteDate } from "@/lib/siteDate";
 import {
   buildArticleJsonLd,
@@ -41,19 +48,13 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-function readCoverImageUrl(value: unknown): string | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const url = (value as { url?: unknown }).url;
-  return typeof url === "string" && url.trim() ? url : null;
-}
-
-function readArticleTags(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((item) => {
-    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
-    const tag = (item as { tag?: unknown }).tag;
-    return typeof tag === "string" && tag.trim() ? [tag.trim()] : [];
-  });
+function readCoverImage(value: unknown): ArticleCover | undefined {
+  if (!value || typeof value !== "object" || !("url" in value) || typeof value.url !== "string") return;
+  return {
+    url: value.url,
+    width: "width" in value && typeof value.width === "number" ? value.width : undefined,
+    height: "height" in value && typeof value.height === "number" ? value.height : undefined,
+  };
 }
 
 // generateMetadata 与页面组件在同一次渲染中都会读取文章。只用稳定的 slug
@@ -68,10 +69,9 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const decodedSlug = decodeURIComponent(slug);
   // metadata 同样要按登录态决定 where：作者本人访问 private 文章时，
   // 应该拿到真实标题/摘要，而不是「文章未找到」。
-  const { post } = await getArticlePageData(decodedSlug);
+  const { post } = await getArticlePageData(slug);
 
   // 站点默认描述
   const defaultDescription = siteDefaults.blog.description;
@@ -91,20 +91,20 @@ export async function generateMetadata({
     description,
     publishedDate: post.publishedDate,
     updatedAt: post.updatedAt,
-    imageUrl: readCoverImageUrl(post.coverImage),
-    tags: readArticleTags(post.tags),
+    imageUrl: readCoverImage(post.coverImage)?.url,
+    publicImage: post.status === "published" && post.visibility === "public",
+    tags: articleTags(post.tags),
   });
 }
 
 export default async function BlogPostPage({ params }: PageProps) {
   const { slug } = await params;
-  const decodedSlug = decodeURIComponent(slug);
   // 详情页同样基于登录态构造可见性过滤：
   // - 未登录 / 普通用户：只能直接访问 published + public 的文章，private 一律 404
   // - admin / editor：可以直接访问 published 的 private 文章
   // 草稿（status != published）即使是作者也不在前台展示，符合 publish 工作流；
   // 后台编辑入口在 admin UI（下方 editUrl 提供快捷跳转）。
-  const { viewer, post } = await getArticlePageData(decodedSlug);
+  const { viewer, post } = await getArticlePageData(slug);
 
   if (!post) {
     notFound();
@@ -115,7 +115,7 @@ export default async function BlogPostPage({ params }: PageProps) {
   const editUrl =
     admin && post.id ? `/admin/collections/blog/${post.id}` : null;
 
-  const tags = (post.tags as { tag: string }[] | undefined) || [];
+  const tags = articleTags(post.tags);
   const dateStr = post.publishedDate ? formatSiteDate(post.publishedDate) : "";
   const showPublicInteractions = canUsePublicInteractions(post.visibility);
   const markdownContent =
@@ -128,7 +128,8 @@ export default async function BlogPostPage({ params }: PageProps) {
     ? sortSeriesArticles(
         (
           await findBlogPostsForViewer(viewer, {
-            limit: 100,
+            limit: 500,
+            summary: true,
             depth: 0,
             seriesId: series.id,
           })
@@ -144,25 +145,26 @@ export default async function BlogPostPage({ params }: PageProps) {
     seriesIndex >= 0 && seriesIndex < seriesArticles.length - 1
       ? seriesArticles[seriesIndex + 1]
       : null;
-  const relatedArticles = series
-    ? []
-    : (
-        await findBlogPostsForViewer(viewer, {
-          limit: 4,
-          depth: 0,
-          sort: "-publishedDate",
-        })
-      ).docs
-        .filter((article) => String(article.id) !== String(post.id))
-        .slice(0, 3);
+  const [settings, publicIndex, projects] = await Promise.all([
+    findSiteSettingsForViewer(viewer),
+    nextArticle ? null : findArticleIndexForViewer(null),
+    showPublicInteractions ? findProjectsForViewer(null, 50) : null,
+  ]);
+  const recommendations = publicIndex
+    ? relatedArticles(publicIndex.docs, post, new Set(seriesArticles.map(({ id }) => String(id))))
+    : [];
+  const authorBio = resolveText(settings?.bioShort, siteDefaults.identity.role);
+  const linkedProjects = (projects?.docs ?? []).filter((project) =>
+    (project.relatedArticles as (string | number)[] | undefined)?.some((id) => String(id) === String(post.id)),
+  );
   const articleJsonLd = buildArticleJsonLd({
     title: post.title,
     slug: post.slug,
     description: post.excerpt || siteDefaults.blog.description,
     publishedDate: post.publishedDate,
     updatedAt: post.updatedAt,
-    imageUrl: readCoverImageUrl(post.coverImage),
-    tags: readArticleTags(post.tags),
+    imageUrl: readCoverImage(post.coverImage)?.url,
+    tags: articleTags(post.tags),
   });
 
   return (
@@ -173,9 +175,7 @@ export default async function BlogPostPage({ params }: PageProps) {
       />
       <article id="blog-article-top" className="article-page">
         <HashAnchorScroller />
-        <Link prefetch={false} href="/blog" className="text-link article-back">
-          ← 返回文章列表
-        </Link>
+        <ArticleBackLink className="text-link article-back" />
 
         <header className="reading-header">
           {series ? (
@@ -203,18 +203,11 @@ export default async function BlogPostPage({ params }: PageProps) {
           <div className="article-meta">
             <time dateTime={post.publishedDate}>{dateStr}</time>
             {post.readingTime ? <span>{post.readingTime}</span> : null}
-            {showPublicInteractions ? (
-              <LikeButton
-                targetId={String(post.id)}
-                targetType="blog"
-                size="sm"
-              />
-            ) : null}
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            {tags.map((t) => (
-              <div key={t.tag} className="topic-pill">
-                {t.tag}
+            {tags.map((tag) => (
+              <div key={tag} className="topic-pill">
+                {tag}
               </div>
             ))}
           </div>
@@ -277,6 +270,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                 <MarkdownArticle
                   markdown={markdownContent}
                   title={String(post.title)}
+                  cover={readCoverImage(post.coverImage)}
                   blogId={String(post.id)}
                   interactiveMode={
                     // 只有作者级身份能看到非公开文章的预览；公开文章走 view。
@@ -365,31 +359,46 @@ export default async function BlogPostPage({ params }: PageProps) {
             ) : null}
 
             <div className="mx-auto max-w-[46rem]">
-              <ShareActions
-                url={`${SITE_URL}/blog/${post.slug}`}
-                title={post.title}
-                summary={post.excerpt}
-              />
+              <ShareActions url={`${SITE_URL}/blog/${post.slug}`} title={post.title} summary={post.excerpt}>
+                {showPublicInteractions && (
+                  <LikeButton targetId={String(post.id)} targetType="blog" size="sm" />
+                )}
+              </ShareActions>
 
               {showPublicInteractions ? (
                 <div className="mt-10">
                   <CommentSection
                     targetId={String(post.id)}
                     targetType="blog"
+                    initialIsAdmin={admin}
                   />
                 </div>
               ) : null}
 
               <aside className="mt-14 grid gap-4 border-y border-border py-7 sm:grid-cols-[8rem_1fr]">
                 <h2 className="font-serif text-lg font-medium">关于作者</h2>
-                <p className="text-sm leading-7 text-muted-foreground">
-                  {siteDefaults.identity.role}{" "}
-                  这里记录学习过程、项目实验与尚未解决的问题。
-                </p>
+                <div>
+                  <p className="text-sm leading-7 text-muted-foreground">{authorBio}</p>
+                  <div className="flex flex-wrap gap-x-4">
+                    <Link className="text-link" href="/about">了解更多关于我 →</Link>
+                    <Link className="text-link" href="/projects">查看开源实验 →</Link>
+                    <Link className="text-link" href="/rss.xml">RSS 订阅</Link>
+                  </div>
+                </div>
               </aside>
+              {linkedProjects.length > 0 && (
+                <nav className="mt-8" aria-label="相关项目">
+                  <h2 className="font-serif text-lg font-medium">相关项目</h2>
+                  <ul className="flex flex-wrap gap-x-4">
+                    {linkedProjects.map((project) => (
+                      <li key={project.id}><Link className="text-link" href={`/projects#${project.slug}`}>{project.title} →</Link></li>
+                    ))}
+                  </ul>
+                </nav>
+              )}
             </div>
 
-            {relatedArticles.length > 0 ? (
+            {recommendations.length > 0 ? (
               <section
                 aria-labelledby="related-heading"
                 className="mx-auto mt-16 max-w-[52rem] border-t border-border pt-8 md:mt-20"
@@ -409,7 +418,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                   </Link>
                 </div>
                 <div>
-                  {relatedArticles.map((article) => (
+                  {recommendations.map((article) => (
                     <Link
                       prefetch={false}
                       className="group grid gap-3 border-b border-border py-6 sm:grid-cols-[1fr_auto]"
@@ -438,11 +447,15 @@ export default async function BlogPostPage({ params }: PageProps) {
         </div>
       </article>
       {showBlogAgent && (
-        <BlogAgent
-          key={String(post.slug)}
-          articleSlug={String(post.slug)}
-          articleTitle={String(post.title)}
-        />
+        <>
+          {/* eslint-disable-next-line @next/next/no-css-tags -- 只在文章渲染 Agent 时加载专用样式。 */}
+          <link rel="stylesheet" href="/blog-agent.css" precedence="blog-agent" />
+          <BlogAgent
+            key={String(post.slug)}
+            articleSlug={String(post.slug)}
+            articleTitle={String(post.title)}
+          />
+        </>
       )}
     </div>
   );

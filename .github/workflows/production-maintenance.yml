@@ -9,6 +9,19 @@ permissions:
   contents: read
 
 jobs:
+  public-https:
+    name: Check public HTTPS and TLS
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Verify public health and certificate validity
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 15 https://wangjinkun333.me/api/health >/dev/null
+          timeout 20s openssl s_client -connect wangjinkun333.me:443 -servername wangjinkun333.me \
+            -verify_return_error </dev/null 2>/dev/null |
+            openssl x509 -checkend 1814400 -noout
+
   maintenance:
     name: Check Aliyun production
     runs-on: ubuntu-latest
@@ -27,6 +40,6 @@ jobs:
           script: |
             set -euo pipefail
             cd "${{ secrets.PROJECT_PATH }}"
-            PROJECT_DIR="$PWD" \
-              BACKUP_DIR="$(dirname "$PWD")/backups/first_myself_site" \
-              ./scripts/production-maintenance.sh
+            export PROJECT_DIR="$PWD"
+            export BACKUP_DIR="$(dirname "$PWD")/backups/first_myself_site"
+            ./scripts/production-maintenance.sh

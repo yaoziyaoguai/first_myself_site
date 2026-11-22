@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { act, render, screen, fireEvent } from "@testing-library/react";
 import { CommentItem } from "@/components/CommentItem";
 import type { Comment } from "@/lib/comments";
 
@@ -29,7 +29,6 @@ describe("CommentItem", () => {
     render(
       <CommentItem
         comment={mockComment}
-        isAuthor={false}
         currentUserIsAdmin={false}
       />
     );
@@ -41,20 +40,18 @@ describe("CommentItem", () => {
   it("should display author badge for author replies", () => {
     render(
       <CommentItem
-        comment={mockComment}
-        isAuthor={true}
+        comment={{ ...mockComment, isAuthorRole: true }}
         currentUserIsAdmin={false}
       />
     );
 
-    expect(screen.getByText("博主")).toBeInTheDocument();
+    expect(screen.getByText("作者")).toBeInTheDocument();
   });
 
   it("should show delete button for admin", () => {
     render(
       <CommentItem
         comment={mockComment}
-        isAuthor={false}
         currentUserIsAdmin={true}
         onDelete={vi.fn()}
       />
@@ -67,7 +64,6 @@ describe("CommentItem", () => {
     render(
       <CommentItem
         comment={mockComment}
-        isAuthor={false}
         currentUserIsAdmin={false}
         onDelete={vi.fn()}
       />
@@ -88,7 +84,6 @@ describe("CommentItem", () => {
     render(
       <CommentItem
         comment={storedComment}
-        isAuthor={false}
         currentUserIsAdmin={false}
       />
     );
@@ -101,7 +96,6 @@ describe("CommentItem", () => {
     render(
       <CommentItem
         comment={mockComment}
-        isAuthor={false}
         currentUserIsAdmin={false}
       />
     );
@@ -131,7 +125,6 @@ describe("CommentItem", () => {
     render(
       <CommentItem
         comment={commentWithReplies}
-        isAuthor={false}
         currentUserIsAdmin={false}
       />
     );
@@ -139,13 +132,12 @@ describe("CommentItem", () => {
     expect(screen.getByText("Reply content")).toBeInTheDocument();
   });
 
-  it("should call onDelete when delete button clicked", () => {
-    const mockDelete = vi.fn();
+  it("deletes only after inline confirmation", async () => {
+    const mockDelete = vi.fn(async () => undefined);
 
     render(
       <CommentItem
         comment={mockComment}
-        isAuthor={false}
         currentUserIsAdmin={true}
         onDelete={mockDelete}
       />
@@ -154,6 +146,8 @@ describe("CommentItem", () => {
     const deleteButton = screen.getByText("删除");
     fireEvent.click(deleteButton);
 
+    expect(mockDelete).not.toHaveBeenCalled();
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "确认删除" })));
     expect(mockDelete).toHaveBeenCalledWith("1");
   });
 
@@ -161,7 +155,6 @@ describe("CommentItem", () => {
     render(
       <CommentItem
         comment={mockComment}
-        isAuthor={false}
         currentUserIsAdmin={false}
       />
     );
@@ -175,8 +168,7 @@ describe("CommentItem", () => {
       render(
         <CommentItem
           comment={mockComment}
-          isAuthor={false}
-          currentUserIsAdmin={false}
+            currentUserIsAdmin={false}
           depth={4}
           maxDepth={5}
         />
@@ -190,8 +182,7 @@ describe("CommentItem", () => {
       render(
         <CommentItem
           comment={mockComment}
-          isAuthor={false}
-          currentUserIsAdmin={false}
+            currentUserIsAdmin={false}
           depth={2}
           maxDepth={5}
         />

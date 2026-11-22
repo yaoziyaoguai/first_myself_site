@@ -32,10 +32,25 @@ describe("POST /api/likes", () => {
     vi.mocked(getLikeStatus).mockResolvedValue({ count: 3, hasLiked: false });
   });
 
+  it.each([
+    ["https://other.example", "application/json", "{}", 403],
+    ["http://localhost:3000", "text/plain", "{}", 415],
+    ["http://localhost:3000", "application/json", JSON.stringify({ content: "字".repeat(6000) }), 413],
+  ])("returns the write boundary status %s %s", async (origin, contentType, body, status) => {
+    const response = await POST(new Request("http://localhost:3000/api/likes", {
+      method: "POST",
+      headers: { origin, "content-type": contentType },
+      body,
+    }) as never);
+    expect(response.status).toBe(status);
+    expect(createLike).not.toHaveBeenCalled();
+  });
+
   it("ignores forged identity and returns status rather than a stored record", async () => {
     const response = await POST(
-      new Request("https://example.com/api/likes", {
+      new Request("http://localhost:3000/api/likes", {
         method: "POST",
+        headers: { "content-type": "application/json", origin: "http://localhost:3000" },
         body: JSON.stringify({
           targetId: "post-1",
           targetType: "blog",
@@ -57,8 +72,9 @@ describe("POST /api/likes", () => {
 
   it("rejects invalid target types", async () => {
     const response = await POST(
-      new Request("https://example.com/api/likes", {
+      new Request("http://localhost:3000/api/likes", {
         method: "POST",
+        headers: { "content-type": "application/json", origin: "http://localhost:3000" },
         body: JSON.stringify({ targetId: "post-1", targetType: "user" }),
       }) as never,
     );
@@ -67,8 +83,9 @@ describe("POST /api/likes", () => {
 
   it.each([null, 7, [], "like"])("rejects a non-object JSON body %#", async (body) => {
     const response = await POST(
-      new Request("https://example.com/api/likes", {
+      new Request("http://localhost:3000/api/likes", {
         method: "POST",
+        headers: { "content-type": "application/json", origin: "http://localhost:3000" },
         body: JSON.stringify(body),
       }) as never,
     );
@@ -79,8 +96,9 @@ describe("POST /api/likes", () => {
   it("returns 404 for a missing target", async () => {
     vi.mocked(targetExists).mockResolvedValue(false);
     const response = await POST(
-      new Request("https://example.com/api/likes", {
+      new Request("http://localhost:3000/api/likes", {
         method: "POST",
+        headers: { "content-type": "application/json", origin: "http://localhost:3000" },
         body: JSON.stringify({ targetId: "missing", targetType: "blog" }),
       }) as never,
     );
@@ -90,8 +108,9 @@ describe("POST /api/likes", () => {
   it("returns 409 for a duplicate like", async () => {
     vi.mocked(createLike).mockRejectedValue(new Error("LIKE_ALREADY_EXISTS"));
     const response = await POST(
-      new Request("https://example.com/api/likes", {
+      new Request("http://localhost:3000/api/likes", {
         method: "POST",
+        headers: { "content-type": "application/json", origin: "http://localhost:3000" },
         body: JSON.stringify({ targetId: "post-1", targetType: "blog" }),
       }) as never,
     );
@@ -101,8 +120,9 @@ describe("POST /api/likes", () => {
   it("returns 429 for a throttled server-derived identity", async () => {
     vi.mocked(isRateLimited).mockReturnValue(true);
     const response = await POST(
-      new Request("https://example.com/api/likes", {
+      new Request("http://localhost:3000/api/likes", {
         method: "POST",
+        headers: { "content-type": "application/json", origin: "http://localhost:3000" },
         body: JSON.stringify({ targetId: "post-1", targetType: "blog" }),
       }) as never,
     );
@@ -119,7 +139,7 @@ describe("GET /api/likes", () => {
 
   it("returns server-derived like status", async () => {
     const response = await GET(
-      new Request("https://example.com/api/likes?targetId=post-1&targetType=blog", {
+      new Request("http://localhost:3000/api/likes?targetId=post-1&targetType=blog", {
         headers: { "x-real-ip": "203.0.113.10", "user-agent": "Browser" },
       }) as never,
     );
@@ -134,13 +154,13 @@ describe("GET /api/likes", () => {
 
   it("rejects invalid and missing targets", async () => {
     const invalid = await GET(
-      new Request("https://example.com/api/likes?targetId=post-1&targetType=user") as never,
+      new Request("http://localhost:3000/api/likes?targetId=post-1&targetType=user") as never,
     );
     expect(invalid.status).toBe(400);
 
     vi.mocked(targetExists).mockResolvedValue(false);
     const missing = await GET(
-      new Request("https://example.com/api/likes?targetId=missing&targetType=blog") as never,
+      new Request("http://localhost:3000/api/likes?targetId=missing&targetType=blog") as never,
     );
     expect(missing.status).toBe(404);
   });

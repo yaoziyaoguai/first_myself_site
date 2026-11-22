@@ -3,68 +3,80 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 
-type Section = { id: string; title: string };
+type Section = { id: string; title: string; nested: boolean };
 
-/** 从已经渲染的标题取目录，复用真实锚点，避免在服务端再次解析长 Markdown。 */
+/** 从已渲染的正文获取目录和阅读位置。 */
 export function ArticleReadingNav({ articleSlug }: { articleSlug: string }) {
   const [sections, setSections] = useState<Section[]>([]);
-  const [active, setActive] = useState("");
+  const [active, setActive] = useState(0);
+  const [progress, setProgress] = useState(0);
   const disclosure = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
-    const headings = Array.from(
-      document.querySelectorAll<HTMLElement>("#article-content h2[id]"),
-    );
-    if (headings.length < 3) return;
-    // 首次布局完成后再读取几何位置；仅排一次帧，不在滚动帧中更新 React 状态。
-    const frame = requestAnimationFrame(() => {
-      setSections(
-        headings.map((heading) => ({
-          id: heading.id,
-          title: heading.textContent?.trim() || "章节",
-        })),
-      );
+    const content = document.getElementById("article-content")!;
+    const headings = Array.from(content.querySelectorAll<HTMLElement>(":is(h2, h3)[id]"))
+      .filter((heading) => heading.textContent!.trim());
+    let frame = 0;
+    let idle: ReturnType<typeof setTimeout>;
+    const shell = content.closest(".site-shell")!;
+    const navHeight = document.querySelector(".site-nav")!.getBoundingClientRect().height;
+    function update() {
+      frame = 0;
+      const bounds = content.getBoundingClientRect();
+      const travel = Math.max(1, bounds.height - window.innerHeight + navHeight);
+      const percentage = Math.round(100 * (navHeight - bounds.top) / travel);
+      setProgress(Math.min(100, Math.max(0, percentage)));
+      const index = headings.findLastIndex((heading) => heading.getBoundingClientRect().top <= navHeight + 64);
+      setActive(Math.max(0, index));
+    }
+    function schedule() {
+      if (!frame) frame = requestAnimationFrame(update);
+    }
+    let lastScroll = window.scrollY;
+    function onScroll() {
+      const current = window.scrollY;
+      if (Math.abs(current - lastScroll) >= 4) {
+        const hide = current > lastScroll && current > 160;
+        shell.setAttribute("data-dock-hidden", String(hide));
+        clearTimeout(idle);
+        if (hide) idle = setTimeout(() => shell.removeAttribute("data-dock-hidden"), 750);
+        lastScroll = current;
+      }
+      schedule();
+    }
+    frame = requestAnimationFrame(() => {
+      setSections(headings.map((heading) => ({
+        id: heading.id,
+        title: heading.textContent!.trim(),
+        nested: heading.tagName === "H3",
+      })));
       update();
     });
-    const update = () => {
-      const passed = headings.filter(
-        (heading) => heading.getBoundingClientRect().top <= 144,
-      );
-      setActive((passed.at(-1) ?? headings[0]).id);
-    };
-    if (!("IntersectionObserver" in window))
-      return () => cancelAnimationFrame(frame);
-    const observer = new IntersectionObserver(update, {
-      rootMargin: "-112px 0px 0px",
-      threshold: 0,
-    });
-    headings.forEach((heading) => observer.observe(heading));
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", schedule);
     return () => {
       cancelAnimationFrame(frame);
-      observer.disconnect();
+      clearTimeout(idle);
+      shell.removeAttribute("data-dock-hidden");
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", schedule);
     };
   }, [articleSlug]);
 
-  if (!sections.length) return null;
   const links = (
     <ol className="reading-nav-list">
       {sections.map((section, index) => (
-        <li key={section.id}>
+        <li key={section.id} className={section.nested ? "reading-nav-subsection" : undefined}>
           <a
             href={`#${encodeURIComponent(section.id)}`}
-            aria-current={active === section.id ? "location" : undefined}
+            aria-current={active === index ? "location" : undefined}
             onClick={() => {
-              setActive(section.id);
-              if (disclosure.current) disclosure.current.open = false;
-              document
-                .getElementById(section.id)
-                ?.focus({ preventScroll: true });
+              setActive(index);
+              disclosure.current!.open = false;
+              document.getElementById(section.id)!.focus({ preventScroll: true });
             }}
           >
-            <span className="reading-nav-number" aria-hidden="true">
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <span>{section.title}</span>
+            {section.title}
           </a>
         </li>
       ))}
@@ -72,26 +84,27 @@ export function ArticleReadingNav({ articleSlug }: { articleSlug: string }) {
   );
 
   return (
-    <aside className="reading-nav">
-      <nav aria-label="本文目录" className="reading-nav-desktop">
-        <p className="reading-nav-label">
-          本文目录 <span>{sections.length} 节</span>
-        </p>
-        {links}
-        <a href="#blog-article-top" className="reading-nav-top">
-          回到文章开头 ↑
-        </a>
-      </nav>
-      <details ref={disclosure} className="reading-nav-mobile">
-        <summary>
-          <span>
-            本文目录{" "}
-            <span className="text-muted-foreground">{sections.length} 节</span>
-          </span>
-          <ChevronDown size={16} aria-hidden="true" />
-        </summary>
-        <nav aria-label="移动端本文目录">{links}</nav>
-      </details>
-    </aside>
+    <>
+      <progress className="reading-progress" max={100} value={progress} aria-label="阅读进度" />
+      {sections.length >= 3 && (
+        <aside className="reading-nav">
+          <nav aria-label="本文目录" className="reading-nav-desktop">
+            <p className="reading-nav-label">本文目录</p>
+            {links}
+            <div className="reading-nav-footer">
+              <span>已读 {progress}%</span>
+              <a href="#blog-article-top" className="reading-nav-top">回到顶部 ↑</a>
+            </div>
+          </nav>
+          <details ref={disclosure} className="reading-nav-mobile">
+            <summary>
+              <span>目录 <span>{active + 1}/{sections.length}</span></span>
+              <ChevronDown size={15} aria-hidden="true" />
+            </summary>
+            <nav aria-label="移动端本文目录">{links}</nav>
+          </details>
+        </aside>
+      )}
+    </>
   );
 }

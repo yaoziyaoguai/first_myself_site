@@ -122,7 +122,7 @@ describe("production Nginx media upload probe", () => {
     const probeIndex = commands.indexOf(
       "bash scripts/verify-nginx-media-upload.sh",
     );
-    const switchIndex = commands.indexOf('if ! "${compose[@]}" up -d; then');
+    const switchIndex = commands.indexOf('if ! "${compose[@]}" up -d --no-deps --force-recreate app; then', probeIndex);
 
     expect(workflow).toContain("git bundle create deploy-source.bundle HEAD");
     expect(workflow).toContain(

@@ -20,6 +20,20 @@
 
 ## 当前阶段
 
+**本轮工作**（2026-11-22）：`codex/field-notes-ui-ux` 以 `d739117` 为基线实施 Field Notes 审计。归档用公开摘要投影和 URL 搜索、多标签、年份目录。阅读器和后台预览共用一次 Markdown AST 解析，标题锚点沿用 Agent 编号，补齐高亮、复制、图表和目录。交互写入加同源 JSON 边界，作者标识由登录态写入。Payload 3.94.1、Next.js 16.4.6、React 19.2.9 和 Node 22.23.5 已纳入本地候选，新增迁移在旧版 PostgreSQL 表结构验证通过。
+
+本地 30 篇合成样本的归档查询结果从 137,237 降到 9,821 字节。生产构建的 6 个匿名页面缓存命中轮次记录到 0 条 SQL，标签筛选到 DOM 更新 p75 为 2.6 ms，深滚动后的浏览器后退恢复筛选、页数和位置。审计收尾时，移动 Lighthouse LCP 为 1.21 秒、CLS 为 0，5 组成对 slow4G/4×CPU 实验的 LCP p75 为旧版 1.10 秒、候选 1.21 秒。21 KB 样本的高亮后 AST 为 164 KB、解析与着色中位数 9.3 ms，本轮采用单次解析。生产 npm 依赖图为 0 个 high / critical。
+
+长文 LCP 复测沿用同一篇 21,219 字节合成文章、390 × 844 视口、slow4G、4×CPU 和冷浏览器缓存。5 组按原协议复测得到 1.084 → 1.240 秒。最终构建的 15 组交替对照中，旧版、修复前和修复后的 LCP p75 分别为 1.132、1.256、1.124 秒，修复后 CLS p75 为 0。LCP 元素是文章标题。列表样式由使用它的页面加载，Blog Agent 样式随现有开关加载，正文首图继续立即加载和异步解码，资源优先级改为低。样式表传输从 20,675 字节降到 15,499 字节，中位完成时间从 1,012 ms 提前到 865 ms。390 px 和 1440 px 的列表布局、Agent 面板和图片灯箱通过 Chromium 验证。启用 Agent 的 6 组对照中，LCP p75 从 1.264 秒降到 1.112 秒。生产构建先生成 Payload 类型后通过，普通 Vitest 970 项通过。原始对照和功能检查分别见 `.local/field-notes-ui-ux/evidence/lcp-verified.json` 和 `.local/field-notes-ui-ux/evidence/lcp-css-smoke.json`。
+
+随后用同一篇长文和相同节流条件测试 CSS 拆分加首图默认优先级。低优先级版和默认版实际传输的首屏 CSS 都是 15,499 字节。15 组交替对照的 LCP p75 为旧版 1.100 秒、低优先级版 1.092 秒、默认版 1.136 秒。默认版在 14 组里晚于低优先级版，首图完成中位数从 2.026 秒提前到 1.381 秒。当时按 LCP 优先的条件保留低优先级。原始数据见 `.local/field-notes-ui-ux/evidence/lcp-default-priority.json`。
+
+用户随后接受这次对照的 44 ms LCP 差值，优先缩短首图加载。工作区已移除首图的显式优先级，保留 CSS 拆分、`loading="eager"` 和 `decoding="async"`。应用后用同一篇长文和相同条件完成 15 组对照，LCP p75 为旧版 1.076 秒、低优先级版 1.060 秒、默认版 1.088 秒。默认版首图完成中位数从 2.026 秒提前到 1.391 秒，CLS p75 为 0。两版首屏 CSS 产物逐字节一致。生产构建、改动文件 ESLint 和 29 项相关测试通过。原始数据见 `.local/field-notes-ui-ux/evidence/lcp-default-applied.json`。
+
+发布前复核修正了 Payload 未生成类型时的前台用户契约，收紧了代码复制、阅读导航和站点配置写入的错误处理。维护任务每次执行一次备份。最终生产构建、ESLint、970 项 Vitest、39 项 PostgreSQL 专项和 20 项性能工具测试通过。Chromium 的 1440 px 与 390 px 流程通过归档后退、目录、代码复制、灯箱和匿名私密文章 404。HTTP 检查通过默认首图优先级、PNG 分享图、RSS 分类和开发初始化接口的 GET 405。
+
+本轮已获授权按 GitHub PR 和 CI/CD 发布。发布脚本先验独立候选，再进行一次 app 切换，生产结果以对应的 GitHub Actions 运行记录为准。定时维护已具备每日备份和 GitHub runner 公网 HTTPS 探针。密钥轮换和 OSS 启用仍需单独配置。验收材料在 `.local/field-notes-ui-ux/evidence/`。
+
 **本轮工作**（2026-11-06）：改善文章互动解释质量，不是放宽任意 HTML 托管。独立分支 `codex/interactive-explainer-quality` 重做交付可靠性文章的两个互动包，按时间分别计算运行 / 产出 / 消费证据，以业务日期链与真实有向闭环展示依赖；均为合成教学数据。共享容器工具栏上移，宽屏原位展开最多 1120px、不比原宽度窄，手机关键操作 / 结论前置，保留 iframe 与沙箱权限。发布 Skill 仅增加成品检查要求，Claude 继续共用 symlink；便携补丁与文章源包在 `docs/article-updates/governance-longform-03/`。
 
 用户随后明确授权“合并、部署上线”，替代首轮仅提交 / 推送的边界。PR #72 已合入 `c6671aa06f2281ad78cba7f90155c25d47509116`，Run 42228171785 成功部署阿里云，Deploy Job 4 分 55 秒；容器 revision 一致且 healthy，公网健康 ready，部署 canary 含代码 / 文章包引用。发布 Skill 已更新原文章 ID 43 的两个互动资源，认证与匿名回读通过；正文除两处 marker 与说明外不变，原发布日期、标签、媒体、合集及顺序保留，旧引用匿名 404。没有新建文章或改变 RAG 边界。

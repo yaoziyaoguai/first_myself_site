@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { siteDefaults } from "@/content/siteDefaults";
 import { isAdmin } from "@/lib/auth";
 import {
   createComment,
@@ -12,7 +13,7 @@ import {
   targetExists,
 } from "@/lib/interactionTarget.server";
 import { isRateLimited } from "@/lib/rateLimit";
-import { readJsonObject } from "@/lib/requestBody";
+import { verifySameOriginJsonRequest } from "@/lib/requestBody";
 import { deriveRequestIdentity } from "@/lib/requestIdentity";
 
 export const dynamic = "force-dynamic";
@@ -56,8 +57,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const data = await readJsonObject(request);
-  if (!data) return errorResponse("Invalid JSON body", 400);
+  const body = await verifySameOriginJsonRequest(request);
+  if (!body.ok) return errorResponse(body.error, body.status);
+  const { data } = body;
 
   const targetId = typeof data.targetId === "string" ? data.targetId.trim() : "";
   const targetType = data.targetType;
@@ -96,12 +98,14 @@ export async function POST(request: NextRequest) {
       return errorResponse("Parent comment not found", 404);
     }
 
+    const isAuthorRole = await isAdmin();
     const comment = await createComment({
       targetId,
       targetType,
       parentId: parentId || null,
       content,
-      authorName,
+      authorName: isAuthorRole && authorName === "匿名用户" ? siteDefaults.identity.name : authorName,
+      isAuthorRole,
       authorEmail,
       ipHash: identity.ipHash,
       fingerprint: identity.fingerprint,
@@ -114,6 +118,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const body = await verifySameOriginJsonRequest(request);
+  if (!body.ok) return errorResponse(body.error, body.status);
+
   const id = new URL(request.url).searchParams.get("id")?.trim();
   if (!id) return errorResponse("Comment ID is required", 400);
   if (!(await isAdmin())) return errorResponse("Unauthorized", 403);

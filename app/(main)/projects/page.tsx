@@ -1,9 +1,11 @@
+import "../listing.css";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { projectLifecycle, ProjectStatus } from "@/components/ProjectStatus";
 import { siteDefaults } from "@/content/siteDefaults";
-import { isAdmin } from "@/lib/auth";
-import { getPayloadAPI } from "@/lib/payload";
+import { getCurrentUser } from "@/lib/auth";
+import { findArticleIndexForViewer, findProjectsForViewer } from "@/lib/visitorContentCache";
 
 export const dynamic = "force-dynamic";
 
@@ -14,84 +16,70 @@ export const metadata: Metadata = {
 };
 
 export default async function ProjectsPage() {
-  const payload = await getPayloadAPI();
-  const [result, admin] = await Promise.all([
-    payload.find({ collection: "projects", sort: "sortOrder", limit: 50 }),
-    isAdmin(),
+  const viewer = await getCurrentUser();
+  const [result, archive] = await Promise.all([
+    findProjectsForViewer(viewer, 50),
+    findArticleIndexForViewer(null),
   ]);
   const projects = result.docs.length > 0 ? result.docs : siteDefaults.projects;
+  const publicPosts = new Map(archive.docs.map((post) => [String(post.id), post]));
 
   return (
     <div className="site-shell page-space">
       <header className="page-header relative">
         <p className="eyebrow">PROJECTS</p>
         <h1>项目与实验</h1>
-        <p>
-          在代码中实践数据工程、AI 评测与 Agent 系统，记录做法、取舍和仍在尝试的方向。
-        </p>
-        {admin ? (
-          <Link className="text-link mt-6" href="/admin/collections/projects">
-            管理项目 →
-          </Link>
-        ) : null}
+        <p>在代码中实践数据工程、AI 评测与 Agent 系统，记录做法、取舍和仍在尝试的方向。</p>
+        {viewer?.role === "admin" && (
+          <Link className="text-link mt-6" href="/admin/collections/projects">管理项目 →</Link>
+        )}
       </header>
-
-      <div className="divide-y divide-border border-y border-border">
-        {projects.map((project, index) => {
-          const href = "href" in project ? project.href : null;
-          const className =
-            "group grid gap-7 py-10 transition-colors duration-200 hover:bg-card/70 md:grid-cols-[5rem_minmax(0,0.8fr)_minmax(0,1.2fr)] md:px-4 md:py-14";
-          const content = (
-            <>
-              <span className="font-mono text-xs text-muted-foreground">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <span>
-                <span className="flex items-start gap-3">
-                  <span className="min-w-0 break-words font-serif text-2xl font-medium tracking-tight">{project.title}</span>
-                  {href ? <ArrowUpRight aria-hidden="true" className="shrink-0 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" size={18} /> : null}
-                </span>
-                <span className="mt-3 block text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                  {project.role} · {project.period}
-                </span>
-              </span>
-              <span>
-                <span className="block text-sm leading-7 text-muted-foreground">
-                  {project.description}
-                </span>
-                <span className="mt-6 flex flex-wrap gap-2">
-                  {project.tags?.map((tag: { tag?: string | null }) => (
-                    <span className="topic-pill" key={tag.tag ?? "tag"}>
-                      {tag.tag}
-                    </span>
+      <div className="project-dossiers">
+        {projects.map((project) => {
+          const relatedIds = "relatedArticles" in project
+            ? (project.relatedArticles as (number | string)[] | undefined) ?? []
+            : [];
+          const status = projectLifecycle(project.period);
+          const period = status ? project.period.replace(` · ${status}`, "") : project.period;
+          const links = relatedIds.flatMap((id) => publicPosts.get(String(id)) ?? []);
+          return (
+            <article id={project.slug} className="project-dossier" key={String(project.id)}>
+              <div>
+                <ProjectStatus period={project.period} />
+                <h2 className="mt-3 font-serif text-2xl font-medium md:text-3xl">{project.title}</h2>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {project.role} · {period}
+                </p>
+                {project.href && (
+                  <Link className="text-link mt-3" href={project.href}
+                    target={project.href.startsWith("http") ? "_blank" : undefined}
+                    rel={project.href.startsWith("http") ? "noopener noreferrer" : undefined}>
+                    查看项目 <ArrowUpRight className="ml-1" size={15} aria-hidden="true" />
+                  </Link>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm leading-7 text-muted-foreground">{project.description}</p>
+                <ul className="mt-5 flex flex-wrap gap-2">
+                  {project.tags?.map(({ tag }: { tag?: string | null }) => (
+                    <li className="topic-pill" key={tag}>{tag}</li>
                   ))}
-                </span>
-                {project.highlights?.length ? (
-                  <span className="mt-7 block border-l border-primary/55 pl-5">
-                    {project.highlights.map((highlight: { text?: string | null }) => (
-                      <span className="block text-sm leading-7 text-foreground/80" key={highlight.text ?? "highlight"}>
-                        {highlight.text}
-                      </span>
+                </ul>
+                {project.highlights && project.highlights.length > 0 && (
+                  <ul className="mt-5 border-l border-primary/45 pl-4 text-sm leading-7">
+                    {project.highlights.map(({ text }: { text?: string | null }) => <li key={text}>{text}</li>)}
+                  </ul>
+                )}
+                {links.length > 0 && (
+                  <ul className="mt-5 border-t border-dashed border-border pt-2" aria-label="相关技术文章">
+                    {links.map((post) => (
+                      <li key={post.id}>
+                        <Link className="text-link" href={`/blog/${post.slug}`}>{post.title} →</Link>
+                      </li>
                     ))}
-                  </span>
-                ) : null}
-              </span>
-            </>
-          );
-
-          return href ? (
-            <Link
-              className={className}
-              href={href}
-              key={String(project.id)}
-              target={href.startsWith("http") ? "_blank" : undefined}
-              rel={href.startsWith("http") ? "noreferrer" : undefined}
-            >
-              {content}
-            </Link>
-          ) : (
-            <article className={className} key={String(project.id)}>
-              {content}
+                  </ul>
+                )}
+              </div>
             </article>
           );
         })}

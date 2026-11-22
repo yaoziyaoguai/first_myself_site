@@ -228,6 +228,8 @@ describe("comments utilities", () => {
 
       expect(global.fetch).toHaveBeenCalledWith("/api/comments?id=1", {
         method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
       });
       expect(result).toEqual({ id: "1" });
     });

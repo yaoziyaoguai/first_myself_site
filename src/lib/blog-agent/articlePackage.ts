@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { parseArticleMarkdown, slugifyArticleHeading } from "./articleMarkdown";
+import { parseArticleMarkdown } from "./articleMarkdown";
+import { slugifyArticleHeading } from "@/lib/articleHeadings";
 import type {
   ArticleChunkRecord,
   ArticleChunkSourceKind,

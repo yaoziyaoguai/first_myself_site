@@ -1,7 +1,11 @@
+import { fromMarkdown } from "mdast-util-from-markdown";
+import { toString } from "mdast-util-to-string";
+import { articleTags } from "@/lib/articleDiscovery";
 import type { Metadata, MetadataRoute } from "next";
 import { SITE_URL, siteDefaults } from "@/content/siteDefaults";
 
 export { SITE_URL };
+export const OG_DEFAULT_PATH = "/og-default.png";
 
 export type DiscoveryPost = {
   title?: unknown;
@@ -11,6 +15,8 @@ export type DiscoveryPost = {
   updatedAt?: unknown;
   status?: unknown;
   visibility?: unknown;
+  tags?: { tag?: string | null }[] | null;
+  contentMarkdown?: string | null;
 };
 
 export type DiscoverySeries = {
@@ -26,6 +32,7 @@ type ArticleDiscoveryInput = {
   publishedDate?: string | null;
   updatedAt?: string | null;
   imageUrl?: string | null;
+  publicImage?: boolean;
   tags?: string[];
 };
 
@@ -61,16 +68,13 @@ function articlePath(slug: string): string {
   return `/blog/${encodeURIComponent(slug)}`;
 }
 
-function articleImageUrl(value?: string | null): string {
-  if (!value) return `${SITE_URL}/og-image.svg`;
-
+function coverImageUrl(value?: string | null): string | undefined {
+  if (!value) return;
   try {
     const image = new URL(value, SITE_URL);
-    return image.protocol === "http:" || image.protocol === "https:"
-      ? image.toString()
-      : `${SITE_URL}/og-image.svg`;
+    if (image.protocol === "http:" || image.protocol === "https:") return image.toString();
   } catch {
-    return `${SITE_URL}/og-image.svg`;
+    return;
   }
 }
 
@@ -79,7 +83,8 @@ export function buildArticleMetadata(
 ): Metadata {
   const path = articlePath(input.slug);
   const shareTitle = `${input.title} | Jinkun Wang`;
-  const image = articleImageUrl(input.imageUrl);
+  const cover = coverImageUrl(input.imageUrl);
+  const image = cover ?? (input.publicImage ? undefined : `${SITE_URL}${OG_DEFAULT_PATH}`);
 
   return {
     title: input.title,
@@ -96,25 +101,26 @@ export function buildArticleMetadata(
       ...(input.publishedDate ? { publishedTime: input.publishedDate } : {}),
       ...(input.updatedAt ? { modifiedTime: input.updatedAt } : {}),
       ...(input.tags?.length ? { tags: input.tags } : {}),
-      images: [
-        {
+      ...(image ? {
+        images: [{
           url: image,
           alt: input.title,
-        },
-      ],
+          ...(!cover ? { width: 1200, height: 630, type: "image/png" } : {}),
+        }],
+      } : {}),
     },
     twitter: {
       card: "summary_large_image",
       title: shareTitle,
       description: input.description,
-      images: [image],
+      ...(image ? { images: [image] } : {}),
     },
   };
 }
 
 export function buildArticleJsonLd(input: ArticleDiscoveryInput) {
   const url = `${SITE_URL}${articlePath(input.slug)}`;
-  const image = articleImageUrl(input.imageUrl);
+  const image = coverImageUrl(input.imageUrl) ?? `${SITE_URL}${OG_DEFAULT_PATH}`;
 
   return {
     "@context": "https://schema.org",
@@ -227,7 +233,16 @@ export function renderRssFeed(posts: DiscoveryPost[]): string {
     .filter(isPublicPost)
     .map((post) => {
       const title = typeof post.title === "string" ? post.title : "未命名文章";
-      const excerpt = summarizeExcerpt(post.excerpt);
+      const excerpt = typeof post.excerpt === "string" ? post.excerpt.trim() : "";
+      const headings = post.contentMarkdown
+        ? fromMarkdown(post.contentMarkdown).children
+          .filter((node) => node.type === "heading" && node.depth === 2)
+          .slice(0, 6)
+          .map((heading) => toString(heading, { includeHtml: false }))
+        : [];
+      const categories = articleTags(post.tags).map((tag) => `      <category>${escapeXml(tag)}</category>`);
+      const description = `<p>${escapeXml(excerpt)}</p>` +
+        (headings.length ? `<ul>${headings.map((heading) => `<li>${escapeXml(heading)}</li>`).join("")}</ul>` : "");
       const link = `${SITE_URL}/blog/${encodeURIComponent(String(post.slug))}`;
       const date =
         typeof post.publishedDate === "string"
@@ -239,8 +254,9 @@ export function renderRssFeed(posts: DiscoveryPost[]): string {
         `      <title>${escapeXml(title)}</title>`,
         `      <link>${escapeXml(link)}</link>`,
         `      <guid>${escapeXml(link)}</guid>`,
-        `      <description>${escapeXml(excerpt)}</description>`,
+        `      <description>${escapeXml(description)}</description>`,
         `      <pubDate>${escapeXml(date)}</pubDate>`,
+        ...categories,
         "    </item>",
       ].join("\n");
     })
@@ -248,10 +264,11 @@ export function renderRssFeed(posts: DiscoveryPost[]): string {
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<rss version="2.0">',
+    '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">',
     "  <channel>",
     "    <title>Jinkun Wang · 学习笔记</title>",
     `    <link>${SITE_URL}</link>`,
+    `    <atom:link href="${SITE_URL}/rss.xml" rel="self" type="application/rss+xml" />`,
     "    <description>数据工程、AI 评测与 Agent 系统的学习记录。</description>",
     "    <language>zh-CN</language>",
     items,

@@ -1,3 +1,5 @@
+import { cache } from "react";
+import type { GlobalAfterChangeHook, SelectType } from "payload";
 import { buildBlogFrontendWhere } from "@/lib/blogVisibility";
 
 /**
@@ -45,6 +47,12 @@ export function revalidateVisitorContent() {
 }
 
 // 与 buildBlogFrontendWhere 的 viewer 形参保持同一类型，避免手写结构类型产生偏差
+export const revalidateVisitorGlobal: GlobalAfterChangeHook = async ({ doc, req }) => {
+  // 启动回填和命令行 seed 使用 Local API，没有 Next 请求上下文。
+  if (req.payloadAPI !== "local") await revalidateVisitorContent();
+  return doc;
+};
+
 type MaybeViewer = Parameters<typeof buildBlogFrontendWhere>[0];
 
 interface ListOpts {
@@ -52,21 +60,33 @@ interface ListOpts {
   depth: 0 | 1;
   sort?: string;
   seriesId?: number | string;
+  summary?: true;
 }
 
-async function findBlogPostsDirect(opts: ListOpts) {
+const articleIndexSelect = {
+  slug: true,
+  title: true,
+  excerpt: true,
+  publishedDate: true,
+  readingTime: true,
+  tags: true,
+  series: true,
+  seriesOrder: true,
+} as const;
+
+async function findBlogPostsDirect(opts: ListOpts, viewer: MaybeViewer = null) {
   const payload = await getPayloadInstance();
-  const where = buildBlogFrontendWhere(null);
-  return payload.find({
+  return payload.find<"blog", SelectType>({
     collection: "blog",
-    overrideAccess: false,
-    where:
-      opts.seriesId !== undefined
-        ? { ...where, series: { equals: opts.seriesId } }
-        : where,
+    ...(!viewer && !BYPASS_CACHE ? { overrideAccess: false } : {}),
+    where: {
+      ...buildBlogFrontendWhere(viewer),
+      ...(opts.seriesId !== undefined ? { series: { equals: opts.seriesId } } : {}),
+    },
     sort: opts.sort,
     limit: opts.limit,
     depth: opts.depth,
+    ...(opts.summary ? { select: articleIndexSelect } : {}),
   });
 }
 
@@ -81,89 +101,65 @@ async function findBlogPostBySlugDirect(slug: string) {
   return result.docs[0] ?? null;
 }
 
-// 惰性构建的 unstable_cache 包装：首次调用时才加载 next/cache
-const lazy = {} as {
-  posts?: (opts: ListOpts) => Promise<Awaited<ReturnType<typeof findBlogPostsDirect>>>;
-  postBySlug?: (slug: string) => Promise<Awaited<ReturnType<typeof findBlogPostBySlugDirect>>>;
-  homeGlobal?: () => Promise<Awaited<ReturnType<typeof findHomeGlobalDirect>>>;
-  projects?: () => Promise<Awaited<ReturnType<typeof findProjectsDirect>>>;
-};
-
-async function findBlogPostsCached(opts: ListOpts) {
-  if (!lazy.posts) {
-    const { unstable_cache } = await import("next/cache");
-    lazy.posts = unstable_cache(
-      (o: ListOpts) => findBlogPostsDirect(o),
-      ["blog-posts-visitor"],
-      { tags: [CACHE_TAG], revalidate: REVALIDATE_SECONDS },
-    );
-  }
-  return lazy.posts(opts);
+function visitorQuery<Args extends unknown[], Result>(
+  key: string,
+  query: (...args: Args) => Promise<Result>,
+) {
+  let cached: typeof query;
+  return async (...args: Args) => {
+    if (!cached) {
+      const { unstable_cache } = await import("next/cache");
+      cached = unstable_cache(query, [key], {
+        tags: [CACHE_TAG],
+        revalidate: REVALIDATE_SECONDS,
+      });
+    }
+    return cached(...args);
+  };
 }
 
-async function findBlogPostBySlugCached(slug: string) {
-  if (!lazy.postBySlug) {
-    const { unstable_cache } = await import("next/cache");
-    lazy.postBySlug = unstable_cache(
-      (s: string) => findBlogPostBySlugDirect(s),
-      ["blog-post-by-slug-visitor"],
-      { tags: [CACHE_TAG], revalidate: REVALIDATE_SECONDS },
-    );
-  }
-  return lazy.postBySlug(slug);
-}
+const findBlogPostsCached = visitorQuery("blog-posts-visitor", (opts: ListOpts) =>
+  findBlogPostsDirect(opts),
+);
+const findBlogPostBySlugCached = visitorQuery("blog-post-by-slug-visitor", findBlogPostBySlugDirect);
 
-async function findHomeGlobalDirect() {
-  const payload = await getPayloadInstance();
-  return payload.findGlobal({ slug: "home" });
-}
-
-async function findHomeGlobalCached() {
-  if (!lazy.homeGlobal) {
-    const { unstable_cache } = await import("next/cache");
-    lazy.homeGlobal = unstable_cache(
-      () => findHomeGlobalDirect(),
-      ["home-global-visitor"],
-      { tags: [CACHE_TAG], revalidate: REVALIDATE_SECONDS },
-    );
-  }
-  return lazy.homeGlobal();
-}
-
-async function findProjectsDirect() {
-  const payload = await getPayloadInstance();
-  return payload.find({ collection: "projects", sort: "sortOrder", limit: 4 });
-}
-
-async function findProjectsCached() {
-  if (!lazy.projects) {
-    const { unstable_cache } = await import("next/cache");
-    lazy.projects = unstable_cache(
-      () => findProjectsDirect(),
-      ["projects-visitor"],
-      { tags: [CACHE_TAG], revalidate: REVALIDATE_SECONDS },
-    );
-  }
-  return lazy.projects();
-}
-
-/** 列表查询：登录态直查，访客走缓存 */
-export async function findBlogPostsForViewer(viewer: MaybeViewer, opts: ListOpts) {
-  if (viewer || BYPASS_CACHE) {
+type PublicGlobal = "home" | "site-settings" | "about" | "contact";
+function publicGlobal<Slug extends PublicGlobal>(slug: Slug) {
+  const direct = async () => {
     const payload = await getPayloadInstance();
-    const where = buildBlogFrontendWhere(viewer);
-    return payload.find({
-      collection: "blog",
-      where:
-        opts.seriesId !== undefined
-          ? { ...where, series: { equals: opts.seriesId } }
-          : where,
-      sort: opts.sort,
-      limit: opts.limit,
-      depth: opts.depth,
-    });
-  }
-  return findBlogPostsCached(opts);
+    return payload.findGlobal({ slug });
+  };
+  const cached = visitorQuery(`global-visitor-${slug}`, direct);
+  return cache((viewer: MaybeViewer) => viewer || BYPASS_CACHE ? direct() : cached());
+}
+
+async function findProjectsDirect(limit: number) {
+  const payload = await getPayloadInstance();
+  return payload.find({ collection: "projects", sort: "sortOrder", limit, depth: 0 });
+}
+const findProjectsCached = visitorQuery("projects-visitor", findProjectsDirect);
+
+async function findPublishedSeriesDirect(slug: string) {
+  const payload = await getPayloadInstance();
+  const { docs } = await payload.find({
+    collection: "blog-series",
+    where: { slug: { equals: slug }, status: { equals: "published" } },
+    limit: 1,
+    depth: 0,
+  });
+  return docs[0] ?? null;
+}
+const findPublishedSeriesCached = visitorQuery(
+  "published-series-by-slug",
+  findPublishedSeriesDirect,
+);
+
+export function findBlogPostsForViewer(viewer: MaybeViewer, opts: ListOpts) {
+  return viewer || BYPASS_CACHE ? findBlogPostsDirect(opts, viewer) : findBlogPostsCached(opts);
+}
+
+export function findArticleIndexForViewer(viewer: MaybeViewer) {
+  return findBlogPostsForViewer(viewer, { sort: "-publishedDate", limit: 500, depth: 1, summary: true });
 }
 
 /** 单篇文章查询：登录态直查，访客走缓存 */
@@ -180,18 +176,15 @@ export async function findBlogPostBySlugForViewer(viewer: MaybeViewer, slug: str
   return findBlogPostBySlugCached(slug);
 }
 
-/** 首页全局配置：登录态直查，访客走缓存 */
-export async function findHomeGlobalForViewer(viewer: MaybeViewer) {
-  if (viewer || BYPASS_CACHE) {
-    return findHomeGlobalDirect();
-  }
-  return findHomeGlobalCached();
+export const findHomeGlobalForViewer = publicGlobal("home");
+export const findSiteSettingsForViewer = publicGlobal("site-settings");
+export const findAboutGlobalForViewer = publicGlobal("about");
+export const findContactGlobalForViewer = publicGlobal("contact");
+
+export function findProjectsForViewer(viewer: MaybeViewer, limit = 4) {
+  return viewer || BYPASS_CACHE ? findProjectsDirect(limit) : findProjectsCached(limit);
 }
 
-/** 项目列表（首页用）：登录态直查，访客走缓存 */
-export async function findProjectsForViewer(viewer: MaybeViewer) {
-  if (viewer || BYPASS_CACHE) {
-    return findProjectsDirect();
-  }
-  return findProjectsCached();
-}
+export const findPublishedSeriesBySlug = cache((viewer: MaybeViewer, slug: string) =>
+  viewer || BYPASS_CACHE ? findPublishedSeriesDirect(slug) : findPublishedSeriesCached(slug),
+);

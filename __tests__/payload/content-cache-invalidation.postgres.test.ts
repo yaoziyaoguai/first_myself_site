@@ -82,27 +82,27 @@ describePostgres("content cache invalidation transaction on PostgreSQL 15", () =
 
   it("rolls back a public-to-private by-ID update when cache invalidation fails", async () => {
     revalidateVisitorContent.mockResolvedValueOnce(undefined);
-    const created = await payload.create({
+    const { id } = await payload.create({
       collection: "cache-test-blogs" as never,
       data: {
         title: "公开文章",
         status: "published",
         visibility: "public",
       } as never,
-    });
+    }) as { id: number };
 
     revalidateVisitorContent.mockRejectedValueOnce(
       new Error("simulated cache invalidation failure"),
     );
     await expect(payload.update({
       collection: "cache-test-blogs" as never,
-      id: created.id,
+      id,
       data: { visibility: "private" } as never,
     })).rejects.toThrow("simulated cache invalidation failure");
 
     await expect(payload.findByID({
       collection: "cache-test-blogs" as never,
-      id: created.id,
+      id,
     })).resolves.toMatchObject({
       status: "published",
       visibility: "public",

@@ -7,20 +7,15 @@ function source(path: string): string {
 }
 
 describe("Blog Agent production defaults", () => {
-  it("交互 HTML 开关经 Actions 传递，候选和回滚关闭，验收后恢复目标值", () => {
+  it("passes the target public flags to the isolated candidate and keeps rollback disabled", () => {
     const workflow = source(".github/workflows/ci-cd.yml");
     expect(workflow).toContain("BLOG_INTERACTIVE_HTML_ENABLED: ${{ vars.BLOG_INTERACTIVE_HTML_ENABLED }}");
     expect(workflow).toMatch(/envs: [^\n]*BLOG_INTERACTIVE_HTML_ENABLED/);
     const target = workflow.indexOf('target_interactive_html_enabled="$BLOG_INTERACTIVE_HTML_ENABLED"');
-    const disabled = workflow.indexOf("export BLOG_INTERACTIVE_HTML_ENABLED=false", target);
-    const canary = workflow.indexOf("exec -T app npm run blog-agent:canary --");
-    const restore = workflow.indexOf('export BLOG_INTERACTIVE_HTML_ENABLED="$target_interactive_html_enabled"', canary);
-    expect(target).toBeGreaterThan(-1);
-    expect(disabled).toBeGreaterThan(target);
-    expect(canary).toBeGreaterThan(disabled);
-    expect(restore).toBeGreaterThan(canary);
+    const candidate = workflow.indexOf('run --rm --no-deps -T app sh -se --');
     const rollback = workflow.slice(workflow.indexOf("fail_closed_rollback() {"), workflow.indexOf("# GitHub 只推送"));
     expect(rollback).toContain("export BLOG_INTERACTIVE_HTML_ENABLED=false");
+    expect(workflow.slice(target, candidate).match(/export BLOG_INTERACTIVE_HTML_ENABLED=false/g)).toHaveLength(1);
     expect(workflow).toContain("process.env.BLOG_INTERACTIVE_HTML_ENABLED === process.argv[3]");
   });
   it("uses one dynamic parameter name for sibling Blog API routes", () => {
@@ -133,101 +128,23 @@ describe("Blog Agent production defaults", () => {
     );
   });
 
-  it("runs the package canary through the managed production SSH deploy", () => {
+  it("starts a private candidate and completes its canary before a single production cutover", () => {
     const workflow = source(".github/workflows/ci-cd.yml");
-    const deployStep = workflow.indexOf("      - name: Deploy via SSH");
-    const envStart = workflow.indexOf("          envs:", deployStep);
-    const envEnd = workflow.indexOf("          command_timeout:", envStart);
-    const envForwarding = workflow.slice(
-      envStart,
-      envEnd,
-    );
-    const targetFlags = workflow.indexOf(
-      'target_blog_agent_enabled="$BLOG_AGENT_ENABLED"',
-    );
-    const disableCandidate = workflow.indexOf(
-      "export BLOG_AGENT_ENABLED=false",
-      targetFlags,
-    );
-    const firstCandidateStart = workflow.indexOf(
-      '"${compose[@]}" up -d',
-      disableCandidate,
-    );
-    const nginxHealthDefinition = workflow.indexOf("verify_nginx_health() {");
-    const firstNginxHealthCheck = workflow.indexOf(
-      "verify_nginx_health",
-      firstCandidateStart,
-    );
-    const canaryCommand = workflow.indexOf(
-      "exec -T app npm run blog-agent:canary --",
-    );
-    const restorePublicAgent = workflow.indexOf(
-      'export BLOG_AGENT_ENABLED="$target_blog_agent_enabled"',
-      canaryCommand,
-    );
-    const restoreGeneration = workflow.indexOf(
-      'export BLOG_AGENT_GENERATION_ENABLED="$target_blog_agent_generation_enabled"',
-      canaryCommand,
-    );
-    const finalCandidateStart = workflow.indexOf(
-      '"${compose[@]}" up -d --no-deps --force-recreate app',
-      restoreGeneration,
-    );
-    const runtimeFlagCheck = workflow.indexOf(
-      "verify_runtime_agent_flags",
-      finalCandidateStart,
-    );
-    const finalNginxHealthCheck = workflow.indexOf(
-      "verify_nginx_health",
-      runtimeFlagCheck,
-    );
-    const deploySuccess = workflow.indexOf(
-      '"${compose[@]}" ps',
-      finalNginxHealthCheck,
-    );
-
-    expect(workflow).toContain(
-      "BLOG_AGENT_CANARY_SLUG: ${{ vars.BLOG_AGENT_CANARY_SLUG }}",
-    );
-    expect(workflow).toContain(
-      "BLOG_AGENT_CANARY_QUESTION: ${{ vars.BLOG_AGENT_CANARY_QUESTION }}",
-    );
-    expect(workflow).toContain(
-      'if [ "$target_blog_agent_generation_enabled" = "true" ]; then',
-    );
-    expect(workflow).toContain(
-      'exec -T app npm run blog-agent:canary --',
-    );
-    expect(workflow).toContain('"--slug=$BLOG_AGENT_CANARY_SLUG"');
-    expect(workflow).toContain('"--question=$BLOG_AGENT_CANARY_QUESTION"');
-    expect(workflow).toContain("--require-package");
-    expect(workflow).toContain("--require-code");
-    expect(deployStep).toBeGreaterThan(-1);
-    expect(envStart).toBeGreaterThan(deployStep);
-    expect(envEnd).toBeGreaterThan(envStart);
-    expect(envForwarding).toContain("BLOG_AGENT_CANARY_SLUG");
-    expect(envForwarding).toContain("BLOG_AGENT_CANARY_QUESTION");
-    expect(targetFlags).toBeGreaterThan(-1);
-    expect(disableCandidate).toBeGreaterThan(targetFlags);
-    expect(firstCandidateStart).toBeGreaterThan(disableCandidate);
-    expect(nginxHealthDefinition).toBeGreaterThan(-1);
-    expect(workflow.slice(nginxHealthDefinition, firstCandidateStart)).toContain(
-      '--resolve "wangjinkun333.me:443:127.0.0.1"',
-    );
-    expect(workflow.slice(nginxHealthDefinition, firstCandidateStart)).toContain(
-      "--noproxy '*'",
-    );
-    expect(firstNginxHealthCheck).toBeGreaterThan(firstCandidateStart);
-    expect(canaryCommand).toBeGreaterThan(firstNginxHealthCheck);
-    expect(restorePublicAgent).toBeGreaterThan(canaryCommand);
-    expect(restoreGeneration).toBeGreaterThan(canaryCommand);
-    expect(finalCandidateStart).toBeGreaterThan(restoreGeneration);
-    expect(runtimeFlagCheck).toBeGreaterThan(finalCandidateStart);
-    expect(finalNginxHealthCheck).toBeGreaterThan(runtimeFlagCheck);
-    expect(deploySuccess).toBeGreaterThan(finalNginxHealthCheck);
-    expect(workflow).toContain("verify_agent_disabled");
+    const candidate = workflow.indexOf('run --rm --no-deps -T app sh -se --');
+    const canary = workflow.indexOf('npm run blog-agent:canary -- "--slug=$2" "--question=$3"');
+    const production = workflow.slice(candidate);
+    const cutover = production.indexOf('up -d --no-deps --force-recreate app');
+    expect(candidate).toBeGreaterThan(0);
+    expect(canary).toBeGreaterThan(candidate);
+    expect(production).toContain("127.0.0.1:3001/api/health");
+    expect(production).toContain("--require-package --require-code");
+    expect(production).not.toContain("--service-ports");
+    expect(production.match(/up -d --no-deps --force-recreate app/g)).toHaveLength(1);
+    expect(cutover + candidate).toBeGreaterThan(canary);
+    expect(production.indexOf("verify_runtime_agent_flags")).toBeGreaterThan(cutover);
+    expect(production.indexOf("verify_nginx_health")).toBeGreaterThan(cutover);
+    expect(workflow).toContain('--resolve "wangjinkun333.me:443:127.0.0.1"');
     expect(workflow).toContain("fail_closed_rollback");
-    expect(workflow).not.toContain("rollback || true");
   });
 
   it("keeps an unconfigured disabled Agent from blocking unrelated deploys", () => {

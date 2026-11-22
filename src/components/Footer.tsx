@@ -2,11 +2,11 @@ import Link from "next/link";
 import { siteDefaults } from "@/content/siteDefaults";
 import { resolveArray, resolveText } from "@/lib/contentFallback";
 import { buildFooterLinks } from "@/lib/contact";
-import { getPayloadAPI } from "@/lib/payload";
+import { getCurrentUser } from "@/lib/auth";
+import { findSiteSettingsForViewer } from "@/lib/visitorContentCache";
 
 export async function Footer() {
-  const payload = await getPayloadAPI();
-  const settings = await payload.findGlobal({ slug: "site-settings" });
+  const settings = await findSiteSettingsForViewer(await getCurrentUser());
   const name = resolveText(settings?.name, siteDefaults.identity.name);
   const bioShort = resolveText(settings?.bioShort, siteDefaults.identity.role);
   const email = resolveText(settings?.email, siteDefaults.identity.email);
@@ -26,7 +26,7 @@ export async function Footer() {
       <div className="site-shell grid gap-10 py-12 md:grid-cols-[1fr_auto] md:items-end">
         <div>
           <p className="font-serif text-xl font-semibold">
-            Jinkun Wang{" "}
+            {name}{" "}
             <span className="ml-2 font-mono text-xs font-normal tracking-widest text-muted-foreground">
               FIELD NOTES
             </span>

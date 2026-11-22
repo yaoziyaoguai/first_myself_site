@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { getPayload } from "payload";
 import config from "@payload-config";
 
@@ -7,7 +8,7 @@ import config from "@payload-config";
  * 仅用于服务端组件（Server Components）
  * @returns 当前用户对象，未登录返回 null
  */
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async () => {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("payload-token")?.value;
@@ -32,7 +33,7 @@ export async function getCurrentUser() {
     // 认证失败，返回 null
     return null;
   }
-}
+});
 
 /**
  * 检查当前用户是否为管理员

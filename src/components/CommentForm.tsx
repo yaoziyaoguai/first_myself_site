@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { Send, Loader2 } from "lucide-react";
@@ -22,7 +22,9 @@ export function CommentForm({
   const [authorName, setAuthorName] = useState("");
   const [authorEmail, setAuthorEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [charCount, setCharCount] = useState(0);
+  const nameId = useId();
+  const emailId = useId();
+  const charCount = content.length;
 
   const MAX_CHARS = 1000;
 
@@ -30,7 +32,6 @@ export function CommentForm({
     const value = e.target.value;
     if (value.length <= MAX_CHARS) {
       setContent(value);
-      setCharCount(value.length);
       setError(null);
     }
   };
@@ -65,7 +66,6 @@ export function CommentForm({
       setContent("");
       setAuthorName("");
       setAuthorEmail("");
-      setCharCount(0);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "提交失败，请稍后重试");
@@ -73,20 +73,18 @@ export function CommentForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className={cn("space-y-3", compact && "space-y-2")}>
-      {/* 昵称和邮箱输入（仅在非紧凑模式下显示） */}
-      {!compact && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <form noValidate onSubmit={handleSubmit} className={cn("space-y-3", compact && "space-y-2")}>
+      <div className={cn("grid gap-3", !compact && "sm:grid-cols-2")}>
           <div>
             <label
-              htmlFor="authorName"
+              htmlFor={nameId}
               className="block text-sm font-medium text-muted-foreground mb-1"
             >
               昵称（可选）
             </label>
             <input
               type="text"
-              id="authorName"
+              id={nameId}
               value={authorName}
               onChange={(e) => setAuthorName(e.target.value)}
               placeholder="匿名用户"
@@ -98,16 +96,16 @@ export function CommentForm({
               )}
             />
           </div>
-          <div>
+          {!compact && <div>
             <label
-              htmlFor="authorEmail"
+              htmlFor={emailId}
               className="block text-sm font-medium text-muted-foreground mb-1"
             >
               邮箱（可选）
             </label>
             <input
               type="email"
-              id="authorEmail"
+              id={emailId}
               value={authorEmail}
               onChange={(e) => setAuthorEmail(e.target.value)}
               placeholder="your@email.com"
@@ -118,15 +116,15 @@ export function CommentForm({
                 "placeholder:text-foreground/50"
               )}
             />
-          </div>
-        </div>
-      )}
+          </div>}
+      </div>
 
       {/* 评论内容输入 */}
       <div>
         <textarea
           value={content}
           onChange={handleContentChange}
+          aria-label={compact ? "回复内容" : "评论内容"}
           placeholder="写下你的评论..."
           rows={compact ? 3 : 4}
           maxLength={MAX_CHARS}
@@ -149,17 +147,12 @@ export function CommentForm({
           >
             {charCount} / {MAX_CHARS}
           </span>
-          {compact && (
-            <span className="text-xs text-muted-foreground">
-              回复评论
-            </span>
-          )}
         </div>
       </div>
 
       {/* 错误信息 */}
       {error && (
-        <div className="border-l-2 border-destructive bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <div role="alert" className="border-l-2 border-destructive bg-destructive/5 px-3 py-2 text-sm text-destructive">
           {error}
         </div>
       )}

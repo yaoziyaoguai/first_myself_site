@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { siteDefaults, type ContentCard, type TechGroup } from "@/content/siteDefaults";
 import { resolveArray, resolveText } from "@/lib/contentFallback";
-import { getPayloadAPI } from "@/lib/payload";
+import { getCurrentUser } from "@/lib/auth";
+import { findAboutGlobalForViewer, findSiteSettingsForViewer } from "@/lib/visitorContentCache";
 
 export const dynamic = "force-dynamic";
 
@@ -12,10 +13,10 @@ export const metadata: Metadata = {
 };
 
 export default async function AboutPage() {
-  const payload = await getPayloadAPI();
+  const viewer = await getCurrentUser();
   const [settings, about] = await Promise.all([
-    payload.findGlobal({ slug: "site-settings" }),
-    payload.findGlobal({ slug: "about" }),
+    findSiteSettingsForViewer(viewer),
+    findAboutGlobalForViewer(viewer),
   ]);
 
   const name = resolveText(settings?.name, siteDefaults.identity.name);

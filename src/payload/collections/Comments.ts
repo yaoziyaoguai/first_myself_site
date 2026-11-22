@@ -70,6 +70,17 @@ const Comments: CollectionConfig = {
       defaultValue: "匿名用户",
     },
     {
+      name: "isAuthorRole",
+      type: "checkbox",
+      label: "作者评论",
+      defaultValue: false,
+      access: {
+        create: ({ req }) => req.user?.role === "admin",
+        update: () => false,
+      },
+      admin: { readOnly: true },
+    },
+    {
       name: "authorEmail",
       type: "email",
       label: "邮箱",

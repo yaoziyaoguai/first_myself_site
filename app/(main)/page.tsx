@@ -1,17 +1,20 @@
+import "./listing.css";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { ProjectStatus } from "@/components/ProjectStatus";
 import { ArticleLinkFeedback } from "@/components/ArticleLinkFeedback";
 import {
   siteDefaults,
   type ContentCard,
   type Direction,
 } from "@/content/siteDefaults";
-import { isAdmin, getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { resolveArray, resolveText } from "@/lib/contentFallback";
 import { summarizeExcerpt } from "@/lib/discovery";
-import { populatedSeries } from "@/lib/blogSeries";
+import { articleTags } from "@/lib/articleDiscovery";
+import { buildSeriesCollections, populatedSeries } from "@/lib/blogSeries";
 import {
-  findBlogPostsForViewer,
+  findArticleIndexForViewer,
   findHomeGlobalForViewer,
   findProjectsForViewer,
 } from "@/lib/visitorContentCache";
@@ -20,14 +23,11 @@ import { formatSiteDate } from "@/lib/siteDate";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [viewer, admin] = await Promise.all([getCurrentUser(), isAdmin()]);
+  const viewer = await getCurrentUser();
+  const admin = viewer?.role === "admin";
   const [home, postsResult, projectsResult] = await Promise.all([
     findHomeGlobalForViewer(viewer),
-    findBlogPostsForViewer(viewer, {
-      sort: "-publishedDate",
-      limit: 4,
-      depth: 1,
-    }),
+    findArticleIndexForViewer(viewer),
     findProjectsForViewer(viewer),
   ]);
 
@@ -52,13 +52,19 @@ export default async function Home() {
           period: project.period,
           href: resolveText(project.href, "/projects"),
           tags: project.tags ?? [],
+          highlights: project.highlights ?? [],
         }))
       : siteDefaults.projects;
   const featuredPost = postsResult.docs[0] ?? null;
-  const recentPosts = postsResult.docs.slice(1);
+  const recentPosts = postsResult.docs.slice(1, 4);
   const featuredSeries = postsResult.docs
     .map((post) => populatedSeries(post.series))
     .find(Boolean);
+  const featuredCollection = buildSeriesCollections(postsResult.docs)
+    .find(({ series }) => series.id === featuredSeries?.id);
+  const latestMonth = featuredPost?.publishedDate
+    ? formatSiteDate(featuredPost.publishedDate).slice(0, 7)
+    : "";
 
   return (
     <div className="site-shell home-page">
@@ -70,6 +76,9 @@ export default async function Home() {
               <span key={item.label}>{item.label}</span>
             ))}
           </div>
+          {latestMonth && (
+            <p className="mt-3 font-mono text-xs text-muted-foreground">最近更新于 {latestMonth}</p>
+          )}
         </div>
         <div className="home-intro-copy">
           <p>{role}</p>
@@ -91,6 +100,8 @@ export default async function Home() {
                   ? formatSiteDate(featuredPost.publishedDate)
                   : ""}
               </time>
+              {featuredPost.readingTime && <span>{featuredPost.readingTime}</span>}
+              {articleTags(featuredPost.tags).slice(0, 2).map((tag) => <span key={tag}>#{tag}</span>)}
             </span>
             <h2>{featuredPost.title}</h2>
             <span className="home-feature-excerpt">
@@ -114,23 +125,35 @@ export default async function Home() {
         )}
         <aside className="home-series">
           <p className="home-series-label">按主题读</p>
-          {featuredSeries ? (
+          {featuredCollection ? (
             <>
               <h2>
                 <Link
                   prefetch={false}
-                  href={`/blog/series/${featuredSeries.slug}`}
+                  href={`/blog/series/${featuredCollection.series.slug}`}
                 >
-                  {featuredSeries.title}
+                  {featuredCollection.series.title}
                 </Link>
               </h2>
               <p className="home-series-description">
-                {featuredSeries.description}
+                {featuredCollection.series.description}
               </p>
+              <p className="mt-3 font-mono text-xs text-muted-foreground">
+                共 {featuredCollection.articles.length} 篇 · {featuredCollection.series.progress === "completed" ? "已完结" : "持续更新"}
+              </p>
+              <ol className="series-preview mt-3">
+                {featuredCollection.articles.slice(0, 2).map((article, index) => (
+                  <li key={article.id}>
+                    <Link prefetch={false} href={`/blog/${article.slug}`}>
+                      <span>{String(index + 1).padStart(2, "0")}</span> {String(article.title)}
+                    </Link>
+                  </li>
+                ))}
+              </ol>
               <Link
                 prefetch={false}
                 className="text-link"
-                href={`/blog/series/${featuredSeries.slug}`}
+                href={`/blog/series/${featuredCollection.series.slug}`}
               >
                 打开合集目录{" "}
                 <ArrowUpRight className="ml-2" size={17} aria-hidden="true" />
@@ -209,9 +232,7 @@ export default async function Home() {
               rel={project.href.startsWith("http") ? "noreferrer" : undefined}
             >
               <div className="flex items-start justify-between gap-4">
-                <p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground">
-                  {project.role}
-                </p>
+                <ProjectStatus period={project.period} />
                 <ArrowUpRight
                   aria-hidden="true"
                   className="text-muted-foreground transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
@@ -224,7 +245,12 @@ export default async function Home() {
               <p className="mt-4 text-sm leading-7 text-muted-foreground">
                 {project.description}
               </p>
-              <div className="mt-auto flex flex-wrap gap-x-3 gap-y-2 pt-8">
+              {project.highlights[0]?.text && (
+                <p className="mt-4 border-l border-primary/45 pl-3 font-mono text-xs leading-6 text-muted-foreground">
+                  {project.highlights[0].text}
+                </p>
+              )}
+              <div className="mt-auto flex flex-wrap gap-x-3 gap-y-2 pt-6">
                 {project.tags
                   ?.slice(0, 3)
                   .map((tag: { tag?: string | null }) => (

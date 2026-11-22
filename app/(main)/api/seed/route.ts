@@ -1,15 +1,16 @@
+import { matchesAdminToken } from "@/lib/adminToken";
 import { NextResponse } from "next/server";
 import { getPayloadAPI } from "@/lib/payload";
+import { revalidateVisitorContent } from "@/lib/visitorContentCache";
 import { seedDevelopmentContent } from "@/payload/seedDevelopmentContent";
 
-export async function GET(request: Request) {
+export async function POST(request: Request) {
   if (process.env.NODE_ENV === "production") {
     return NextResponse.json({ error: "Not allowed in production" }, { status: 403 });
   }
 
   const expectedToken = process.env.ADMIN_SECRET_TOKEN;
-  const authorization = request.headers.get("Authorization");
-  if (!expectedToken || authorization !== `Bearer ${expectedToken}`) {
+  if (!expectedToken || !matchesAdminToken(request, expectedToken)) {
     return NextResponse.json(
       { error: "Unauthorized: missing or invalid token" },
       { status: 401 },
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
   try {
     const payload = await getPayloadAPI();
     const results = await seedDevelopmentContent(payload);
+    await revalidateVisitorContent();
     return NextResponse.json({ success: true, results });
   } catch (error) {
     return NextResponse.json(

@@ -1,5 +1,5 @@
 import type { GlobalConfig } from "payload";
-import { revalidateVisitorContent } from "@/lib/visitorContentCache";
+import { revalidateVisitorGlobal } from "@/lib/visitorContentCache";
 
 const Home: GlobalConfig = {
   slug: "home",
@@ -8,16 +8,7 @@ const Home: GlobalConfig = {
     description: "管理首页介绍、方向标签和“最近在学习”模块。",
     group: "页面内容",
   },
-  hooks: {
-    // 首页配置更新后让访客数据缓存失效（60s 兜底仍在）
-    afterChange: [
-      async () => {
-        await revalidateVisitorContent().catch((error) => {
-          console.warn("[cache] revalidate after home global change failed:", error);
-        });
-      },
-    ],
-  },
+  hooks: { afterChange: [revalidateVisitorGlobal] },
   fields: [
     {
       name: "title",

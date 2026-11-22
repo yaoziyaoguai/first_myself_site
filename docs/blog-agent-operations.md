@@ -110,7 +110,7 @@ Canary 不经过公网 API、不要求 `BLOG_AGENT_ENABLED=true`、不写 Blog�
 
 DeepSeek V4 默认开启 thinking mode。当前 Blog Agent 明确使用 `deepseek-v4-flash` 的 non-thinking mode：该链路只做有界文章问答和严格 JSON 输出，关闭 thinking 可以避免推理 token 挤占 600 token 的结构化答案预算，并降低延迟与费用。
 
-GitHub 部署流程会保存目标开关，然后强制以 `BLOG_AGENT_ENABLED=false`、`BLOG_AGENT_GENERATION_ENABLED=false` 启动候选版本。候选完成内部健康检查、域名/TLS 检查和同一条 `--require-package --require-code` canary 后，工作流才恢复目标开关、重建 app，并复验健康状态与容器中的实际开关值。任何失败都会用关闭状态回滚上一镜像；若回滚本身失败，则停止 app，避免未验证或已开启的 Agent 继续对外服务。因此个人电脑不需要持有生产 SSH 密钥。
+GitHub 部署先备份并执行数据库迁移，再通过 `compose run --rm --no-deps` 启动独立候选。候选不发布宿主机端口，在容器内用目标开关完成健康检查。生成开关开启时运行 `--require-package --require-code` Canary。通过后替换线上 app 一次，并验证容器开关、域名和 TLS。候选验证失败时现有应用继续服务。切换后验证失败时，用关闭 Agent 和交互 HTML 的配置回滚上一镜像。
 
 数据库 migration 在 canary 前执行，镜像回滚不会反向撤销数据库变更。因此所有 production migration 必须与上一版应用保持向后兼容，确保旧镜像在新 schema 上仍可安全运行。
 

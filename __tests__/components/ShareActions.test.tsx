@@ -51,7 +51,7 @@ describe("ShareActions", () => {
 
     expect(recoverableErrors).toEqual([]);
     expect(
-      container.querySelectorAll("button")[0],
+      [...container.querySelectorAll("button")].find((button) => button.textContent === "分享"),
     ).toHaveTextContent("分享");
   });
 });

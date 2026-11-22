@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { NavbarSearch } from "@/components/NavbarSearch";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -12,11 +13,18 @@ const navLinks = [
   { href: "/contact", label: "联系" },
 ];
 
-export function Navbar() {
+export function Navbar({ admin = false }: { admin?: boolean }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const toggle = useRef<HTMLButtonElement>(null);
   const header = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const onScroll = () => header.current?.setAttribute("data-scrolled", String(window.scrollY > 24));
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -92,6 +100,9 @@ export function Navbar() {
           })}
         </nav>
 
+        <div className="flex items-center gap-2">
+          <NavbarSearch />
+          {admin && <Link prefetch={false} href="/admin" className="nav-admin hidden md:inline-flex">后台 ↗</Link>}
         <button
           ref={toggle}
           aria-controls="mobile-navigation"
@@ -110,6 +121,7 @@ export function Navbar() {
             />
           </span>
         </button>
+        </div>
       </div>
 
       {open ? (
@@ -119,7 +131,7 @@ export function Navbar() {
           id="mobile-navigation"
         >
           <div className="site-shell grid py-3">
-            {navLinks.map((link, index) => {
+            {navLinks.map((link) => {
               const active =
                 link.href === "/"
                   ? pathname === "/"
@@ -134,15 +146,10 @@ export function Navbar() {
                   onClick={() => setOpen(false)}
                 >
                   <span>{link.label}</span>
-                  <span
-                    className="font-mono text-[0.65rem] text-muted-foreground"
-                    aria-hidden="true"
-                  >
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
                 </Link>
               );
             })}
+            {admin && <Link prefetch={false} href="/admin" className="nav-admin mt-3 justify-self-start">后台 ↗</Link>}
           </div>
         </nav>
       ) : null}

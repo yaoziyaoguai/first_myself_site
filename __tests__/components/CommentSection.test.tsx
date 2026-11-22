@@ -94,26 +94,25 @@ describe("CommentSection", () => {
   });
 
   it("should render comment section with title", async () => {
-    render(<CommentSection targetId="blog-1" targetType="blog" />);
+    render(<CommentSection targetId="blog-1" targetType="blog" initialIsAdmin={false} />);
 
     await waitFor(() => {
-      expect(screen.getByText("评论")).toBeInTheDocument();
+      expect(screen.getByText("讨论与交流")).toBeInTheDocument();
     });
   });
 
   it("should show comment count in title", async () => {
-    render(<CommentSection targetId="blog-1" targetType="blog" />);
+    render(<CommentSection targetId="blog-1" targetType="blog" initialIsAdmin={false} />);
 
     await waitFor(() => {
-      // 使用级别选择器匹配主标题 h3
-      const heading = screen.getByRole('heading', { level: 3, name: /评论/ });
+      const heading = screen.getByRole("heading", { level: 2, name: /讨论与交流/ });
       expect(heading).toBeInTheDocument();
       expect(screen.getByText(/\(2\)/)).toBeInTheDocument();
     });
   });
 
   it("should render comment form", async () => {
-    render(<CommentSection targetId="blog-1" targetType="blog" />);
+    render(<CommentSection targetId="blog-1" targetType="blog" initialIsAdmin={false} />);
 
     await waitFor(() => {
       expect(screen.getByTestId("comment-form")).toBeInTheDocument();
@@ -121,7 +120,7 @@ describe("CommentSection", () => {
   });
 
   it("should load and display comments", async () => {
-    render(<CommentSection targetId="blog-1" targetType="blog" />);
+    render(<CommentSection targetId="blog-1" targetType="blog" initialIsAdmin={false} />);
 
     await waitFor(() => {
       expect(screen.getByTestId("comment-1")).toBeInTheDocument();
@@ -132,36 +131,16 @@ describe("CommentSection", () => {
     expect(screen.getByText("Second comment")).toBeInTheDocument();
   });
 
-  it("should check admin status on mount", async () => {
-    // Mock fetch for auth check
-    (global.fetch as Mock).mockImplementation((url: string) => {
-      if (url === "/api/auth/check") {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ isAdmin: true }),
-        });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ isAdmin: false }),
-      });
-    });
-
-    render(<CommentSection targetId="blog-1" targetType="blog" />);
-
-    // 等待组件加载完成
-    await waitFor(() => {
-      expect(screen.getByText("评论")).toBeInTheDocument();
-    });
-
-    // 验证 fetch 被调用
-    expect(global.fetch).toHaveBeenCalledWith("/api/auth/check");
+  it("uses the initial server admin state without an auth request", async () => {
+    render(<CommentSection targetId="blog-1" targetType="blog" initialIsAdmin />);
+    expect(await screen.findByTestId("delete-1")).toBeInTheDocument();
+    expect(global.fetch).not.toHaveBeenCalledWith("/api/auth/check");
   });
 
   it("should show loading state initially", () => {
-    render(<CommentSection targetId="blog-1" targetType="blog" />);
+    render(<CommentSection targetId="blog-1" targetType="blog" initialIsAdmin={false} />);
 
-    expect(screen.getByText("评论")).toBeInTheDocument();
+    expect(screen.getByText("讨论与交流")).toBeInTheDocument();
   });
 
   it("should show empty state when no comments", async () => {
@@ -174,10 +153,10 @@ describe("CommentSection", () => {
       hasPrevPage: false,
     });
 
-    render(<CommentSection targetId="blog-1" targetType="blog" />);
+    render(<CommentSection targetId="blog-1" targetType="blog" initialIsAdmin={false} />);
 
     await waitFor(() => {
-      expect(screen.getByText(/暂无评论/)).toBeInTheDocument();
+      expect(screen.getByText(/欢迎留下你的笔记/)).toBeInTheDocument();
     });
   });
 
@@ -191,7 +170,7 @@ describe("CommentSection", () => {
       targetType: "blog",
     });
 
-    render(<CommentSection targetId="blog-1" targetType="blog" />);
+    render(<CommentSection targetId="blog-1" targetType="blog" initialIsAdmin={false} />);
 
     await waitFor(() => {
       expect(screen.getByTestId("submit-comment")).toBeInTheDocument();
@@ -223,7 +202,7 @@ describe("CommentSection", () => {
       parentId: "1",
     });
 
-    render(<CommentSection targetId="blog-1" targetType="blog" />);
+    render(<CommentSection targetId="blog-1" targetType="blog" initialIsAdmin={false} />);
 
     await waitFor(() => {
       expect(screen.getByTestId("reply-1")).toBeInTheDocument();
@@ -237,28 +216,11 @@ describe("CommentSection", () => {
   });
 
   it("should handle comment deletion for admin", async () => {
-    // Mock auth check to return admin
-    (global.fetch as Mock).mockImplementation((url: string) => {
-      if (url === "/api/auth/check") {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ isAdmin: true }),
-        });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ isAdmin: false }),
-      });
-    });
-
     const softDeleteSpy = vi
       .spyOn(commentsLib, "softDeleteComment")
       .mockResolvedValue({ id: "1" });
 
-    // Mock confirm
-    window.confirm = vi.fn(() => true);
-
-    render(<CommentSection targetId="blog-1" targetType="blog" />);
+    render(<CommentSection targetId="blog-1" targetType="blog" initialIsAdmin />);
 
     await waitFor(() => {
       expect(screen.getByTestId("delete-1")).toBeInTheDocument();
@@ -282,7 +244,7 @@ describe("CommentSection", () => {
       hasPrevPage: false,
     });
 
-    render(<CommentSection targetId="blog-1" targetType="blog" />);
+    render(<CommentSection targetId="blog-1" targetType="blog" initialIsAdmin={false} />);
 
     await waitFor(() => {
       expect(screen.getByText("加载更多评论")).toBeInTheDocument();
@@ -309,7 +271,7 @@ describe("CommentSection", () => {
         hasPrevPage: true,
       });
 
-    render(<CommentSection targetId="blog-1" targetType="blog" />);
+    render(<CommentSection targetId="blog-1" targetType="blog" initialIsAdmin={false} />);
 
     await waitFor(() => {
       expect(screen.getByText("加载更多评论")).toBeInTheDocument();
@@ -325,7 +287,7 @@ describe("CommentSection", () => {
   it("should handle error when loading comments", async () => {
     vi.spyOn(commentsLib, "getComments").mockRejectedValue(new Error("Network error"));
 
-    render(<CommentSection targetId="blog-1" targetType="blog" />);
+    render(<CommentSection targetId="blog-1" targetType="blog" initialIsAdmin={false} />);
 
     await waitFor(() => {
       expect(screen.getByText(/加载评论失败/)).toBeInTheDocument();
@@ -334,7 +296,7 @@ describe("CommentSection", () => {
 
   it("should apply custom className", () => {
     const { container } = render(
-      <CommentSection targetId="blog-1" targetType="blog" className="custom-class" />
+      <CommentSection targetId="blog-1" targetType="blog" initialIsAdmin={false} className="custom-class" />
     );
 
     expect(container.firstChild).toHaveClass("custom-class");

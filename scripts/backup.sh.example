@@ -5,5 +5,7 @@ set -euo pipefail
 export PROJECT_DIR="/srv/first_myself_site"
 export BACKUP_DIR="/srv/backups/first_myself_site"
 export MAX_BACKUPS="7"
+# 在私有 OSS Bucket 启用对象存储备份时，使用主机已配置的 ossutil 2.x 身份。
+# export BACKUP_OSS_URI="oss://my-private-backups/first-myself-site"
 
 exec "$PROJECT_DIR/scripts/backup.sh"
