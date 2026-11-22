@@ -9,5 +9,7 @@ export async function GET() {
     title: String(post.title),
     excerpt: summarizeExcerpt(post.excerpt, 170),
     tags: articleTags(post.tags),
-  })));
+  })), {
+    headers: { "Cache-Control": "no-store" },
+  });
 }

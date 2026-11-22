@@ -40,7 +40,7 @@ describe("ArticleIndex", () => {
   it("filters locally and restores the full list without changing article URLs", async () => {
     const user = userEvent.setup();
     const { rerender } = render(<ArticleIndex articles={articles} />);
-    await user.click(screen.getByRole("button", { name: "Agent 1" }));
+    await user.click(screen.getByRole("button", { name: "Agent [1]" }));
     expect(location.search).toBe("?tag=Agent");
     rerender(<ArticleIndex articles={articles} />);
     expect(screen.getByRole("link", { name: /执行边界/ })).toHaveAttribute(
@@ -51,7 +51,7 @@ describe("ArticleIndex", () => {
       screen.queryByRole("link", { name: /数据管道/ }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("1 篇文章");
-    await user.click(screen.getByRole("button", { name: "全部 2" }));
+    await user.click(screen.getByRole("button", { name: "全部 [2]" }));
     rerender(<ArticleIndex articles={articles} />);
     expect(screen.getByRole("link", { name: /数据管道/ })).toBeInTheDocument();
   });
@@ -61,13 +61,13 @@ describe("ArticleIndex", () => {
     const extra = [{ ...articles[0], tags: ["A", "B", "C", "D", "E", "F", "G"] }];
     const { rerender } = render(<ArticleIndex articles={extra} />);
     expect(
-      screen.queryByRole("button", { name: "G 1" }),
+      screen.queryByRole("button", { name: "G [1]" }),
     ).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "更多主题 +" }));
-    await user.click(screen.getByRole("button", { name: "G 1" }));
+    await user.click(screen.getByRole("button", { name: "G [1]" }));
     rerender(<ArticleIndex articles={extra} />);
     await user.click(screen.getByRole("button", { name: "收起主题 −" }));
-    expect(screen.getByRole("button", { name: "G ×" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "G [1]" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );

@@ -45,7 +45,7 @@ describe("CommentItem", () => {
       />
     );
 
-    expect(screen.getByText("作者")).toBeInTheDocument();
+    expect(screen.getByText("Author")).toHaveAttribute("aria-label", "作者");
   });
 
   it("should show delete button for admin", () => {

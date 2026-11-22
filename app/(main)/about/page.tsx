@@ -36,7 +36,7 @@ export default async function AboutPage() {
 
   return (
     <div className="site-shell page-space">
-      <header className="page-header">
+      <header className="page-header tech-grid-backdrop">
         <p className="eyebrow">ABOUT</p>
         <h1>关于我</h1>
         <p>
@@ -51,7 +51,7 @@ export default async function AboutPage() {
         <div className="divide-y divide-border border-y border-border">
           {workDirections.map((direction) => (
             <article className="grid gap-3 py-7 sm:grid-cols-[11rem_1fr]" key={direction.title}>
-              <h3 className="font-serif text-lg font-medium">{direction.title}</h3>
+              <h3 className="font-sans text-lg font-medium">{direction.title}</h3>
               <p className="text-sm leading-7 text-muted-foreground">{direction.description}</p>
             </article>
           ))}
@@ -65,10 +65,12 @@ export default async function AboutPage() {
         <div className="grid border-y border-border sm:grid-cols-3">
           {techStack.map((group) => (
             <article className="border-b border-border py-7 last:border-b-0 sm:border-b-0 sm:border-r sm:px-6 sm:first:pl-0 sm:last:border-r-0" key={group.category}>
-              <h3 className="font-serif text-lg font-medium">{group.category}</h3>
-              <p className="mt-4 text-sm leading-7 text-muted-foreground">
-                {group.items.split(",").map((item) => item.trim()).join(" · ")}
-              </p>
+              <h3 className="font-sans text-lg font-medium">{group.category}</h3>
+              <ul className="mt-4 flex flex-wrap gap-2">
+                {group.items.split(",").map((item) => item.trim()).filter(Boolean).map((item, index) => (
+                  <li className="topic-pill" key={`${index}-${item}`}>{item}</li>
+                ))}
+              </ul>
             </article>
           ))}
         </div>
@@ -81,7 +83,7 @@ export default async function AboutPage() {
         <div className="grid border-y border-border sm:grid-cols-2">
           {focusAreas.map((area) => (
             <article className="border-b border-border py-8 last:border-b-0 sm:border-b-0 sm:border-r sm:px-7 sm:first:pl-0 sm:last:border-r-0" key={area.title}>
-              <h3 className="font-serif text-xl font-medium">{area.title}</h3>
+              <h3 className="font-sans text-xl font-medium">{area.title}</h3>
               <p className="mt-3 text-sm leading-7 text-muted-foreground">{area.description}</p>
             </article>
           ))}

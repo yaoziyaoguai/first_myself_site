@@ -11,7 +11,9 @@ import {
 } from "@payloadcms/ui";
 import type { TextareaFieldClientComponent, StaticDescription } from "payload";
 
+import { ArticleCodeBlock, ArticleTable } from "@/components/ArticleBlocks";
 import { InteractiveHtmlEmbed } from "@/components/InteractiveHtmlEmbed";
+import { decorateArticleStructure } from "@/lib/articleStructure";
 import { markerFromElementProps } from "@/lib/interactive-html/ast";
 import { parseMarkdown, renderMarkdown } from "@/lib/renderMarkdown";
 import { InteractiveInsertPanel } from "./InteractiveInsertPanel";
@@ -119,7 +121,7 @@ function sourceOffset(node?: { position?: { start?: { offset?: number } } }) {
   return node?.position?.start?.offset;
 }
 
-const markdownComponents: Components = {
+const markdownComponents = {
   h1: ({ node, ...props }) => (
     <h1 data-source-offset={sourceOffset(node)} {...props} />
   ),
@@ -150,16 +152,22 @@ const markdownComponents: Components = {
   ol: ({ node, ...props }) => (
     <ol data-source-offset={sourceOffset(node)} {...props} />
   ),
-  pre: ({ node, ...props }) => (
-    <pre data-source-offset={sourceOffset(node)} {...props} />
+  pre: ({ node, children }) => (
+    <ArticleCodeBlock node={node!} sourceOffset={sourceOffset(node)}>{children}</ArticleCodeBlock>
   ),
-  table: ({ node, ...props }) => (
-    <table data-source-offset={sourceOffset(node)} {...props} />
+  table: ({ node, children }) => (
+    <ArticleTable sourceOffset={sourceOffset(node)}>{children}</ArticleTable>
   ),
+  figure: ({ node, ...props }) => <figure data-source-offset={sourceOffset(node)} {...props} />,
+  "article-image": ({ node, alt, ...props }) => {
+    void node;
+    // eslint-disable-next-line @next/next/no-img-element -- 编辑中的图片允许临时 URL 和未填写尺寸。
+    return <img {...props} alt={alt} />;
+  },
   hr: ({ node, ...props }) => (
     <hr data-source-offset={sourceOffset(node)} {...props} />
   ),
-};
+} satisfies Components & { "article-image": Components["img"] };
 
 function getSourceLines(content: string) {
   let offset = 0;
@@ -197,7 +205,11 @@ export const MarkdownPreviewField: TextareaFieldClientComponent = ({
   // `useField<string>` is a type assertion; empty input is persisted as null.
   const content = value || "";
   const { id: documentId } = useDocumentInfo();
-  const tree = useMemo(() => parseMarkdown(content), [content]);
+  const tree = useMemo(() => {
+    const parsed = parseMarkdown(content);
+    decorateArticleStructure(parsed);
+    return parsed;
+  }, [content]);
   const embedComponent = useCallback(function PreviewInteractiveHtmlEmbed(props: Record<string, unknown>) {
     return (
       <InteractiveHtmlEmbed

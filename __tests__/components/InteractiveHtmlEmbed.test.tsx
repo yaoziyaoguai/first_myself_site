@@ -1,3 +1,4 @@
+import { Blob } from "node:buffer";
 import {
   act,
   fireEvent,
@@ -302,7 +303,8 @@ describe("InteractiveHtmlEmbed", () => {
 });
 
 describe("MarkdownArticle 互动块接入", () => {
-  it("只把合法 marker 渲染为受控块，其余代码围栏保持普通代码", () => {
+  beforeEach(() => vi.stubGlobal("Blob", Blob));
+  it("只把合法 marker 渲染为受控块，其余代码围栏保持普通代码", async () => {
     const markdown = [
       canonicalFence(MARKER),
       "",
@@ -314,7 +316,7 @@ describe("MarkdownArticle 互动块接入", () => {
       "not json",
       "```",
     ].join("\n");
-    render(<MarkdownArticle markdown={markdown} blogId="42" />);
+    render(await MarkdownArticle({ markdown, blogId: "42" }));
 
     expect(document.querySelectorAll(".interactive-html")).toHaveLength(1);
     expect(
@@ -325,8 +327,8 @@ describe("MarkdownArticle 互动块接入", () => {
     expect(screen.getAllByRole("region", { name: "可横向滚动的代码" }).some((region) => region.textContent?.includes("console.log(1)"))).toBe(true);
   });
 
-  it("多个 marker 各自独立，块间普通段落不影响数量", () => {
-    render(<MarkdownArticle markdown={markdownWithMarkers()} blogId="42" />);
+  it("多个 marker 各自独立，块间普通段落不影响数量", async () => {
+    render(await MarkdownArticle({ markdown: markdownWithMarkers(), blogId: "42" }));
     expect(document.querySelectorAll(".interactive-html")).toHaveLength(2);
     expect(screen.getByText("中间段落")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "启动交互" })).toHaveLength(2);
@@ -339,7 +341,7 @@ describe("MarkdownArticle 互动块接入", () => {
       "\n",
     );
     const { rerender } = render(
-      <MarkdownArticle markdown={markdown} blogId="42" />,
+      await MarkdownArticle({ markdown, blogId: "42" }),
     );
     await user.click(screen.getByRole("button", { name: "启动交互" }));
     await waitFor(() =>
@@ -356,7 +358,7 @@ describe("MarkdownArticle 互动块接入", () => {
     observer.observe(parent, { childList: true });
 
     rerender(
-      <MarkdownArticle markdown={`新增前置段落\n\n${markdown}`} blogId="42" />,
+      await MarkdownArticle({ markdown: `新增前置段落\n\n${markdown}`, blogId: "42" }),
     );
     observer.disconnect();
 
@@ -365,8 +367,8 @@ describe("MarkdownArticle 互动块接入", () => {
     expect(removed).not.toContain(wrapper);
   });
 
-  it("marker 不会把 HTML 写进 RSC 之外的正文文本", () => {
-    render(<MarkdownArticle markdown={markdownWithMarkers()} blogId="42" />);
+  it("marker 不会把 HTML 写进 RSC 之外的正文文本", async () => {
+    render(await MarkdownArticle({ markdown: markdownWithMarkers(), blogId: "42" }));
     expect(document.body.textContent).not.toContain(SHA);
   });
 });

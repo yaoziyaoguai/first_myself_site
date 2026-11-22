@@ -2,7 +2,9 @@ import "../listing.css";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { ArticleLinkFeedback } from "@/components/ArticleLinkFeedback";
 import { projectLifecycle, ProjectStatus } from "@/components/ProjectStatus";
+import { SpotlightSurfaces } from "@/components/SpotlightSurfaces";
 import { siteDefaults } from "@/content/siteDefaults";
 import { getCurrentUser } from "@/lib/auth";
 import { findArticleIndexForViewer, findProjectsForViewer } from "@/lib/visitorContentCache";
@@ -25,8 +27,8 @@ export default async function ProjectsPage() {
   const publicPosts = new Map(archive.docs.map((post) => [String(post.id), post]));
 
   return (
-    <div className="site-shell page-space">
-      <header className="page-header relative">
+    <SpotlightSurfaces className="site-shell page-space">
+      <header className="page-header tech-grid-backdrop">
         <p className="eyebrow">PROJECTS</p>
         <h1>项目与实验</h1>
         <p>在代码中实践数据工程、AI 评测与 Agent 系统，记录做法、取舍和仍在尝试的方向。</p>
@@ -43,10 +45,10 @@ export default async function ProjectsPage() {
           const period = status ? project.period.replace(` · ${status}`, "") : project.period;
           const links = relatedIds.flatMap((id) => publicPosts.get(String(id)) ?? []);
           return (
-            <article id={project.slug} className="project-dossier" key={String(project.id)}>
+            <article id={project.slug} className="project-dossier spotlight-card" key={String(project.id)}>
               <div>
                 <ProjectStatus period={project.period} />
-                <h2 className="mt-3 font-serif text-2xl font-medium md:text-3xl">{project.title}</h2>
+                <h2 className="mt-3 font-sans text-2xl font-medium md:text-3xl">{project.title}</h2>
                 <p className="mt-3 text-xs text-muted-foreground">
                   {project.role} · {period}
                 </p>
@@ -74,7 +76,10 @@ export default async function ProjectsPage() {
                   <ul className="mt-5 border-t border-dashed border-border pt-2" aria-label="相关技术文章">
                     {links.map((post) => (
                       <li key={post.id}>
-                        <Link className="text-link" href={`/blog/${post.slug}`}>{post.title} →</Link>
+                        <Link className="text-link gap-3" prefetch={false} href={`/blog/${post.slug}`}>
+                          {post.title}
+                          <ArticleLinkFeedback compact iconSize={14} />
+                        </Link>
                       </li>
                     ))}
                   </ul>
@@ -84,6 +89,6 @@ export default async function ProjectsPage() {
           );
         })}
       </div>
-    </div>
+    </SpotlightSurfaces>
   );
 }

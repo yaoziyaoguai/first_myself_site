@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
 import { isAdmin } from "@/lib/auth";
 import { Footer } from "@/components/Footer";
@@ -6,6 +7,16 @@ import { Navbar } from "@/components/Navbar";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 import { SITE_URL, siteDefaults } from "@/content/siteDefaults";
 import { buildSiteJsonLd, OG_DEFAULT_PATH, serializeJsonLd } from "@/lib/discovery";
+import { siteThemeScript } from "@/lib/siteTheme";
+
+const sans = Geist({ subsets: ["latin"], variable: "--font-geist-sans", display: "swap" });
+const mono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
+  display: "optional",
+  preload: false,
+  adjustFontFallback: false,
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -42,7 +53,15 @@ export default async function MainRootLayout({
   const admin = await isAdmin();
 
   return (
-    <html data-scroll-behavior="smooth" lang="zh-CN">
+    <html
+      className={`${sans.variable} ${mono.variable}`}
+      data-scroll-behavior="smooth"
+      lang="zh-CN"
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: siteThemeScript }} />
+      </head>
       <body className="flex min-h-screen flex-col antialiased">
         <script
           type="application/ld+json"

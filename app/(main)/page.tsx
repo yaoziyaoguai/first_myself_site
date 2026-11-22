@@ -2,6 +2,7 @@ import "./listing.css";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { ProjectStatus } from "@/components/ProjectStatus";
+import { SpotlightSurfaces } from "@/components/SpotlightSurfaces";
 import { ArticleLinkFeedback } from "@/components/ArticleLinkFeedback";
 import {
   siteDefaults,
@@ -12,7 +13,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { resolveArray, resolveText } from "@/lib/contentFallback";
 import { summarizeExcerpt } from "@/lib/discovery";
 import { articleTags } from "@/lib/articleDiscovery";
-import { buildSeriesCollections, populatedSeries } from "@/lib/blogSeries";
+import { buildSeriesCollections } from "@/lib/blogSeries";
 import {
   findArticleIndexForViewer,
   findHomeGlobalForViewer,
@@ -21,6 +22,12 @@ import {
 import { formatSiteDate } from "@/lib/siteDate";
 
 export const dynamic = "force-dynamic";
+
+const researchLabels: Partial<Record<string, string>> = {
+  数据工程: "Data Reliability",
+  "AI 评测": "AI Evaluation",
+  "Agent 系统": "Agent Harness",
+};
 
 export default async function Home() {
   const viewer = await getCurrentUser();
@@ -57,61 +64,51 @@ export default async function Home() {
       : siteDefaults.projects;
   const featuredPost = postsResult.docs[0] ?? null;
   const recentPosts = postsResult.docs.slice(1, 4);
-  const featuredSeries = postsResult.docs
-    .map((post) => populatedSeries(post.series))
-    .find(Boolean);
-  const featuredCollection = buildSeriesCollections(postsResult.docs)
-    .find(({ series }) => series.id === featuredSeries?.id);
-  const latestMonth = featuredPost?.publishedDate
-    ? formatSiteDate(featuredPost.publishedDate).slice(0, 7)
-    : "";
+  const [featuredCollection] = buildSeriesCollections(postsResult.docs);
 
   return (
-    <div className="site-shell home-page">
-      <header className="home-intro">
+    <SpotlightSurfaces className="site-shell home-page">
+      <header className="home-intro tech-grid-backdrop">
         <div>
+          <p className="home-status"><span aria-hidden="true" /> Online · Data &amp; AI Agent Engineering</p>
           <h1>{title}</h1>
-          <div className="home-directions" aria-label="当前学习方向">
-            {directions.map((item) => (
-              <span key={item.label}>{item.label}</span>
-            ))}
-          </div>
-          {latestMonth && (
-            <p className="mt-3 font-mono text-xs text-muted-foreground">最近更新于 {latestMonth}</p>
-          )}
+          <p className="home-role">{role}</p>
+          <p className="home-bio">{bio}</p>
         </div>
-        <div className="home-intro-copy">
-          <p>{role}</p>
-          <p>{bio}</p>
-        </div>
+        <ol className="home-directions" aria-label="当前研究方向">
+          {directions.map(({ label }, index) => (
+            <li key={label}>
+              <span aria-hidden="true">{String(index + 1).padStart(2, "0")} /</span>
+              <span>{researchLabels[label] ?? label}</span>
+            </li>
+          ))}
+        </ol>
       </header>
 
-      <section className="home-lead" aria-label="最新文章与专题">
+      <section className="home-lead grid-crosshair" aria-label="最新文章与专题">
         {featuredPost ? (
           <Link
             prefetch={false}
-            className="group home-feature"
+            className="group home-feature spotlight-card animate-tech-in"
             href={`/blog/${featuredPost.slug}`}
           >
             <span className="home-feature-meta">
-              <span>最新文章</span>
+              <span>Latest Dispatch</span>
               <time dateTime={featuredPost.publishedDate}>
-                {featuredPost.publishedDate
-                  ? formatSiteDate(featuredPost.publishedDate)
-                  : ""}
+                {formatSiteDate(featuredPost.publishedDate).replaceAll("-", ".")}
               </time>
               {featuredPost.readingTime && <span>{featuredPost.readingTime}</span>}
-              {articleTags(featuredPost.tags).slice(0, 2).map((tag) => <span key={tag}>#{tag}</span>)}
             </span>
             <h2>{featuredPost.title}</h2>
             <span className="home-feature-excerpt">
               {summarizeExcerpt(featuredPost.excerpt, 150)}
             </span>
-            <ArticleLinkFeedback
-              className="mt-5 min-h-11 text-sm font-medium text-primary"
-              iconSize={17}
-              idleLabel="阅读这篇文章"
-            />
+            <span className="home-feature-bottom">
+              <span className="home-log-tags">
+                {articleTags(featuredPost.tags).slice(0, 3).map((tag) => <span key={tag}>#{tag}</span>)}
+              </span>
+              <ArticleLinkFeedback className="home-feature-action" iconSize={16} idleLabel="阅读全文" />
+            </span>
           </Link>
         ) : (
           <div className="border-t-2 border-primary pt-5">
@@ -123,8 +120,14 @@ export default async function Home() {
             </Link>
           </div>
         )}
-        <aside className="home-series">
-          <p className="home-series-label">按主题读</p>
+        <aside className="home-series spotlight-card animate-tech-in">
+          <p className="home-series-label">
+            Featured Track
+            {featuredCollection && <span className="series-meter" aria-hidden="true"
+              data-completed={featuredCollection.series.progress === "completed"}>
+              <i /><i /><i /><i />
+            </span>}
+          </p>
           {featuredCollection ? (
             <>
               <h2>
@@ -142,10 +145,12 @@ export default async function Home() {
                 共 {featuredCollection.articles.length} 篇 · {featuredCollection.series.progress === "completed" ? "已完结" : "持续更新"}
               </p>
               <ol className="series-preview mt-3">
-                {featuredCollection.articles.slice(0, 2).map((article, index) => (
+                {featuredCollection.articles.slice(0, 3).map((article, index) => (
                   <li key={article.id}>
                     <Link prefetch={false} href={`/blog/${article.slug}`}>
-                      <span>{String(index + 1).padStart(2, "0")}</span> {String(article.title)}
+                      <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                      <span className="series-preview-title">{String(article.title)}</span>
+                      <ArticleLinkFeedback compact iconSize={13} />
                     </Link>
                   </li>
                 ))}
@@ -189,25 +194,21 @@ export default async function Home() {
             recentPosts.map((post) => (
               <Link
                 prefetch={false}
-                className="group article-row"
+                className="group home-log"
                 href={`/blog/${post.slug}`}
                 key={post.id}
               >
-                <span className="article-date">
-                  <time dateTime={post.publishedDate}>
-                    {post.publishedDate
-                      ? formatSiteDate(post.publishedDate)
-                      : ""}
-                  </time>
-                  <span>{post.readingTime}</span>
-                </span>
-                <span>
-                  <span className="article-row-title">{post.title}</span>
-                  <span className="article-row-excerpt">
-                    {summarizeExcerpt(post.excerpt, 135)}
+                <time dateTime={post.publishedDate}>
+                  {formatSiteDate(post.publishedDate).replaceAll("-", ".")}
+                </time>
+                <span className="home-log-heading">
+                  <span className="home-log-title">{post.title}</span>
+                  <span className="home-log-tags">
+                    {articleTags(post.tags).slice(0, 2).map((tag) => <span key={tag}>#{tag}</span>)}
                   </span>
                 </span>
-                <ArticleLinkFeedback className="md:justify-self-end" compact />
+                <span className="home-log-time">{post.readingTime}</span>
+                <ArticleLinkFeedback className="home-log-arrow" compact iconSize={16} />
               </Link>
             ))
           )}
@@ -225,7 +226,7 @@ export default async function Home() {
           {projects.slice(0, 2).map((project) => (
             <Link
               prefetch={false}
-              className="group home-project"
+              className="group home-project spotlight-card"
               href={project.href}
               key={String(project.id)}
               target={project.href.startsWith("http") ? "_blank" : undefined}
@@ -239,14 +240,14 @@ export default async function Home() {
                   size={18}
                 />
               </div>
-              <h3 className="mt-7 font-serif text-3xl font-medium tracking-[-0.025em]">
+              <h3 className="mt-5 font-sans text-[1.65rem] font-semibold tracking-[-0.035em]">
                 {project.title}
               </h3>
               <p className="mt-4 text-sm leading-7 text-muted-foreground">
                 {project.description}
               </p>
               {project.highlights[0]?.text && (
-                <p className="mt-4 border-l border-primary/45 pl-3 font-mono text-xs leading-6 text-muted-foreground">
+                <p className="project-note">
                   {project.highlights[0].text}
                 </p>
               )}
@@ -286,7 +287,7 @@ export default async function Home() {
               className="grid gap-3 py-7 sm:grid-cols-[11rem_1fr]"
               key={area.title}
             >
-              <h3 className="font-serif text-lg font-medium tracking-tight">
+              <h3 className="font-sans text-lg font-medium tracking-tight">
                 {area.title}
               </h3>
               <p className="text-sm leading-7 text-muted-foreground">
@@ -296,6 +297,6 @@ export default async function Home() {
           ))}
         </div>
       </section>
-    </div>
+    </SpotlightSurfaces>
   );
 }

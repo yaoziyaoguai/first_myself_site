@@ -51,12 +51,12 @@ export default async function BlogSeriesPage({ params }: PageProps) {
 
   return (
     <div className="site-shell page-space">
-      <ArticleBackLink className="text-link mb-10" />
+      <ArticleBackLink key={series.slug} pathname={`/blog/series/${series.slug}`} className="text-link mb-10" />
 
-      <header className="grid gap-7 border-b border-foreground/70 pb-9 md:grid-cols-[minmax(0,1fr)_9rem] md:items-end md:pb-12">
+      <header className="tech-grid-backdrop grid gap-7 border-b border-border pb-9 md:grid-cols-[minmax(0,1fr)_9rem] md:items-end md:pb-12">
         <div className="max-w-4xl">
           <p className="eyebrow">文章合集</p>
-          <h1 className="mt-5 break-words text-pretty font-serif text-[2.25rem] font-medium leading-[1.25] tracking-[-0.035em] md:text-5xl">
+          <h1 className="mt-5 break-words text-pretty font-sans text-[2.25rem] font-medium leading-[1.25] tracking-[-0.035em] md:text-5xl">
             {series.title}
           </h1>
           <p className="mt-5 max-w-3xl text-sm leading-7 text-muted-foreground md:text-base md:leading-8">
@@ -91,7 +91,7 @@ export default async function BlogSeriesPage({ params }: PageProps) {
                   className="group article-row md:grid-cols-[7rem_minmax(0,1fr)_2rem]"
                   href={`/blog/${String(article.slug)}`}
                 >
-                  <span className="font-mono text-xs text-primary">
+                  <span className="font-mono text-xs text-muted-foreground">
                     第 {String(index + 1).padStart(2, "0")} 篇
                   </span>
                   <span>

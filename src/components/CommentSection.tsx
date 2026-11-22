@@ -167,14 +167,14 @@ export function CommentSection({
 
   return (
     <div className={cn("space-y-6", className)}>
-      <h2 className="font-serif text-2xl font-medium">
+      <h2 className="text-2xl font-semibold tracking-[-0.035em]">
         讨论与交流
         {totalCount > 0 && (
           <span className="ml-2 font-mono text-sm text-muted-foreground">({totalCount})</span>
         )}
       </h2>
 
-      <div className="border-y border-border bg-card/45 py-6 sm:px-6">
+      <div className="rounded-lg border border-border bg-card p-4 sm:p-6">
         <CommentForm
           onSubmit={handleSubmitComment}
           isSubmitting={submitting}
@@ -198,7 +198,7 @@ export function CommentSection({
 
       {/* 评论列表 */}
       {!loading && !error && comments.length === 0 ? (
-        <p className="py-5 font-serif italic leading-7 text-muted-foreground">
+        <p className="py-5 text-sm leading-7 text-muted-foreground">
           读完有任何不同看法、实践补充或疑问，欢迎留下你的笔记。
         </p>
       ) : (

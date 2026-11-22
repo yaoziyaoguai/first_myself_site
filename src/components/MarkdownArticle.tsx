@@ -1,40 +1,43 @@
-import { useCallback } from "react";
 import type { Components } from "react-markdown";
+import { ArticleCodeBlock, ArticleTable } from "@/components/ArticleBlocks";
 import { ArticleImage } from "@/components/ArticleImage";
 import { CopyCodeButton } from "@/components/CopyCodeButton";
+import { HeadingLink } from "@/components/HeadingLink";
 import { InteractiveHtmlEmbed } from "@/components/InteractiveHtmlEmbed";
-import { prepareArticlePresentation, type ArticleCover } from "@/lib/articlePresentation";
-import { markerFromElementProps } from "@/lib/interactive-html/ast";
+import { prepareArticlePresentation } from "@/lib/articlePresentation";
+import type { ArticleCover } from "@/lib/articleStructure";
+import { INTERACTIVE_EMBED_PREFIX, markerFromElementProps } from "@/lib/interactive-html/ast";
 import { parseMarkdown, renderMarkdown } from "@/lib/renderMarkdown";
 
 const components = {
-  pre: ({ children, node }) => {
-    const { "data-language": language, "data-lines": lines } = node!.properties;
+  h2: ({ node, id, ...props }) => {
+    void node;
     return (
-      <div className="article-code">
-        <div className="article-code-toolbar">
-          <span>{language!.toString()}</span>
-          <span>{lines!.toString()} 行</span>
-          <CopyCodeButton />
-        </div>
-        <pre tabIndex={0} role="region" aria-label="可横向滚动的代码">
-          {children}
-        </pre>
+      <div className="article-heading">
+        <h2 {...props} id={id} />
+        <HeadingLink id={id!} />
       </div>
     );
   },
-  table: ({ children }) => (
-    <div aria-label="可横向滚动的表格" className="article-table-scroll" role="region" tabIndex={0}>
-      <table>{children}</table>
-    </div>
-  ),
+  pre: ({ children, node }) => <ArticleCodeBlock node={node!} action={<CopyCodeButton />}>{children}</ArticleCodeBlock>,
+  table: ({ children }) => <ArticleTable>{children}</ArticleTable>,
   "article-image": ({ node, ...props }) => {
     void node;
     return <ArticleImage {...props} />;
   },
 } satisfies Components & { "article-image": Components["img"] };
 
-export function MarkdownArticle({
+function ArticleInteractiveHtmlEmbed(props: Record<string, unknown>) {
+  return (
+    <InteractiveHtmlEmbed
+      marker={markerFromElementProps(props)}
+      blogId={props["data-blog-id"] as string | number | null | undefined}
+      mode={props["data-interactive-mode"] as "view" | "preview"}
+    />
+  );
+}
+
+export async function MarkdownArticle({
   markdown,
   title,
   cover,
@@ -47,16 +50,13 @@ export function MarkdownArticle({
   blogId?: string | number | null;
   interactiveMode?: "view" | "preview";
 }) {
-  const embed = useCallback(function ArticleInteractiveHtmlEmbed(props: Record<string, unknown>) {
-    return (
-      <InteractiveHtmlEmbed
-        marker={markerFromElementProps(props)}
-        blogId={blogId}
-        mode={interactiveMode}
-      />
-    );
-  }, [blogId, interactiveMode]);
   const tree = parseMarkdown(markdown, title);
-  prepareArticlePresentation(tree, cover);
-  return renderMarkdown(tree, components, embed);
+  await prepareArticlePresentation(tree, cover);
+  for (const node of tree.children) {
+    if (node.type === "element" && node.tagName.startsWith(INTERACTIVE_EMBED_PREFIX)) {
+      node.properties["data-blog-id"] = blogId;
+      node.properties["data-interactive-mode"] = interactiveMode;
+    }
+  }
+  return renderMarkdown(tree, components, ArticleInteractiveHtmlEmbed);
 }

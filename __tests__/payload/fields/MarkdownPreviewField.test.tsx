@@ -7,10 +7,7 @@
  *     test controls via mockReturnValue(). FieldLabel/Description/Error are
  *     replaced with trivial placeholders so we only assert props we care
  *     about (label text, description text, error message + showError gate).
- *   - react-markdown v10 is pure ESM and brings a large dependency graph we
- *     don't want to exercise in a unit test. It is replaced with a div that
- *     echoes its children so we can assert "markdown was rendered" without
- *     parsing. remark-gfm is stubbed to a no-op for the same reason.
+ *   - The real Markdown pipeline verifies that presentation keeps source offsets.
  *   - Scroll synchronisation tests mock scrollHeight / clientHeight /
  *     scrollTop via Object.defineProperty on the element instance (jsdom
  *     reports 0 for all of them otherwise, which would make the code paths
@@ -50,8 +47,6 @@ vi.mock("@payloadcms/ui", () => ({
       <div data-testid="field-error">{message}</div>
     ) : null,
 }));
-
-vi.mock("remark-gfm", () => ({ default: () => ({}) }));
 
 // Import AFTER mocks — vi.mock is hoisted by Vitest so this resolves to mocks.
 import {
@@ -131,6 +126,21 @@ function mockScrollGeometry(
 // ---------- Tests ----------
 
 describe("MarkdownPreviewField", () => {
+  it("previews the published figure, code toolbar and scrollable table structure", () => {
+    mockUseField.mockReturnValue(defaultField({
+      value: [
+        "![图片替代文字](/example.png)", "图 1：运行链路",
+        "~~~sql\nSELECT id;\nSELECT name;\n~~~",
+        "| 字段 | 结果 |\n| --- | --- |\n| 版本 | 通过 |",
+      ].join("\n\n"),
+    }));
+    const { container } = render(<MarkdownPreviewField {...makeProps()} />);
+    const figure = container.querySelector("figure.article-figure")!;
+    expect(figure).toHaveAttribute("data-source-offset", "0");
+    expect(figure.querySelector("figcaption")).toHaveTextContent("图 1：运行链路");
+    expect(container.querySelector(".article-code-toolbar")).toHaveTextContent("SQL2 行");
+    expect(screen.getByRole("region", { name: "可横向滚动的表格" }).querySelector("table")).toHaveTextContent("版本");
+  });
   it("keeps both panes shrinkable when preview content is wider than its track", () => {
     const styles = readFileSync(
       resolve(

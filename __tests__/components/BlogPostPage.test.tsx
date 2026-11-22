@@ -30,6 +30,7 @@ vi.mock("react", async (importOriginal) => {
 
 vi.mock("next/navigation", () => ({ notFound: mocks.notFound, useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("next/link", () => ({
+  useLinkStatus: () => ({ pending: false }),
   default: ({ prefetch, onNavigate, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
     prefetch?: boolean;
     onNavigate?: unknown;
@@ -104,6 +105,10 @@ async function renderArticle() {
 describe("blog article page delivery", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal("ResizeObserver", class {
+      observe = vi.fn();
+      disconnect = vi.fn();
+    });
     for (const values of mocks.cacheMaps) values.clear();
     mocks.currentUser.mockResolvedValue(null);
     mocks.findPost.mockResolvedValue(basePost);
@@ -117,7 +122,10 @@ describe("blog article page delivery", () => {
     });
   });
 
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
 
   it("shares one slug-keyed article read between metadata and page rendering", async () => {
     const metadata = await generateMetadata(props);

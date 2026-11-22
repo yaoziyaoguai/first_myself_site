@@ -90,9 +90,9 @@ export function CommentForm({
               placeholder="匿名用户"
               maxLength={30}
               className={cn(
-                "min-h-11 w-full border border-border bg-card px-3 py-2 text-sm",
-                "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary",
-                "placeholder:text-foreground/50"
+                "min-h-11 w-full rounded-md border border-border bg-[var(--surface-subtle)]/65 px-3 py-2 text-sm transition-colors",
+                "focus:border-brand-ink focus:bg-card focus:outline-none focus:ring-2 focus:ring-ring/30",
+                "placeholder:text-muted-foreground"
               )}
             />
           </div>
@@ -111,9 +111,9 @@ export function CommentForm({
               placeholder="your@email.com"
               maxLength={100}
               className={cn(
-                "min-h-11 w-full border border-border bg-card px-3 py-2 text-sm",
-                "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary",
-                "placeholder:text-foreground/50"
+                "min-h-11 w-full rounded-md border border-border bg-[var(--surface-subtle)]/65 px-3 py-2 text-sm transition-colors",
+                "focus:border-brand-ink focus:bg-card focus:outline-none focus:ring-2 focus:ring-ring/30",
+                "placeholder:text-muted-foreground"
               )}
             />
           </div>}
@@ -129,9 +129,9 @@ export function CommentForm({
           rows={compact ? 3 : 4}
           maxLength={MAX_CHARS}
           className={cn(
-            "w-full resize-y border border-border bg-card px-3 py-3 text-sm leading-6",
-            "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary",
-            "placeholder:text-foreground/50"
+            "w-full resize-y rounded-md border border-border bg-[var(--surface-subtle)]/65 px-3 py-3 text-sm leading-6 transition-colors",
+            "focus:border-brand-ink focus:bg-card focus:outline-none focus:ring-2 focus:ring-ring/30",
+            "placeholder:text-muted-foreground"
           )}
           disabled={isSubmitting}
         />

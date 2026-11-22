@@ -3,17 +3,7 @@
 import { useEffect } from "react";
 import { Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-
-export function updateArchiveQuery(update: (params: URLSearchParams) => void) {
-  const url = new URL(window.location.href);
-  update(url.searchParams);
-  window.history.replaceState(null, "", url);
-}
-
-export function rememberArchiveLocation() {
-  sessionStorage.setItem("article-archive-query", window.location.search);
-  history.replaceState({ ...history.state, articleArchiveScrollY: window.scrollY }, "");
-}
+import { updateArchiveQuery } from "@/lib/archiveNavigation";
 
 export function ArticleSearch() {
   const searchParams = useSearchParams();
@@ -33,18 +23,14 @@ export function ArticleSearch() {
         aria-label="搜索文章"
         id="article-search"
         type="search"
-        placeholder="搜索标题、摘要、标签"
+        placeholder="筛选标题、摘要或技术栈…"
         value={query}
         onChange={(event) => {
           const value = event.target.value;
           updateArchiveQuery((params) => {
             params.delete("page");
-            if (value) {
-              params.set("q", value);
-              params.delete("view");
-            } else {
-              params.delete("q");
-            }
+            if (value) params.set("q", value);
+            else params.delete("q");
           });
         }}
       />

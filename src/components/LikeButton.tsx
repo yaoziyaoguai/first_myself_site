@@ -117,7 +117,10 @@ export function LikeButton({
           aria-hidden="true"
           className={cn(iconSizes[size], "mr-1", status.hasLiked && "fill-current motion-safe:animate-[like-pop_240ms_ease-out]")}
         />
-        <span aria-live="polite">
+        {!loading && showCount && (
+          <span key={status.count} className="like-count" data-incremented={status.hasLiked} aria-hidden="true">{status.count}</span>
+        )}
+        <span aria-live="polite" className={!loading && showCount ? "sr-only" : undefined}>
           {loading ? "点赞" : showCount ? `${status.count} 人觉得有启发` : status.hasLiked ? "已点赞" : "点赞"}
         </span>
       </Button>

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 import type { Comment } from "@/lib/comments";
 import { Trash2, MessageCircle, ChevronDown, ChevronUp } from "lucide-react";
@@ -63,21 +62,20 @@ export function CommentItem({
   return (
     <div
       className={cn(
-        "py-4",
-        depth > 0 && "ml-6 pl-4 border-l-2 border-l-border/30"
+        "discussion-item",
+        depth > 0 && "discussion-reply"
       )}
     >
       {/* 评论头部 */}
-      <div className="flex items-center gap-2 mb-2">
+      <span className="discussion-avatar" aria-hidden="true">{Array.from(comment.authorName)[0]}</span>
+      <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="font-medium text-sm">{comment.authorName}</span>
         {comment.isAuthorRole && (
-          <Badge variant="outline" className="border-primary/40 text-xs text-primary">
-            作者
-          </Badge>
+          <span className="discussion-author" aria-label="作者" title="作者">Author</span>
         )}
-        <span className="text-xs text-muted-foreground">
+        <time className="font-mono text-xs text-muted-foreground" dateTime={comment.createdAt}>
           {formatTime(comment.createdAt)}
-        </span>
+        </time>
       </div>
 
       {/* 评论内容 */}
@@ -129,7 +127,7 @@ export function CommentItem({
               <Button
                 variant="ghost"
                 size="sm"
-                className="min-h-11"
+                className="discussion-cancel min-h-11"
                 disabled={deleting}
                 onClick={() => {
                   setConfirmDelete(false);

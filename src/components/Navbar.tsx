@@ -1,16 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { NavbarSearch } from "@/components/NavbarSearch";
+import { CommandMenu } from "@/components/CommandMenu";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { discardArchiveReturnOutside } from "@/lib/archiveNavigation";
 
 const navLinks = [
-  { href: "/", label: "首页" },
-  { href: "/blog", label: "文章" },
-  { href: "/projects", label: "项目" },
-  { href: "/about", label: "关于" },
-  { href: "/contact", label: "联系" },
+  { href: "/", label: "首页", segment: "" },
+  { href: "/blog", label: "文章", segment: "writing" },
+  { href: "/projects", label: "项目", segment: "projects" },
+  { href: "/about", label: "关于", segment: "about" },
+  { href: "/contact", label: "联系", segment: "contact" },
 ];
 
 export function Navbar({ admin = false }: { admin?: boolean }) {
@@ -18,6 +20,17 @@ export function Navbar({ admin = false }: { admin?: boolean }) {
   const pathname = usePathname();
   const toggle = useRef<HTMLButtonElement>(null);
   const header = useRef<HTMLElement>(null);
+  const desktopNav = useRef<HTMLElement>(null);
+  const current = navLinks.find(({ href }) =>
+    pathname === href || pathname.startsWith(href + "/"),
+  );
+
+  function followLink(link: HTMLAnchorElement) {
+    const nav = desktopNav.current!;
+    nav.style.setProperty("--nav-x", `${link.offsetLeft}px`);
+    nav.style.setProperty("--nav-width", `${link.offsetWidth}px`);
+    nav.dataset.hovering = "true";
+  }
 
   useEffect(() => {
     const onScroll = () => header.current?.setAttribute("data-scrolled", String(window.scrollY > 24));
@@ -25,6 +38,10 @@ export function Navbar({ admin = false }: { admin?: boolean }) {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    discardArchiveReturnOutside(pathname);
+  }, [pathname]);
 
   useEffect(() => {
     if (!open) return;
@@ -53,56 +70,48 @@ export function Navbar({ admin = false }: { admin?: boolean }) {
 
   return (
     <header ref={header} className="site-nav">
-      <div className="site-shell flex h-[4.25rem] items-center justify-between">
+      <div className="site-shell flex h-[var(--nav-height)] items-center justify-between">
         <Link
           prefetch={false}
           className="group inline-flex min-h-11 items-center gap-3"
           href="/"
           onClick={() => setOpen(false)}
         >
-          <span className="grid size-8 place-items-center rounded-[0.45rem] border border-primary/25 bg-primary text-[0.68rem] font-semibold tracking-[-0.02em] text-primary-foreground transition-transform duration-200 group-hover:-rotate-3">
-            JW
+          <span aria-hidden="true" className="nav-brand-mark">
+            [JW]
           </span>
           <span className="flex items-baseline gap-2">
-            <span className="font-serif text-base font-semibold tracking-[-0.02em]">
+            <span className="text-sm font-semibold tracking-[-0.02em]">
               Jinkun Wang
             </span>
-            <span className="hidden font-mono text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground sm:inline">
-              Field Notes
-            </span>
+            {current?.segment && <span className="hidden font-mono text-[0.65rem] text-muted-foreground lg:inline">/ {current.segment}</span>}
           </span>
         </Link>
 
         <nav
+          ref={desktopNav}
           aria-label="主要导航"
-          className="hidden items-center gap-1 md:flex"
+          className="site-nav-links hidden items-center gap-1 md:flex"
+          onPointerLeave={(event) => delete event.currentTarget.dataset.hovering}
         >
-          {navLinks.map((link) => {
-            const active =
-              link.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(link.href);
-            return (
+          {navLinks.map((link) => (
               <Link
                 prefetch={false}
-                aria-current={active ? "page" : undefined}
-                className={`relative inline-flex min-h-11 items-center px-3 text-sm transition-colors duration-200 after:absolute after:inset-x-3 after:bottom-1.5 after:h-px after:origin-left after:bg-primary after:transition-transform after:duration-200 ${
-                  active
-                    ? "text-foreground after:scale-x-100"
-                    : "text-muted-foreground after:scale-x-0 hover:text-foreground hover:after:scale-x-100"
-                }`}
+                aria-current={link === current ? "page" : undefined}
+                className="site-nav-link"
                 href={link.href}
                 key={link.href}
+                onPointerEnter={(event) => followLink(event.currentTarget)}
               >
                 {link.label}
               </Link>
-            );
-          })}
+          ))}
         </nav>
 
-        <div className="flex items-center gap-2">
-          <NavbarSearch />
-          {admin && <Link prefetch={false} href="/admin" className="nav-admin hidden md:inline-flex">后台 ↗</Link>}
+        <div className="flex items-center gap-1 sm:gap-2">
+          <CommandMenu routes={navLinks} />
+          <ThemeToggle />
+          {admin && <Link prefetch={false} href="/admin" className="nav-admin hidden md:inline-flex">Admin ↗</Link>}
         <button
           ref={toggle}
           aria-controls="mobile-navigation"
@@ -131,24 +140,18 @@ export function Navbar({ admin = false }: { admin?: boolean }) {
           id="mobile-navigation"
         >
           <div className="site-shell grid py-3">
-            {navLinks.map((link) => {
-              const active =
-                link.href === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(link.href);
-              return (
+            {navLinks.map((link) => (
                 <Link
                   prefetch={false}
-                  aria-current={active ? "page" : undefined}
-                  className={`flex min-h-12 items-center justify-between border-b border-border/70 text-sm ${active ? "text-primary" : "text-foreground"}`}
+                  aria-current={link === current ? "page" : undefined}
+                  className={`flex min-h-12 items-center justify-between border-b border-border/70 text-sm ${link === current ? "text-accent-foreground" : "text-foreground"}`}
                   href={link.href}
                   key={link.href}
                   onClick={() => setOpen(false)}
                 >
                   <span>{link.label}</span>
                 </Link>
-              );
-            })}
+            ))}
             {admin && <Link prefetch={false} href="/admin" className="nav-admin mt-3 justify-self-start">后台 ↗</Link>}
           </div>
         </nav>
